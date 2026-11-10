@@ -391,3 +391,28 @@ This is an append-only engineering journal. Each substantial session is recorded
 - The Phase 2 proposal still defines architecture and implementation gates only.
 - Full Phase 1 acceptance verification remains outstanding, including interactive effects/diagnostics checks and target-PC performance measurements.
 - Next: verify PR #14 mergeability and CI, then merge this documentation-only proposal without treating Phase 2 as complete.
+
+## 2026-11-10 - Phase 2 PR 1: reusable building definitions
+
+### Before
+- Starting `main` commit: `0a4153d275cf03d8ac0229f2fa31e64add0f989d` (Phase 2 architecture PR #14 merged).
+- Phase 1 implementation PRs #11, #16, and #17 are merged. Issue #5 remains open for interactive effects/diagnostics checks and target-PC performance observations; those checks are not inferred from merge state or headless CI.
+- Inspected the merged `DestructibleStructure`, support graph, blast service, material Resource/assets, runtime impact controls, debris lifecycle and budgets, scene setup, smoke tests, and Linux/Windows workflow.
+- Existing structure generation was still a hard-coded 7 x 5 x 2 loop with layer-based materials. Existing damage, support, blast, cleanup, and reset code already operate on `Vector3i` cell identities and can be reused.
+- Implementation risk: custom Resource typed-array serialization and the second sparse layout require actual Godot 4.7.2 import/runtime validation on both CI platforms.
+
+### During
+- Added versioned `BuildingDefinition` and per-cell `BuildingCellDefinition` Resources.
+- Added whole-definition and material-profile validation for schema, IDs, dimensions, finite values, cell bounds/uniqueness, custom transforms, required material references, profile ranges, catalog ID conflicts, and a conservative 256 occupied-cell ceiling.
+- Added `classic_70_piece.tres`, preserving all 70 coordinates, original cell centers, and foundation/masonry/lightweight layer assignments.
+- Added `sparse_pillar_beam_11.tres`, an 11-cell sparse sample with a per-cell lightweight material override and a custom local transform.
+- Replaced the fixed grid/layer builder with validated definition-driven fragment creation while retaining the existing cell-indexed damage/support state and Phase 1 debris/reset lifecycle.
+- Added headless tests for both Resources, unique/in-range coordinates, original center/material compatibility, invalid duplicate/out-of-range/missing-material definitions, invalid material values, duplicate catalog IDs, sparse generation, custom transform/material mapping, collapse, and reset.
+- Added `docs/BUILDING_DEFINITIONS.md` and updated the project status, roadmap, README, architecture status, and this work log.
+- No Phase 1 implementation files, gameplay root script, or project settings were changed.
+
+### After
+- Implementation is on `ai/phase-2/building-definitions`; no PR has been merged.
+- Linux/Windows Godot 4.7.2 import, parse, and headless smoke validation are pending the PR workflow. No test success is claimed until the logs and explicit markers are inspected.
+- Interactive building authoring in the Inspector and target-PC performance with larger buildings remain manual checks.
+- Next: inspect the cross-platform CI logs, fix any Resource serialization or runtime issues, and leave the implementation PR ready for integration review.
