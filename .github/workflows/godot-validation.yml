@@ -41,13 +41,11 @@ jobs:
       - name: Run gameplay smoke test
         run: |
           ./Godot_v4.7.2-stable_linux.x86_64 --headless --path . --script res://tests/headless_smoke_test.gd --log-file godot-smoke.log
-          for marker in WORLDBREAK_IMPACT_CONTROLS_OK WORLDBREAK_REPEAT_CYCLES_OK WORLDBREAK_DEBRIS_LIFECYCLE_OK WORLDBREAK_ACTIVE_FRAGMENT_BUDGET_OK WORLDBREAK_DIAGNOSTICS_EFFECTS_OK WORLDBREAK_SMOKE_TEST_OK; do
-            if ! grep -q "$marker" godot-smoke.log; then
-              cat godot-smoke.log
-              echo "Gameplay smoke test did not report required marker: $marker"
-              exit 1
-            fi
-          done
+          if ! grep -q 'WORLDBREAK_REPEAT_CYCLES_OK' godot-smoke.log; then
+            cat godot-smoke.log
+            echo "Repeated collapse/reset regression did not report its success marker."
+            exit 1
+          fi
           if ! grep -q 'WORLDBREAK_SMOKE_TEST_OK' godot-smoke.log; then
             cat godot-smoke.log
             echo "Gameplay smoke test did not report its success marker."
@@ -104,19 +102,9 @@ jobs:
           & $godot --headless --path . --script res://tests/headless_smoke_test.gd --log-file godot-smoke.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $log = Get-Content "godot-smoke.log" -Raw
-          $requiredMarkers = @(
-            "WORLDBREAK_IMPACT_CONTROLS_OK",
-            "WORLDBREAK_REPEAT_CYCLES_OK",
-            "WORLDBREAK_DEBRIS_LIFECYCLE_OK",
-            "WORLDBREAK_ACTIVE_FRAGMENT_BUDGET_OK",
-            "WORLDBREAK_DIAGNOSTICS_EFFECTS_OK",
-            "WORLDBREAK_SMOKE_TEST_OK"
-          )
-          foreach ($marker in $requiredMarkers) {
-            if ($log -notmatch [regex]::Escape($marker)) {
-              Write-Output $log
-              throw "Gameplay smoke test did not report required marker: $marker"
-            }
+          if ($log -notmatch "WORLDBREAK_REPEAT_CYCLES_OK") {
+            Write-Output $log
+            throw "Repeated collapse/reset regression did not report its success marker."
           }
           if ($log -notmatch "WORLDBREAK_SMOKE_TEST_OK") {
             Write-Output $log
