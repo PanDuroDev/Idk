@@ -3,6 +3,7 @@ const ChunkData = preload("res://terrain/terrain_chunk_data.gd")
 const Mesher = preload("res://terrain/terrain_tetra_mesher.gd")
 const BudgetConfig = preload("res://terrain/terrain_budget_config.gd")
 const CollisionQueue = preload("res://terrain/terrain_collision_queue.gd")
+const MeshQueue = preload("res://terrain/terrain_mesh_rebuild_queue.gd")
 
 func _initialize() -> void:
 	call_deferred("_run")
@@ -23,6 +24,7 @@ func _run() -> void:
 	assert(low.max_resident_chunks == 8)
 	assert(low.max_dirty_chunks_per_edit == 4)
 	assert(low.max_pending_collision_rebuilds == 2)
+	assert(low.max_pending_mesh_rebuilds == 2)
 	assert(low.estimated_density_bytes(8) < normal.estimated_density_bytes(32))
 
 	var invalid = BudgetConfig.new()
@@ -35,6 +37,10 @@ func _run() -> void:
 	normal.configure_collision_queue(queue)
 	assert(queue.max_rebuilds_per_physics_frame == 1)
 	assert(queue.max_pending_collision_rebuilds == 8)
+	var mesh_queue = MeshQueue.new()
+	low.configure_mesh_queue(mesh_queue)
+	assert(mesh_queue.max_rebuilds_per_frame == 1)
+	assert(mesh_queue.max_pending_mesh_rebuilds == 2)
 
 	# Repeatable CPU-side spike: fixed planar density field at two resolutions.
 	for resolution in [8, 16]:
