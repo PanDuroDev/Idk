@@ -53,7 +53,7 @@ The current test structure assigns profiles by layer: the base uses foundation c
 These values are editable prototype tuning, not measured real-world material constants. The material assignment is currently layer-based, not an in-game material editor.
 
 ### Explicit limitations
-- GitHub Actions runs Godot 4.7.2 headless import, launch, and smoke validation on Linux and Windows. This verifies platform-level project startup and logic, not interactive rendering quality or target-PC performance.
+- GitHub Actions runs Godot 4.7.2 headless import, launch, and smoke validation on Linux and Windows. The collapse test simulates 120 physics frames and checks finite fragment transforms/velocities and ground containment. This still does not verify interactive rendering quality, long-duration settling, or target-PC performance.
 - The support graph is topological, not a physical bond network.
 - Damage uses distance to fragment centers and a linear falloff.
 - No force distribution, stress, bending, crack propagation, or physical joint break thresholds.
