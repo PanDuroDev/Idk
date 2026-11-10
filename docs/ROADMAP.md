@@ -17,8 +17,8 @@
 - [ ] Validate collision stability and resets in interactive play.
 - [x] Add in-game impact radius/damage/impulse controls (PR 1 implementation; pending CI and integration review).
 - [x] Add fragment lifetime, sleeping, and active-fragment budgets (PR 2 implementation; pending CI and integration review).
-- [ ] Add low-cost dust/debris effects.
-- [ ] Add detailed physics/rendering debug overlay.
+- [x] Add low-cost dust/debris effects (PR 3 implementation; pending CI and integration review).
+- [x] Add opt-in destruction/physics diagnostics overlay (PR 3 implementation; pending CI and integration review).
 
 ## Phase 2 - Structural authoring and reusable configurations ([AI issue #6](https://github.com/PanDuroDev/Idk/issues/6), after Phase 1 runtime interfaces stabilize)
 - [x] Deterministic six-axis support graph.
