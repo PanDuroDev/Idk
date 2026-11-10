@@ -48,6 +48,21 @@ func _run_smoke_test() -> void:
 		_fail("Expected 70 fragments, got %d" % fragment_count)
 		return
 
+	if absf(float(main.get("blast_radius")) - 4.5) > 0.001 or absf(float(main.get("blast_damage")) - 4.0) > 0.001 or absf(float(main.get("blast_impulse")) - 22.0) > 0.001:
+		_fail("Impact controls did not preserve the prototype defaults")
+		return
+	main.call("adjust_impact_setting", &"blast_radius", 100.0)
+	main.call("adjust_impact_setting", &"blast_damage", -100.0)
+	main.call("adjust_impact_setting", &"blast_impulse", 1000.0)
+	if absf(float(main.get("blast_radius")) - 12.0) > 0.001 or absf(float(main.get("blast_damage")) - 0.1) > 0.001 or absf(float(main.get("blast_impulse")) - 100.0) > 0.001:
+		_fail("Impact controls did not clamp values to their safe ranges")
+		return
+	main.call("reset_impact_settings")
+	if absf(float(main.get("blast_radius")) - 4.5) > 0.001 or absf(float(main.get("blast_damage")) - 4.0) > 0.001 or absf(float(main.get("blast_impulse")) - 22.0) > 0.001:
+		_fail("Impact controls did not restore their defaults")
+		return
+	print("WORLDBREAK_IMPACT_CONTROLS_OK: defaults, bounds, and reset")
+
 	if int(structure.call("get_supported_fragment_count")) != 70:
 		_fail("All intact fragments should initially be supported")
 		return

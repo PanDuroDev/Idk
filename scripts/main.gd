@@ -18,10 +18,16 @@ var _blast_service: RefCounted
 var _pending_blasts: Array[Dictionary] = []
 var _reset_requested: bool = false
 var _hud_label: Label
+var _ui_canvas: CanvasLayer
 var _hud_refresh_timer: float = 0.0
 var _total_impacts: int = 0
 var _last_affected_count: int = 0
 var _last_broken_count: int = 0
+var _impact_value_labels: Dictionary = {}
+
+const DEFAULT_BLAST_RADIUS: float = 4.5
+const DEFAULT_BLAST_DAMAGE: float = 4.0
+const DEFAULT_BLAST_IMPULSE: float = 22.0
 
 
 func _ready() -> void:
@@ -41,6 +47,7 @@ func _ready() -> void:
 	_player.blast_requested.connect(request_blast)
 
 	_build_hud()
+	_build_impact_controls()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -80,6 +87,7 @@ func _process(delta: float) -> void:
 		fragment_unsupported,
 		_last_affected_count
 	]
+	_refresh_impact_controls()
 
 
 func request_blast(ray_origin: Vector3, ray_direction: Vector3) -> void:
@@ -204,12 +212,96 @@ func _spawn_blast_flash(position: Vector3) -> void:
 
 
 func _build_hud() -> void:
-	var canvas := CanvasLayer.new()
-	add_child(canvas)
+	_ui_canvas = CanvasLayer.new()
+	add_child(_ui_canvas)
 
 	_hud_label = Label.new()
 	_hud_label.position = Vector2(18.0, 16.0)
 	_hud_label.add_theme_font_size_override("font_size", 15)
 	_hud_label.add_theme_color_override("font_color", Color(0.88, 0.91, 0.96))
-	canvas.add_child(_hud_label)
+	_ui_canvas.add_child(_hud_label)
 	_hud_label.text = "WORLDBREAK - initializing"
+
+
+func adjust_impact_setting(setting: StringName, amount: float) -> void:
+	match setting:
+		&"blast_radius":
+			blast_radius = clampf(blast_radius + amount, 0.5, 12.0)
+		&"blast_damage":
+			blast_damage = clampf(blast_damage + amount, 0.1, 10.0)
+		&"blast_impulse":
+			blast_impulse = clampf(blast_impulse + amount, 1.0, 100.0)
+		_:
+			return
+	_refresh_impact_controls()
+
+
+func reset_impact_settings() -> void:
+	blast_radius = DEFAULT_BLAST_RADIUS
+	blast_damage = DEFAULT_BLAST_DAMAGE
+	blast_impulse = DEFAULT_BLAST_IMPULSE
+	_refresh_impact_controls()
+
+
+func _build_impact_controls() -> void:
+	var panel := PanelContainer.new()
+	panel.name = "ImpactControls"
+	panel.position = Vector2(910.0, 54.0)
+	panel.custom_minimum_size = Vector2(350.0, 0.0)
+	_ui_canvas.add_child(panel)
+
+	var layout := VBoxContainer.new()
+	layout.add_theme_constant_override("separation", 5)
+	panel.add_child(layout)
+
+	var heading := Label.new()
+	heading.text = "IMPACT SETTINGS"
+	heading.add_theme_font_size_override("font_size", 14)
+	layout.add_child(heading)
+
+	_add_impact_control_row(layout, "Blast radius", &"blast_radius", 0.25)
+	_add_impact_control_row(layout, "Damage", &"blast_damage", 0.25)
+	_add_impact_control_row(layout, "Physical impulse", &"blast_impulse", 1.0)
+
+	var reset_button := Button.new()
+	reset_button.text = "Reset impact defaults"
+	reset_button.tooltip_text = "Restore radius 4.5, damage 4.0, and impulse 22.0"
+	reset_button.pressed.connect(reset_impact_settings)
+	layout.add_child(reset_button)
+	_refresh_impact_controls()
+
+
+func _add_impact_control_row(parent: VBoxContainer, title: String, setting: StringName, step: float) -> void:
+	var row := HBoxContainer.new()
+	parent.add_child(row)
+
+	var name_label := Label.new()
+	name_label.text = title
+	name_label.custom_minimum_size.x = 142.0
+	row.add_child(name_label)
+
+	var decrease_button := Button.new()
+	decrease_button.text = "−"
+	decrease_button.custom_minimum_size.x = 34.0
+	decrease_button.pressed.connect(adjust_impact_setting.bind(setting, -step))
+	row.add_child(decrease_button)
+
+	var value_label := Label.new()
+	value_label.custom_minimum_size.x = 62.0
+	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	row.add_child(value_label)
+	_impact_value_labels[setting] = value_label
+
+	var increase_button := Button.new()
+	increase_button.text = "+"
+	increase_button.custom_minimum_size.x = 34.0
+	increase_button.pressed.connect(adjust_impact_setting.bind(setting, step))
+	row.add_child(increase_button)
+
+
+func _refresh_impact_controls() -> void:
+	if not _impact_value_labels.has(&"blast_radius"):
+		return
+	(_impact_value_labels[&"blast_radius"] as Label).text = "%.2f" % blast_radius
+	(_impact_value_labels[&"blast_damage"] as Label).text = "%.2f" % blast_damage
+	(_impact_value_labels[&"blast_impulse"] as Label).text = "%.1f" % blast_impulse
