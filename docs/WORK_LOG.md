@@ -458,3 +458,11 @@ This is an append-only engineering journal. Each substantial session is recorded
 - Godot 4.7.2 import/parse, editor-tool scene loading, material catalog/preview headless tests, and Linux/Windows CI are pending.
 - The EditorScript's interactive File → Run workflow and visual preview quality still require manual Godot editor validation.
 - Next: inspect cross-platform CI and any review comments, repair findings, then leave PR #19 ready for integration review. Do not merge.
+
+### Material authoring cross-platform validation
+
+- Godot 4.7.2 [Actions run #42897122527](https://github.com/PanDuroDev/Idk/actions/runs/42897122527) passed all steps on Linux and Windows.
+- Both platforms imported/parsed the project, launched headlessly, ran the gameplay smoke test, and passed the isolated terrain chunk regression.
+- Linux console output explicitly included `WORLDBREAK_MATERIAL_AUTHORING_OK`, `WORLDBREAK_MATERIAL_PREVIEW_OK`, `WORLDBREAK_BUILDING_DEFINITIONS_OK`, `WORLDBREAK_REPEAT_CYCLES_OK`, `WORLDBREAK_SMOKE_TEST_OK`, and `WORLDBREAK_TERRAIN_CHUNK_MESH_OK`, with no script, parse, or engine runtime errors. Windows passed the same marker-gated steps.
+- Headless validation confirms catalog operations and preview scene state/tint/metadata behavior, but does not prove the editor's File → Run workflow or visual quality in a normal Godot editor window. Those remain manual validation items.
+- Next: update PR #19 with CI evidence, mark it ready for integration review, and continue Phase 2 configuration save/load on a separate stacked branch. Do not merge.
