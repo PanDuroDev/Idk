@@ -265,3 +265,25 @@ This is an append-only engineering journal. Each substantial session is recorded
 - The five phase issues describe 15 core future PRs, plus one optional breakable-joint feasibility PR if evidence supports it. The three already merged foundation PRs make 18 planned core PRs overall.
 - No implementation PR was created or merged in this delegation session. The integration maintainer remains responsible for review and ordered merges.
 - Next: send the Phase 1 prompt from issue #5 to the first AI.
+
+
+## 2026-11-10 - Phase 1 PR 1: runtime impact controls
+
+### Before work
+- Starting main commit: 70da82274da67faf034afb9d98932f4fe1db03f4.
+- Confirmed Phase 0 PRs #2-#4 are merged and no other PRs are open.
+- Reviewed README, project status, roadmap, technical direction, work log, manual validation checklist, main scene/controller, blast service, destructible structure, headless smoke test, and Linux/Windows workflow.
+- Existing pipeline already routes blast radius/damage through apply_blast_damage and radius/impulse through BlastService; the new UI mutates these existing exported properties rather than introducing parallel impact state.
+- Risk: UI geometry/input and GDScript signal binding require interactive Godot validation; headless tests can verify settings bounds and reset only.
+
+### During work
+- Added a compact in-game Impact Settings panel with +/- controls for radius, damage, and impulse.
+- Preserved existing defaults and blast pipeline. Bounds: radius 0.5-12.0, damage 0.1-10.0, impulse 1.0-100.0.
+- Added a single reset-to-default action and headless assertions for defaults, clamping, and reset.
+- Updated README and manual validation instructions.
+- CI has not yet run for this branch; no interactive or target-PC performance claim is made.
+
+### After work
+- Implementation and documentation are committed on ai/phase-1/runtime-impact-controls.
+- Pending: Linux/Windows Actions logs, panel visual/input validation, and integration maintainer review.
+- Next: open PR 1, inspect both platform logs and repair any errors before proceeding to the debris lifecycle branch.
