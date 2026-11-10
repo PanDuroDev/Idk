@@ -366,15 +366,16 @@ func _run_smoke_test() -> void:
 
 
 	# Debug diagnostics are opt-in, and effect bursts remain explicitly bounded.
-	if bool(main.get("_debug_overlay_visible")):
-		_fail("Debug overlay should be hidden by default")
+	var debug_panel: PanelContainer = main.get("_debug_overlay_panel") as PanelContainer
+	if debug_panel == null or debug_panel.visible or bool(main.get("_debug_overlay_visible")):
+		_fail("Debug overlay should exist and be hidden by default")
 		return
 	main.call("toggle_debug_overlay")
-	if not bool(main.get("_debug_overlay_visible")) or not bool(main.get_node("DebugOverlay").visible):
+	if not bool(main.get("_debug_overlay_visible")) or not debug_panel.visible:
 		_fail("F3 debug overlay toggle did not enable diagnostics")
 		return
 	main.call("toggle_debug_overlay")
-	if bool(main.get_node("DebugOverlay").visible):
+	if debug_panel.visible:
 		_fail("Debug overlay toggle did not hide diagnostics")
 		return
 	for effect_index in range(12):
