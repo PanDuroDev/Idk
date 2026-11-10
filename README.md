@@ -45,6 +45,8 @@ Controls are defined through Godot InputMap and can be remapped in Project Setti
 - Generated fragments share mesh, collision, and material resources.
 
 ## Validation
+The workflow runs on both Linux and Windows for pull requests to `main` and pushes to `main`.
+
 GitHub Actions imports and launches the project headlessly, then tests:
 - Support graph connectivity and alternate support paths.
 - Base-row failure and collapse.
