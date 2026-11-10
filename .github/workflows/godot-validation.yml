@@ -44,24 +44,62 @@ jobs:
           $ErrorActionPreference = "Stop"
           Invoke-WebRequest -Uri "https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_win64.exe.zip" -OutFile godot.zip
           Expand-Archive -Path godot.zip -DestinationPath godot
-          if (-not (Test-Path ".\godot\Godot_v4.7.2-stable_win64.exe")) {
+          $godot = ".\godot\Godot_v4.7.2-stable_win64.exe"
+          if (-not (Test-Path $godot)) {
             throw "Godot 4.7.2 Windows executable was not found in the release archive."
           }
 
-      - name: Import project and parse scripts
+      - name: Import, launch, and test with checked logs
         shell: pwsh
         run: |
-          & ".\godot\Godot_v4.7.2-stable_win64.exe" --headless --editor --path . --quit
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $ErrorActionPreference = "Stop"
+          $godot = ".\godot\Godot_v4.7.2-stable_win64.exe"
 
-      - name: Launch project headlessly
-        shell: pwsh
-        run: |
-          & ".\godot\Godot_v4.7.2-stable_win64.exe" --headless --path . --quit-after 3
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          function Invoke-GodotChecked {
+            param(
+              [string[]]$Arguments,
+              [string]$LogPath,
+              [string[]]$RequiredMarkers = @()
+            )
 
-      - name: Run gameplay smoke test
-        shell: pwsh
-        run: |
-          & ".\godot\Godot_v4.7.2-stable_win64.exe" --headless --path . --script res://tests/headless_smoke_test.gd
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            $output = & $godot @Arguments --log-file $LogPath 2>&1
+            $exitCode = $LASTEXITCODE
+            $output | ForEach-Object { Write-Output $_ }
+
+            if ($exitCode -ne 0) {
+              throw "Godot failed for $LogPath with exit code $exitCode."
+            }
+            if (-not (Test-Path $LogPath)) {
+              throw "Godot did not create the expected log file: $LogPath"
+            }
+
+            $logText = Get-Content -Path $LogPath -Raw
+            $combinedOutput = ($output -join "`n") + "`n" + $logText
+            if ($combinedOutput -match "SCRIPT ERROR:|Parse Error:|Compile Error:|ERROR:|WORLDBREAK_SMOKE_TEST_FAILED") {
+              throw "Godot emitted an error while running $LogPath."
+            }
+            foreach ($marker in $RequiredMarkers) {
+              if ($combinedOutput -notmatch [regex]::Escape($marker)) {
+                throw "Expected Godot success marker was missing from $LogPath: $marker"
+              }
+            }
+          }
+
+          # --import waits for project resources and the global class registry.
+          Invoke-GodotChecked -Arguments @("--headless", "--path", ".", "--import") -LogPath "godot-import.log"
+
+          $classCachePath = ".\.godot\global_script_class_cache.cfg"
+          if (-not (Test-Path $classCachePath)) {
+            throw "Godot import did not create the global script class cache."
+          }
+          $classCache = Get-Content -Path $classCachePath -Raw
+          if ($classCache -notmatch "DestructionMaterialProfile") {
+            throw "The global script class cache is missing DestructionMaterialProfile."
+          }
+
+          Invoke-GodotChecked -Arguments @("--headless", "--path", ".", "--quit-after", "3") -LogPath "godot-launch.log"
+
+          Invoke-GodotChecked -Arguments @("--headless", "--path", ".", "--script", "res://tests/headless_smoke_test.gd") -LogPath "godot-smoke.log" -RequiredMarkers @(
+            "WORLDBREAK_PHYSICS_COLLAPSE_OK:",
+            "WORLDBREAK_SMOKE_TEST_OK:"
+          )
