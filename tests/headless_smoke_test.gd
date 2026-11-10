@@ -336,6 +336,25 @@ func _run_smoke_test() -> void:
 		_fail("Debris cleanup/reset did not restore all original structural fragments")
 		return
 	print("WORLDBREAK_DEBRIS_LIFECYCLE_OK: wake, expiry, and full reset")
+
+	# Debug diagnostics are opt-in, and effect bursts remain explicitly bounded.
+	if bool(main.get("_debug_overlay_visible")):
+		_fail("Debug overlay should be hidden by default")
+		return
+	main.call("toggle_debug_overlay")
+	if not bool(main.get("_debug_overlay_visible")) or not bool(main.get_node("DebugOverlay").visible):
+		_fail("F3 debug overlay toggle did not enable diagnostics")
+		return
+	main.call("toggle_debug_overlay")
+	if bool(main.get_node("DebugOverlay").visible):
+		_fail("Debug overlay toggle did not hide diagnostics")
+		return
+	for effect_index in range(12):
+		main.call("_spawn_blast_flash", Vector3.ZERO)
+	if int(main.call("get_active_effect_count")) > 8:
+		_fail("Blast dust effects exceeded the active effect budget")
+		return
+	print("WORLDBREAK_DIAGNOSTICS_EFFECTS_OK: opt-in overlay and bounded dust bursts")
 	print("WORLDBREAK_SMOKE_TEST_OK: all material profiles, support graph, collapse, cumulative damage, repeated reset, and reset")
 	quit(0)
 
