@@ -435,3 +435,34 @@ This is an append-only engineering journal. Each substantial session is recorded
 - The first color assertion exposed that the test's node-name lookup was brittle. The test now locates the visual child by node type and reports separate failures for missing visual nodes, missing material overrides, and color mismatches.
 - Final code run [#42895893291](https://github.com/PanDuroDev/Idk/actions/runs/42895893291) passed Linux and Windows import/parse, launch, gameplay smoke, and isolated terrain regression. Linux logs show the building-definition, five-cycle reset, overall smoke, and terrain success markers with no script/parse/engine errors; Windows completed the same marker-gated checks successfully.
 - Next: finish the requested CodeRabbit review, address any findings, then leave PR #18 ready for maintainer integration. Do not merge.
+
+## 2026-11-10 - Phase 2 PR 2: native material authoring workflow
+
+### Before
+- PR #18 contains the merged-in-branch Resource-first building definitions and its CI regression coverage. It remains a separate, unmerged dependency PR.
+- The project already has three `DestructionMaterialProfile` Resources and a shared validator, but no central catalog, safe duplicate helper, editor validation entry point, or material preview.
+- Risk: custom global script class names are not reliably available in Windows headless runs; new scripts therefore use explicit preload aliases for typed cross-script references.
+
+### During
+- Added `MaterialProfileCatalog`, which resolves profiles by stable ID, validates the catalog through the shared Phase 2 validator, rejects invalid/duplicate additions, and deep-duplicates an existing profile under a new ID/name without writing or overwriting files.
+- Added `material_profile_catalog.tres` referencing the three existing material assets; the existing material files and their IDs/values are unchanged.
+- Added `tools/validate_material_catalog.gd`, an EditorScript entry point that prints a success marker or actionable validation errors.
+- Added an editor-enabled `MaterialProfilePreview` scene/script with a preview block and profile metadata; it is separate from the gameplay scene.
+- Added `docs/MATERIAL_AUTHORING.md` and linked it from README.
+- Added headless tests for catalog validity, all three ID lookups, deep duplication, add behavior, duplicate-ID rejection, preview tint/metadata, and clearing the preview when no profile is assigned.
+- Updated Linux/Windows CI to require explicit material catalog and preview success markers, in addition to all existing Phase 1/Phase 2/Phase 3 regression markers.
+- Updated project status, roadmap, architecture progress, and this work log. PR #19 is intended to target the Phase 2 building-definition branch until PR #18 is merged.
+
+### After
+- Material authoring implementation is on `ai/phase-2/material-authoring`, stacked on `ai/phase-2/building-definitions`.
+- Godot 4.7.2 import/parse, editor-tool scene loading, material catalog/preview headless tests, and Linux/Windows CI are pending.
+- The EditorScript's interactive File → Run workflow and visual preview quality still require manual Godot editor validation.
+- Next: inspect cross-platform CI and any review comments, repair findings, then leave PR #19 ready for integration review. Do not merge.
+
+### Material authoring cross-platform validation
+
+- Godot 4.7.2 [Actions run #42897122527](https://github.com/PanDuroDev/Idk/actions/runs/42897122527) passed all steps on Linux and Windows.
+- Both platforms imported/parsed the project, launched headlessly, ran the gameplay smoke test, and passed the isolated terrain chunk regression.
+- Linux console output explicitly included `WORLDBREAK_MATERIAL_AUTHORING_OK`, `WORLDBREAK_MATERIAL_PREVIEW_OK`, `WORLDBREAK_BUILDING_DEFINITIONS_OK`, `WORLDBREAK_REPEAT_CYCLES_OK`, `WORLDBREAK_SMOKE_TEST_OK`, and `WORLDBREAK_TERRAIN_CHUNK_MESH_OK`, with no script, parse, or engine runtime errors. Windows passed the same marker-gated steps.
+- Headless validation confirms catalog operations and preview scene state/tint/metadata behavior, but does not prove the editor's File → Run workflow or visual quality in a normal Godot editor window. Those remain manual validation items.
+- Next: update PR #19 with CI evidence, mark it ready for integration review, and continue Phase 2 configuration save/load on a separate stacked branch. Do not merge.

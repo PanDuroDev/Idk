@@ -62,7 +62,7 @@ jobs:
           cat godot-smoke-console.log
           if [ -f godot-smoke.log ]; then cat godot-smoke.log; fi
           if [ "$test_status" -ne 0 ]; then exit "$test_status"; fi
-          for marker in WORLDBREAK_BUILDING_DEFINITIONS_OK WORLDBREAK_REPEAT_CYCLES_OK WORLDBREAK_SMOKE_TEST_OK; do
+          for marker in WORLDBREAK_MATERIAL_AUTHORING_OK WORLDBREAK_MATERIAL_PREVIEW_OK WORLDBREAK_BUILDING_DEFINITIONS_OK WORLDBREAK_REPEAT_CYCLES_OK WORLDBREAK_SMOKE_TEST_OK; do
             if ! grep -q "$marker" godot-smoke-console.log && ! grep -q "$marker" godot-smoke.log; then
               echo "Gameplay smoke test did not report required marker: $marker"
               exit 1
@@ -147,7 +147,7 @@ jobs:
           $combinedLog = $consoleLog + [Environment]::NewLine + $engineLog
           Write-Output $combinedLog
           if ($testExitCode -ne 0) { exit $testExitCode }
-          foreach ($marker in @("WORLDBREAK_BUILDING_DEFINITIONS_OK", "WORLDBREAK_REPEAT_CYCLES_OK", "WORLDBREAK_SMOKE_TEST_OK")) {
+          foreach ($marker in @("WORLDBREAK_MATERIAL_AUTHORING_OK", "WORLDBREAK_MATERIAL_PREVIEW_OK", "WORLDBREAK_BUILDING_DEFINITIONS_OK", "WORLDBREAK_REPEAT_CYCLES_OK", "WORLDBREAK_SMOKE_TEST_OK")) {
             if ($combinedLog -notmatch [regex]::Escape($marker)) {
               throw "Gameplay smoke test did not report required marker: $marker"
             }

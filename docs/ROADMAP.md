@@ -29,7 +29,7 @@
 - [x] Add data-driven material profiles for integrity, blast resistance, density, and tint.
 - [ ] Add optional physical breakable joints after graph/damage profiling.
 - [x] Add reusable building definitions and data-driven generation ([PR #18](https://github.com/PanDuroDev/Idk/pull/18), open for review; Linux/Windows CI passed).
-- [ ] Add material authoring validation, duplicate workflow, and preview.
+- [x] Add material authoring validation, duplicate workflow, and preview ([PR #19](https://github.com/PanDuroDev/Idk/pull/19), open for review and stacked on PR #18; Linux/Windows CI passed).
 - [ ] Add versioned save/load for test configurations.
 
 ## Phase 3 - Terrain deformation ([AI issue #7](https://github.com/PanDuroDev/Idk/issues/7), design may run in parallel; implementation after Phases 1-2)
