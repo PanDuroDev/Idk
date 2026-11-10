@@ -64,11 +64,22 @@ Verified:
 - Damage uses fragment-center distance and simple falloff.
 - Support graph remains a topological approximation, not a stress solver or physical joint network.
 - No arbitrary mesh fracture, bending, crack propagation, terrain deformation, world streaming, or debris pooling.
-- Manual visual/input/performance testing on the target Windows PC remains outstanding.
+- The user reported that the manual Windows gameplay/visual/control validation passed on 2026-11-10. Exact FPS/CPU/GPU telemetry values were not supplied, so no numerical performance baseline is claimed.
 
 ## Exact next step
 
-Follow [the manual Windows validation checklist](MANUAL_WINDOWS_VALIDATION.md) on the target PC: test controls, compare all three material thresholds, perform repeated collapse/reset cycles, observe 30-second debris settling, and record FPS/CPU/GPU usage. Then add material authoring/building presets and evaluate optional physical breakable joints. Terrain deformation remains later.
+Begin [AI Phase 1 issue #5](https://github.com/PanDuroDev/Idk/issues/5): runtime impact controls, bounded debris lifecycle/performance budgets, lightweight effects, and diagnostics. The user has reported that the interactive checklist works. Detailed numeric FPS/CPU/GPU measurements remain unrecorded and should be collected during Phase 1 profiling. Phase assignments and dependencies are documented in [AI_PHASE_ASSIGNMENTS.md](AI_PHASE_ASSIGNMENTS.md).
+
+## AI phase delegation
+
+Five dedicated implementation issues are open:
+- Phase 1: [#5 - Destruction vertical slice](https://github.com/PanDuroDev/Idk/issues/5) - ready now.
+- Phase 2: [#6 - Reusable structures and material authoring](https://github.com/PanDuroDev/Idk/issues/6) - runtime work after Phase 1.
+- Phase 3: [#7 - Chunked terrain deformation](https://github.com/PanDuroDev/Idk/issues/7) - design and isolated prototype may begin early; integration waits for Phases 1-2.
+- Phase 4: [#8 - Multiple worlds](https://github.com/PanDuroDev/Idk/issues/8) - runtime work after Phase 2-3 contracts stabilize.
+- Phase 5: [#9 - Simulation tools](https://github.com/PanDuroDev/Idk/issues/9) - runtime work after Phases 1, 2, and 4.
+
+Each issue contains its own AI prompt, PR breakdown, acceptance criteria, and common engineering rules. Agents may implement and open PRs proactively without asking between ordinary subtasks, but they must not merge. One integration maintainer reviews and merges PRs in dependency order. See [AI_PHASE_ASSIGNMENTS.md](AI_PHASE_ASSIGNMENTS.md).
 
 ## Required update protocol
 
