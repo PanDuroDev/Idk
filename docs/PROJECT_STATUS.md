@@ -95,7 +95,7 @@ Five dedicated implementation issues are open:
 - Phase 1: [#5 - Destruction vertical slice](https://github.com/PanDuroDev/Idk/issues/5) - implementation PRs #11, #16, and #17 are merged; full acceptance verification remains open.
 - Phase 2: [#6 - Reusable structures and material authoring](https://github.com/PanDuroDev/Idk/issues/6) - merged via PRs #18, #19, and #20.
 - Phase 3: [#7 - Chunked terrain deformation](https://github.com/PanDuroDev/Idk/issues/7) - merged via PRs #10, #12, #13, #15, and #21.
-- Phase 4: [#8 - Multiple worlds](https://github.com/PanDuroDev/Idk/issues/8) - versioned world definitions, catalog, two sample worlds, bounded load/unload/reset, and regression coverage are implemented on `ai/phase-4/world-definitions`; review and CI pending.
+- Phase 4: [#8 - Multiple worlds](https://github.com/PanDuroDev/Idk/issues/8) - versioned world definitions, catalog, two sample worlds, bounded load/unload/reset, and regression coverage are implemented on `ai/phase-4/world-definitions`; Linux + Windows CI passed, review and merge pending.
 - Phase 5: [#9 - Simulation tools](https://github.com/PanDuroDev/Idk/issues/9) - runtime work after Phases 1, 2, and 4.
 
 Each issue contains its own AI prompt, PR breakdown, acceptance criteria, and common engineering rules. Agents may implement and open PRs proactively without asking between ordinary subtasks, but they must not merge. One integration maintainer reviews and merges PRs in dependency order. See [AI_PHASE_ASSIGNMENTS.md](AI_PHASE_ASSIGNMENTS.md).
@@ -116,7 +116,7 @@ Each issue contains its own AI prompt, PR breakdown, acceptance criteria, and co
 - `WorldCatalog` references both sample worlds. `WorldDefinitionValidator` resolves and validates the referenced configuration through the existing catalogs before the active scene is touched.
 - `main.gd` loads one resident world at a time, reuses the existing structure/configuration/terrain paths, applies environment and spawn presets, supports reset, and releases structure, terrain, and active state on unload. A failed load leaves the current world unchanged.
 - Samples: `Classic Yard` (70-piece building, default terrain profile) and `Sparse Quarry` (11-cell building, low-end terrain profile, warmer environment, heavier gravity, altered spawn).
-- Dedicated local Windows regression `WORLDBREAK_WORLD_LOADING_OK` covers catalog validation, initial load, switching, invalid-ID rejection, resident bounds, unload, reload, reset, and malformed-resource validation. Linux + Windows CI is pending on the branch head.
+- Dedicated local Windows regression `WORLDBREAK_WORLD_LOADING_OK` covers catalog validation, initial load, switching, invalid-ID rejection, resident bounds, unload, reload, reset, and malformed-resource validation. Linux + Windows CI passed in [Actions run #42907322740](https://github.com/PanDuroDev/Idk/actions/runs/42907322740); review and merge are pending.
 - Limitations: loading is synchronous and there is no world streamer, interactive world selector, terrain-edit persistence, or cross-world budget beyond one resident world.
 
 ## Required update protocol

@@ -601,4 +601,5 @@ This is an append-only engineering journal. Each substantial session is recorded
 ### After work
 - Local Windows import and launch are clean. `WORLDBREAK_WORLD_LOADING_OK` passed, as did the full gameplay smoke suite, configuration persistence, and all terrain tests.
 - Limits: synchronous loading, one resident world, no interactive selector yet, no world streamer, and no persistence of terrain/prop state across switches.
-- Linux + Windows CI is pending on the Phase 4 branch head.
+- Linux + Windows CI passed on the Phase 4 branch in Actions run #42907322740.
+- Next: merge the Phase 4 PR, then build the Phase 5 unified simulation panel on the merged world API.
