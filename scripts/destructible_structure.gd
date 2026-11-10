@@ -2,6 +2,9 @@ extends Node3D
 
 const SUPPORT_GRAPH_SCRIPT = preload("res://scripts/structural_support_graph.gd")
 const BUILDING_DEFINITION_VALIDATOR = preload("res://scripts/building_definition_validator.gd")
+const BuildingDefinitionScript = preload("res://scripts/building_definition.gd")
+const BuildingCellDefinitionScript = preload("res://scripts/building_cell_definition.gd")
+const DestructionMaterialProfileScript = preload("res://scripts/destruction_material_profile.gd")
 const DEFAULT_BUILDING_DEFINITION: BuildingDefinition = preload("res://resources/buildings/classic_70_piece.tres")
 
 var _fragments: Array[RigidBody3D] = []
