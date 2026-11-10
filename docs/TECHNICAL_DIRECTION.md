@@ -52,6 +52,19 @@ The current test structure assigns profiles by layer: the base uses foundation c
 
 These values are editable prototype tuning, not measured real-world material constants. The material assignment is currently layer-based, not an in-game material editor.
 
+### Measured prototype counts
+
+| Metric | Existing baseline | Bounded implementation |
+|---|---:|---:|
+| Original structure bodies | 70 | 70 retained for reset |
+| Loose bodies after full release | 70 | 70 maximum in the current structure |
+| Awake loose-body cap | Unbounded by a lifecycle manager | 70 by default; configurable 1-256 |
+| Loose-debris expiry | None | 30 seconds by default |
+| Concurrent impact effects | Transient light, no explicit count cap | 8 bursts x 6 motes = 48 motes maximum |
+| Effect lifetime | 0.16-second light fade | 0.55-second dust fade |
+
+These are object/count budgets derived from the actual prototype and implementation, not FPS/CPU/GPU measurements. No numerical performance improvement is claimed until the target PC is profiled.
+
 ### Loose debris lifecycle
 
 - Only fragments released by damage or loss of support enter the loose-debris lifecycle; intact supported structure remains frozen and is never eligible for retirement.
