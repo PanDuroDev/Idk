@@ -1,0 +1,32 @@
+{
+	"format": "worldbreak.simulation",
+	"schema_version": 1,
+	"configuration_id": "sparse_pillar_beam_test",
+	"display_name": "Sparse pillar and beam material test",
+	"building_definition_id": "sparse_pillar_beam_11",
+	"building_transform": {
+		"position": [0.0, 0.0, -12.0],
+		"rotation_degrees": [0.0, 15.0, 0.0],
+		"scale": [1.0, 1.0, 1.0]
+	},
+	"material_overrides": [
+		{
+			"cell": [0, 0, 1],
+			"material_id": "lightweight_panel"
+		},
+		{
+			"cell": [4, 3, 1],
+			"material_id": "masonry"
+		}
+	],
+	"impact": {
+		"radius": 6.0,
+		"damage": 6.5,
+		"impulse": 30.0,
+		"upward_bias": 0.45
+	},
+	"environment": {
+		"gravity": 12.5,
+		"time_scale": 0.85
+	}
+}

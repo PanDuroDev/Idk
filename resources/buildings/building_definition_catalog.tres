@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="BuildingDefinitionCatalog" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/building_definition_catalog.gd" id="1_catalog"]
+[ext_resource type="Script" path="res://scripts/building_definition.gd" id="2_definition"]
+[ext_resource type="Resource" path="res://resources/buildings/classic_70_piece.tres" id="3_classic"]
+[ext_resource type="Resource" path="res://resources/buildings/sparse_pillar_beam_11.tres" id="4_sparse"]
+
+[resource]
+script = ExtResource("1_catalog")
+definitions = Array[ExtResource("2_definition")]([ExtResource("3_classic"), ExtResource("4_sparse")])

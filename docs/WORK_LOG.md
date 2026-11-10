@@ -267,6 +267,228 @@ This is an append-only engineering journal. Each substantial session is recorded
 - Next: send the Phase 1 prompt from issue #5 to the first AI.
 
 
+## 2026-11-10 - Phase 1 PR 1: runtime impact controls
+
+### Before work
+- Starting main commit: 70da82274da67faf034afb9d98932f4fe1db03f4.
+- Confirmed Phase 0 PRs #2-#4 are merged and no other PRs are open.
+- Reviewed README, project status, roadmap, technical direction, work log, manual validation checklist, main scene/controller, blast service, destructible structure, headless smoke test, and Linux/Windows workflow.
+- Existing pipeline already routes blast radius/damage through apply_blast_damage and radius/impulse through BlastService; the new UI mutates these existing exported properties rather than introducing parallel impact state.
+- Risk: UI geometry/input and GDScript signal binding require interactive Godot validation; headless tests can verify settings bounds and reset only.
+
+### During work
+- Added a compact in-game Impact Settings panel with +/- controls for radius, damage, and impulse.
+- Preserved existing defaults and blast pipeline. Bounds: radius 0.5-12.0, damage 0.1-10.0, impulse 1.0-100.0.
+- Added a single reset-to-default action and headless assertions for defaults, clamping, and reset.
+- Updated README and manual validation instructions.
+- CI has not yet run for this branch; no interactive or target-PC performance claim is made.
+
+### After work
+- Implementation and documentation are committed on ai/phase-1/runtime-impact-controls.
+- Pending: Linux/Windows Actions logs, panel visual/input validation, and integration maintainer review.
+- Next: open PR 1, inspect both platform logs and repair any errors before proceeding to the debris lifecycle branch.
+
+
+## 2026-11-10 - Phase 1 PR 2: debris lifecycle and budgets
+
+### Before work
+- Started from Phase 1 PR 1 head 46261f8d7f6bb13a3c46d686f8acdd19235b72ca; PR #11 remains open and unmerged.
+- Existing 70 rigid bodies are the original structural nodes. Deleting them would make reset lossy, so expiry must retire released nodes without freeing their canonical structure identity.
+- Risk: a too-small awake-body budget can leave pieces suspended before they fall. The default budget therefore matches the current 70-piece structure; larger-world tuning needs measured profiling.
+
+### During work
+- Tracked only fragments that are broken or lose every support path as loose debris; intact supported fragments never enter the lifecycle.
+- Added a configurable 30-second loose-debris lifetime. Expiry hides the released fragment, disables its collision, clears motion, and retains the node for deterministic reset.
+- Added sleeping/active/retired counters and an active-fragment cap (70 by default, configurable up to 256). Godot's rigid-body sleeping remains enabled; radial impulses can wake sleeping bodies.
+- Reset restores visibility, collision layers/masks, groups, transforms, velocities, support state, and all original fragments.
+- Added smoke coverage for wake-up, expiry, and complete reset restoration. CI is pending.
+
+### After work
+- Implementation is committed on ai/phase-1/debris-lifecycle, stacked on PR #11.
+- No pooling was added; the fixed 70-node scene does not justify pooling.
+- Target-PC settling and performance measurements remain manual and unrecorded.
+- PR 2 is open as #16. Next: inspect its Linux/Windows logs, then validate PR 3 in dependency order.
+
+
+## 2026-11-10 - Phase 1 PR 3: lightweight effects and diagnostics
+
+### Before work
+- Started from Phase 1 PR 2 head 90fea6c4daf1f8b5e327bc663d650f97bc10a1a5, stacked after PR #11 and PR #16.
+- Existing blast feedback used a transient OmniLight. The new effect must be bounded, short-lived, and compatible with the Compatibility renderer.
+- Risk: headless CI can verify allocation bounds and overlay state, but cannot validate visual quality, readability, or target-PC frame cost.
+
+### During work
+- Replaced the transient light with six small mesh-based dust/debris motes per impact, a 0.55-second fade, and a hard cap of eight simultaneous bursts. The oldest burst is evicted at capacity.
+- Added an F3-toggleable diagnostics panel, hidden by default. It reports structural state, awake/sleeping/retired debris, configured budgets, debris lifetime, impact settings, FPS, physics tick rate, active physics objects, and collision pairs.
+- Added headless assertions for default-hidden/toggle behavior and the eight-burst cap.
+- Updated README, technical direction, manual validation, project status, roadmap, and work log.
+- Expanded the PR workflow target filter to all branches so stacked PRs receive Linux and Windows validation; new runs are queued. No visual/performance claim is made.
+
+### After work
+- Implementation is committed on ai/phase-1/effects-and-diagnostics.
+- Visual effect quality, F3 usability, and target-PC performance remain manual checks.
+- Next: open PR 3 against PR 2's branch; after PR 1 merges, retarget/run CI in dependency order and repair any failures before declaring implementation complete.
+
+
+### Cross-PR validation and measured count baseline
+
+- Changed the pull-request workflow filter from main-only to all target branches. This preserves the Linux and Windows jobs while allowing the stacked Phase 1 PRs to run CI before their dependencies are merged.
+- Recorded the actual fixed-scene baseline: 70 original structure bodies, zero loose at startup, 70 released on full collapse, and six separate physics props. The default awake loose-fragment cap remains 70 to avoid suspending pieces mid-fall; smaller caps are explicitly tested.
+- The dust effect budget is eight concurrent bursts of six motes each (48 motes maximum), with a 0.55-second lifetime.
+- No FPS/CPU/GPU values were fabricated; target-PC profiling remains a manual measurement.
+
+
+### Active-budget enforcement follow-up
+
+- Linux exposed that a sleeping rigid body can be reactivated by incidental collisions after a per-tick sleep request. The earlier active cap therefore was not a hard cap under a deliberately small test budget.
+- Changed over-budget bodies to a frozen/sleeping parked state. The blast pipeline already explicitly unfreezes a hit rigid body before applying impulse, so parked debris remains impact-reactive.
+- Released-fragment counts now include budget-parked bodies; diagnostics report parked bodies separately.
+- Added a regression that reduces the cap to one during a multi-fragment release and asserts awake count stays within the cap while other released fragments remain accounted for.
+
+
+## 2026-11-10 - Phase 1 final validation hardening
+
+### Before
+- PR #11, #16, and #17 are open in dependency order. No PR was merged.
+- Initial CI gates checked only broad smoke markers, so a platform could appear green without proving every phase-specific feature ran.
+- PR #17's overlay test also used an incorrect direct child path even though the panel is parented under the shared CanvasLayer.
+
+### During
+- Changed the workflow to run for pull requests targeting any branch, enabling stacked PR validation.
+- Scoped required smoke markers per PR: impact controls for PR #11; lifecycle and active-budget markers for PR #16; plus effects/diagnostics for PR #17.
+- Corrected the overlay test to inspect the actual panel reference held by the main scene.
+- Made natural sleeping and budget-parked fragment counts mutually exclusive. Updated the budget regression to assert the awake cap and the parked/sleeping accounting separately.
+- Re-synchronized PR #16 and PR #17 with their latest dependency branches using merge commits; retained separate branches and did not merge any PR.
+
+### After
+- PR #11 latest recorded Linux and Windows CI run passed.
+- PR #16 latest recorded Linux and Windows CI run passed, including the lifecycle and active-budget assertions.
+- PR #17's earlier overlay-test run passed on Linux and Windows. The newest run is validating the follow-up count semantics and regression assertions.
+- Remaining work is to inspect the newest PR #17 CI logs, then leave the three PRs open for integration review. Interactive visuals and numeric target-PC profiling remain manual checks.
+
+
+### Final Phase 1 implementation checkpoint
+
+- PR #11 latest recorded CI: Linux and Windows passed ([run 42882310314](https://github.com/PanDuroDev/Idk/actions/runs/42882310314)).
+- PR #16 latest recorded CI: Linux and Windows passed ([run 42882368777](https://github.com/PanDuroDev/Idk/actions/runs/42882368777)).
+- PR #17 latest head CI: Linux and Windows passed ([run 42882865966](https://github.com/PanDuroDev/Idk/actions/runs/42882865966)). Linux output explicitly includes impact controls, repeated cycles, debris lifecycle, active-fragment budget, diagnostics/effects, and overall smoke success markers; Windows passed the corresponding phase-scoped PowerShell gate.
+- All three PRs remain open and mergeable; no PR was merged. Dependency order remains #11 -> #16 -> #17.
+- Implementation is complete and ready for integration review. Interactive effect quality, overlay readability, and numeric target-PC performance profiling remain unverified manual checks.
+
+## 2026-11-10 - Phase 2 PR synchronization before integration
+
+### Before
+- PR #14 was open on `ai/phase-2/schema-design`, originally based on main commit `70da82274da67faf034afb9d98932f4fe1db03f4`.
+- Main advanced after the PR was created, and GitHub reported the PR as not mergeable. The shared `docs/WORK_LOG.md` had changed on both sides.
+- Phase 1 PRs #11, #16, and #17 have since been merged in dependency order. Issue #5 remains open; merging those PRs alone does not mark Phase 1 complete.
+
+### During
+- Synchronized the Phase 2 work log with the current main work log while preserving the Phase 2 architecture-review record.
+- Updated the architecture proposal to distinguish the historical baseline from the current Phase 1 integration state.
+- Kept this PR documentation-only; no runtime code, gameplay scenes, project settings, or Phase 1 implementation files were changed.
+
+### After
+- The Phase 2 proposal still defines architecture and implementation gates only.
+- Full Phase 1 acceptance verification remains outstanding, including interactive effects/diagnostics checks and target-PC performance measurements.
+- Next: verify PR #14 mergeability and CI, then merge this documentation-only proposal without treating Phase 2 as complete.
+
+## 2026-11-10 - Phase 2 PR 1: reusable building definitions
+
+### Before
+- Starting `main` commit: `0a4153d275cf03d8ac0229f2fa31e64add0f989d` (Phase 2 architecture PR #14 merged).
+- Phase 1 implementation PRs #11, #16, and #17 are merged. Issue #5 remains open for interactive effects/diagnostics checks and target-PC performance observations; those checks are not inferred from merge state or headless CI.
+- Inspected the merged `DestructibleStructure`, support graph, blast service, material Resource/assets, runtime impact controls, debris lifecycle and budgets, scene setup, smoke tests, and Linux/Windows workflow.
+- Existing structure generation was still a hard-coded 7 x 5 x 2 loop with layer-based materials. Existing damage, support, blast, cleanup, and reset code already operate on `Vector3i` cell identities and can be reused.
+- Implementation risk: custom Resource typed-array serialization and the second sparse layout require actual Godot 4.7.2 import/runtime validation on both CI platforms.
+
+### During
+- Added versioned `BuildingDefinition` and per-cell `BuildingCellDefinition` Resources.
+- Added whole-definition and material-profile validation for schema, IDs, dimensions, finite values, cell bounds/uniqueness, custom transforms, required material references, profile ranges, catalog ID conflicts, and a conservative 256 occupied-cell ceiling.
+- Added `classic_70_piece.tres`, preserving all 70 coordinates, original cell centers, and foundation/masonry/lightweight layer assignments.
+- Added `sparse_pillar_beam_11.tres`, an 11-cell sparse sample with a per-cell lightweight material override and a custom local transform.
+- Replaced the fixed grid/layer builder with validated definition-driven fragment creation while retaining the existing cell-indexed damage/support state and Phase 1 debris/reset lifecycle.
+- Added headless tests for both Resources, unique/in-range coordinates, original center/material compatibility, invalid duplicate/out-of-range/missing-material definitions, invalid material values, duplicate catalog IDs, sparse generation, custom transform/material mapping, collapse, and reset.
+- Added `docs/BUILDING_DEFINITIONS.md` and updated the project status, roadmap, README, architecture status, and this work log.
+- The existing `scripts/destructible_structure.gd` was intentionally extended to source fragment creation from the new definition Resources. Its merged Phase 1 damage, support, debris lifetime/budget, retirement, and reset behavior was preserved. No `main.gd`, gameplay scene, Phase 1 controls/effects code, or project settings were changed.
+
+### After
+- Implementation is on `ai/phase-2/building-definitions`; no PR has been merged.
+- Linux/Windows Godot 4.7.2 import, parse, and headless smoke validation are pending the PR workflow. No test success is claimed until the logs and explicit markers are inspected.
+- Interactive building authoring in the Inspector and target-PC performance with larger buildings remain manual checks.
+- Next: inspect the cross-platform CI logs, fix any Resource serialization or runtime issues, and leave the implementation PR ready for integration review.
+
+### Validation follow-up - Windows type loading and CI output capture
+
+- The first Linux CI attempt exposed stale material-profile type annotations after the builder conversion; those were corrected.
+- The first Windows run then revealed a separate issue hidden by the existing workflow: script-class names registered through the global class cache were unavailable during Windows headless execution, and console parse errors were not included in the workflow's log-file-only checks.
+- Replaced cross-script custom-class annotations in the building-definition path with explicit script preloads, matching the repository's existing preload-based pattern.
+- Updated Linux and Windows import, launch, and gameplay smoke steps to inspect captured console output together with Godot log files. The gameplay gate now explicitly requires building-definition, repeated-collapse/reset, and overall smoke success markers on both platforms.
+- The follow-up run on the pre-guard commit passed building-definition tests on both platforms without parse errors. The stricter workflow run [#42894517616](https://github.com/PanDuroDev/Idk/actions/runs/42894517616) then passed every Linux and Windows step, including building-definition tests, five repeated collapse/reset cycles, and the isolated terrain chunk regression.
+- Expanded malformed-definition coverage to include non-positive dimensions, unsupported schema versions, null cell entries, and non-finite custom transforms.
+- The latest strict CI run [#42894906735](https://github.com/PanDuroDev/Idk/actions/runs/42894906735) passed on Linux and Windows after the expanded malformed-definition cases. It requires captured console/log output to be free of script/parse errors and requires explicit building-definition, repeated-collapse/reset, and overall smoke success markers; the terrain regression also passed.
+- Next: mark PR #18 ready for integration review. Do not merge.
+
+### All-cell and material-behavior regression follow-up
+
+- Expanded the classic preset regression to validate the original center position and material-layer mapping for every one of the 70 occupied cells, not only representative samples.
+- Expanded the sparse sample regression to verify the selected per-cell profile controls rigid-body mass, visual material color, integrity, and the damage threshold derived from blast resistance.
+- The first color assertion exposed that the test's node-name lookup was brittle. The test now locates the visual child by node type and reports separate failures for missing visual nodes, missing material overrides, and color mismatches.
+- Final code run [#42895893291](https://github.com/PanDuroDev/Idk/actions/runs/42895893291) passed Linux and Windows import/parse, launch, gameplay smoke, and isolated terrain regression. Linux logs show the building-definition, five-cycle reset, overall smoke, and terrain success markers with no script/parse/engine errors; Windows completed the same marker-gated checks successfully.
+- Next: finish the requested CodeRabbit review, address any findings, then leave PR #18 ready for maintainer integration. Do not merge.
+
+## 2026-11-10 - Phase 2 PR 2: native material authoring workflow
+
+### Before
+- PR #18 contains the merged-in-branch Resource-first building definitions and its CI regression coverage. It remains a separate, unmerged dependency PR.
+- The project already has three `DestructionMaterialProfile` Resources and a shared validator, but no central catalog, safe duplicate helper, editor validation entry point, or material preview.
+- Risk: custom global script class names are not reliably available in Windows headless runs; new scripts therefore use explicit preload aliases for typed cross-script references.
+
+### During
+- Added `MaterialProfileCatalog`, which resolves profiles by stable ID, validates the catalog through the shared Phase 2 validator, rejects invalid/duplicate additions, and deep-duplicates an existing profile under a new ID/name without writing or overwriting files.
+- Added `material_profile_catalog.tres` referencing the three existing material assets; the existing material files and their IDs/values are unchanged.
+- Added `tools/validate_material_catalog.gd`, an EditorScript entry point that prints a success marker or actionable validation errors.
+- Added an editor-enabled `MaterialProfilePreview` scene/script with a preview block and profile metadata; it is separate from the gameplay scene.
+- Added `docs/MATERIAL_AUTHORING.md` and linked it from README.
+- Added headless tests for catalog validity, all three ID lookups, deep duplication, add behavior, duplicate-ID rejection, preview tint/metadata, and clearing the preview when no profile is assigned.
+- Updated Linux/Windows CI to require explicit material catalog and preview success markers, in addition to all existing Phase 1/Phase 2/Phase 3 regression markers.
+- Updated project status, roadmap, architecture progress, and this work log. PR #19 is intended to target the Phase 2 building-definition branch until PR #18 is merged.
+
+### After
+- Material authoring implementation is on `ai/phase-2/material-authoring`, stacked on `ai/phase-2/building-definitions`.
+- Godot 4.7.2 import/parse, editor-tool scene loading, material catalog/preview headless tests, and Linux/Windows CI are pending.
+- The EditorScript's interactive File → Run workflow and visual preview quality still require manual Godot editor validation.
+- Next: inspect cross-platform CI and any review comments, repair findings, then leave PR #19 ready for integration review. Do not merge.
+
+### Material authoring cross-platform validation
+
+- Godot 4.7.2 [Actions run #42897122527](https://github.com/PanDuroDev/Idk/actions/runs/42897122527) passed all steps on Linux and Windows.
+- Both platforms imported/parsed the project, launched headlessly, ran the gameplay smoke test, and passed the isolated terrain chunk regression.
+- Linux console output explicitly included `WORLDBREAK_MATERIAL_AUTHORING_OK`, `WORLDBREAK_MATERIAL_PREVIEW_OK`, `WORLDBREAK_BUILDING_DEFINITIONS_OK`, `WORLDBREAK_REPEAT_CYCLES_OK`, `WORLDBREAK_SMOKE_TEST_OK`, and `WORLDBREAK_TERRAIN_CHUNK_MESH_OK`, with no script, parse, or engine runtime errors. Windows passed the same marker-gated steps.
+- Headless validation confirms catalog operations and preview scene state/tint/metadata behavior, but does not prove the editor's File → Run workflow or visual quality in a normal Godot editor window. Those remain manual validation items.
+- Next: update PR #19 with CI evidence, mark it ready for integration review, and continue Phase 2 configuration save/load on a separate stacked branch. Do not merge.
+
+## 2026-11-10 - Phase 2 PR 3: configuration persistence
+
+### Before work
+- Started from Phase 2 PR #19 head 241834b9cdd12218c1f4e254e03eddf62137ecde on branch ai/phase-2/material-authoring; PR #18 and #19 are open, stacked, and green on Linux and Windows.
+- Confirmed the architecture proposal keeps building/material authoring as native Resources and uses versioned JSON only for portable test configurations.
+- Risk: applying a configuration must not partially mutate the live structure if validation fails; rebuilding must preserve Phase 1 lifecycle, reset, support, and damage behavior.
+
+### During work
+- Added BuildingDefinitionCatalog with stable-ID lookup and duplicate/validation checks.
+- Added SimulationConfiguration and SimulationMaterialOverride resources plus a versioned JSON codec.
+- Added trusted catalog resolution, documented defaults, unknown-field warnings, range/transform/occupancy validation, transactional save with re-read verification, and building-definition .tres save/load helpers.
+- Extended DestructibleStructure with validate-before-rebuild definition/override application; existing damage, support, debris lifecycle, budgets, and reset paths are retained.
+- Extended main with apply/load/save APIs, per-body gravity scale, and Engine.time_scale configuration.
+- Added classic and sparse sample configurations and a dedicated round-trip/rejection/live-apply regression.
+- Updated CI on Linux and Windows to require WORLDBREAK_CONFIGURATION_PERSISTENCE_OK and reject script/engine errors.
+
+### After work
+- Local Windows import, configuration persistence test, and the full gameplay smoke test passed; no script or parse errors were reported.
+- The new test verifies catalogs, samples, defaults, additive warnings, unsupported versions, malformed files, invalid IDs/ranges/cells/transforms, save/load round-trips, building-definition round-trips, live apply/reset, and failed-apply atomicity.
+- Linux/Windows CI will be recorded on PR #20 after push. Interactive UI, file-picker ergonomics, and visual correctness remain manual checks.
+- Phase 2 implementation is now complete pending integration review and merge of #18, #19, and #20.
+
 ## 2026-11-10 - Phase 3 terrain prototype
 
 ### Before work

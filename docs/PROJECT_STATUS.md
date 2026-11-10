@@ -66,15 +66,36 @@ Verified:
 - No arbitrary mesh fracture, bending, crack propagation, terrain deformation, world streaming, or debris pooling.
 - The user reported that the manual Windows gameplay/visual/control validation passed on 2026-11-10. Exact FPS/CPU/GPU telemetry values were not supplied, so no numerical performance baseline is claimed.
 
-## Exact next step
+## Phase 1 progress
 
-Begin [AI Phase 1 issue #5](https://github.com/PanDuroDev/Idk/issues/5): runtime impact controls, bounded debris lifecycle/performance budgets, lightweight effects, and diagnostics. The user has reported that the interactive checklist works. Detailed numeric FPS/CPU/GPU measurements remain unrecorded and should be collected during Phase 1 profiling. Phase assignments and dependencies are documented in [AI_PHASE_ASSIGNMENTS.md](AI_PHASE_ASSIGNMENTS.md).
+Implementation PRs [#11](https://github.com/PanDuroDev/Idk/pull/11), [#16](https://github.com/PanDuroDev/Idk/pull/16), and [#17](https://github.com/PanDuroDev/Idk/pull/17) are merged into `main` in dependency order.
+
+- Runtime impact controls: radius, damage, and impulse are adjustable with bounded ranges and reset-to-default behavior.
+- Debris lifecycle: released fragments have a 30-second default lifetime, sleeping/wake-up behavior, a 70-awake-fragment default cap, and reset-safe retirement.
+- Effects and diagnostics: dust bursts are capped at eight concurrent effects, six motes each, with a 0.55-second lifetime; F3 toggles the diagnostics overlay.
+
+### Remaining Phase 1 acceptance checks
+
+Issue [#5](https://github.com/PanDuroDev/Idk/issues/5) remains open. Its implementation PRs being merged does not complete the phase. Still outstanding:
+- Interactive verification of impact controls, dust appearance/fade, and F3 overlay readability.
+- Long-duration settling and repeated interactive collapse/reset checks.
+- Actual idle/collapse/settled FPS, CPU, GPU, and VRAM observations on the target Windows PC. The overlay reports runtime counters but is not a benchmark; no target-PC telemetry values are currently recorded.
+
+## Phase 2 progress
+
+- [PR #14](https://github.com/PanDuroDev/Idk/pull/14) merged the architecture and schema proposal only.
+- [PR #18](https://github.com/PanDuroDev/Idk/pull/18) implements reusable building definitions on `ai/phase-2/building-definitions`: versioned Resource types, validation, the classic 70-cell preset, an 11-cell sparse sample, and data-driven fragment generation.
+- Godot 4.7.2 CI passed on Linux and Windows in [Actions run #42895893291](https://github.com/PanDuroDev/Idk/actions/runs/42895893291), including all-cell legacy position/material checks, sparse generation, per-cell material mass/visual/damage behavior, repeated collapse/reset, and the terrain-prototype regression. The Windows gate checks captured console output as well as engine log files.
+- PR #18 remains open for integration review; it is not merged and does not complete Phase 2.
+- [PR #19](https://github.com/PanDuroDev/Idk/pull/19) adds a native material profile catalog, safe duplicate/add helpers, an EditorScript catalog validator, and an isolated preview scene. It is stacked on PR #18; Godot 4.7.2 CI passed on Linux and Windows in [Actions run #42897122527](https://github.com/PanDuroDev/Idk/actions/runs/42897122527). Manual EditorScript invocation and visual preview quality remain manual checks.
+- PR #20 adds versioned JSON simulation configuration persistence, trusted building/material catalog resolution, transactional save/load, live apply/reset, two sample configurations, and a dedicated cross-platform regression. It is stacked on PR #19. Local Windows validation passed; Linux/Windows CI evidence is recorded on the PR.
+- Optional breakable-joint feasibility remains deferred until profiling provides evidence.
 
 ## AI phase delegation
 
 Five dedicated implementation issues are open:
-- Phase 1: [#5 - Destruction vertical slice](https://github.com/PanDuroDev/Idk/issues/5) - ready now.
-- Phase 2: [#6 - Reusable structures and material authoring](https://github.com/PanDuroDev/Idk/issues/6) - runtime work after Phase 1.
+- Phase 1: [#5 - Destruction vertical slice](https://github.com/PanDuroDev/Idk/issues/5) - implementation PRs #11, #16, and #17 are merged; full acceptance verification remains open.
+- Phase 2: [#6 - Reusable structures and material authoring](https://github.com/PanDuroDev/Idk/issues/6) - architecture PR #14 is merged; implementation PR #18 is open with Linux/Windows CI passed.
 - Phase 3: [#7 - Chunked terrain deformation](https://github.com/PanDuroDev/Idk/issues/7) - design and isolated prototype may begin early; integration waits for Phases 1-2.
 - Phase 4: [#8 - Multiple worlds](https://github.com/PanDuroDev/Idk/issues/8) - runtime work after Phase 2-3 contracts stabilize.
 - Phase 5: [#9 - Simulation tools](https://github.com/PanDuroDev/Idk/issues/9) - runtime work after Phases 1, 2, and 4.
