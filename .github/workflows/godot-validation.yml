@@ -56,6 +56,19 @@ jobs:
             exit 1
           fi
 
+      - name: Run isolated terrain chunk test
+        run: |
+          ./Godot_v4.7.2-stable_linux.x86_64 --headless --path . --script res://tests/terrain/terrain_chunk_data_test.gd --log-file godot-terrain.log
+          if ! grep -q 'WORLDBREAK_TERRAIN_CHUNK_MESH_OK' godot-terrain.log; then
+            cat godot-terrain.log
+            echo "Terrain chunk test did not report its success marker."
+            exit 1
+          fi
+          if grep -Eq 'SCRIPT ERROR:|(^|[[:space:]])ERROR:' godot-terrain.log; then
+            cat godot-terrain.log
+            exit 1
+          fi
+
   windows-headless-validation:
     runs-on: windows-latest
     timeout-minutes: 10
