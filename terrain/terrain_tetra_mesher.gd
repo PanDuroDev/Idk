@@ -96,5 +96,5 @@ static func _add_oriented_triangle(surface: SurfaceTool, a: Vector3, b: Vector3,
 		_add_vertex_with_normal(surface, c, vertex_normal)
 
 static func _add_vertex_with_normal(surface: SurfaceTool, position: Vector3, normal: Vector3) -> void:
-	surface.add_normal(normal)
+	surface.set_normal(normal)
 	surface.add_vertex(position)
