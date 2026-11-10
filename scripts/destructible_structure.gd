@@ -247,7 +247,9 @@ func _enforce_active_fragment_budget() -> void:
 			continue
 		active_count += 1
 		if active_count > max_active_loose_fragments:
-			# Deterministic fallback for future structures larger than the configured budget.
+			# Park excess bodies so collisions cannot push the awake count over budget.
+			# BlastService explicitly unfreezes a parked body when a new impact hits it.
+			fragment.freeze = true
 			fragment.sleeping = true
 
 
@@ -256,11 +258,7 @@ func get_fragment_count() -> int:
 
 
 func get_released_fragment_count() -> int:
-	var released_count: int = 0
-	for fragment: RigidBody3D in _fragments:
-		if is_instance_valid(fragment) and not fragment.freeze:
-			released_count += 1
-	return released_count
+	return _loose_age_by_fragment.size() - _retired_fragment_ids.size()
 
 
 func get_broken_fragment_count() -> int:
@@ -291,6 +289,17 @@ func get_sleeping_loose_fragment_count() -> int:
 
 func get_retired_fragment_count() -> int:
 	return _retired_fragment_ids.size()
+
+
+func get_budget_parked_fragment_count() -> int:
+	var count: int = 0
+	for fragment: RigidBody3D in _fragments:
+		if not is_instance_valid(fragment):
+			continue
+		var fragment_id: int = fragment.get_instance_id()
+		if _loose_age_by_fragment.has(fragment_id) and not _retired_fragment_ids.has(fragment_id) and fragment.freeze:
+			count += 1
+	return count
 
 
 func get_fragment_for_cell(cell: Vector3i) -> RigidBody3D:
