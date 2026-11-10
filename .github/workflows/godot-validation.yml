@@ -106,6 +106,23 @@ jobs:
             exit 1
           fi
 
+      - name: Run terrain deformation test
+        run: |
+          set +e
+          timeout --signal=TERM 30s ./Godot_v4.7.2-stable_linux.x86_64 --headless --path . --script res://tests/terrain/terrain_deformation_test.gd --quit-after 120 --log-file godot-deformation.log > godot-deformation-console.log 2>&1
+          test_status=$?
+          set -e
+          cat godot-deformation-console.log
+          if [ -f godot-deformation.log ]; then cat godot-deformation.log; fi
+          if [ "$test_status" -ne 0 ]; then exit "$test_status"; fi
+          if ! grep -q 'WORLDBREAK_TERRAIN_DEFORMATION_OK' godot-deformation-console.log && ! grep -q 'WORLDBREAK_TERRAIN_DEFORMATION_OK' godot-deformation.log; then
+            echo "Terrain deformation test did not report its success marker."
+            exit 1
+          fi
+          if grep -Eq 'SCRIPT ERROR:|(^|[[:space:]])ERROR:|Parse Error:|Failed to load script' godot-deformation-console.log godot-deformation.log; then
+            exit 1
+          fi
+
   windows-headless-validation:
     runs-on: windows-latest
     timeout-minutes: 10
@@ -208,4 +225,22 @@ jobs:
           }
           if ($combinedLog -match "SCRIPT ERROR:|(^|\s)ERROR:|Parse Error:|Failed to load script") {
             throw "Terrain chunk test reported script or engine errors."
+          }
+
+      - name: Run terrain deformation test
+        shell: pwsh
+        run: |
+          $godot = ".\godot\Godot_v4.7.2-stable_win64.exe"
+          $deformationOutput = & $godot --headless --path . --script res://tests/terrain/terrain_deformation_test.gd --quit-after 120 --log-file godot-deformation.log 2>&1
+          $testExitCode = $LASTEXITCODE
+          $consoleLog = ($deformationOutput | Out-String)
+          $engineLog = if (Test-Path "godot-deformation.log") { Get-Content "godot-deformation.log" -Raw } else { "" }
+          $combinedLog = $consoleLog + [Environment]::NewLine + $engineLog
+          Write-Output $combinedLog
+          if ($testExitCode -ne 0) { exit $testExitCode }
+          if ($combinedLog -notmatch "WORLDBREAK_TERRAIN_DEFORMATION_OK") {
+            throw "Terrain deformation test did not report its success marker."
+          }
+          if ($combinedLog -match "SCRIPT ERROR:|(^|\s)ERROR:|Parse Error:|Failed to load script") {
+            throw "Terrain deformation test reported script or engine errors."
           }
