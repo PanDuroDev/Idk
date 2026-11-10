@@ -549,10 +549,10 @@ func _test_building_definition_assets() -> bool:
 		return false
 
 	var duplicate_profile: DestructionMaterialProfile = CLASSIC_BUILDING.default_material_profile.duplicate() as DestructionMaterialProfile
-	var duplicate_catalog_errors: Array[String] = BUILDING_DEFINITION_VALIDATOR.validate_material_catalog([
-		CLASSIC_BUILDING.default_material_profile,
-		duplicate_profile
-	])
+	var duplicate_catalog: Array[DestructionMaterialProfile] = []
+	duplicate_catalog.append(CLASSIC_BUILDING.default_material_profile)
+	duplicate_catalog.append(duplicate_profile)
+	var duplicate_catalog_errors: Array[String] = BUILDING_DEFINITION_VALIDATOR.validate_material_catalog(duplicate_catalog)
 	if duplicate_catalog_errors.is_empty():
 		_fail("Material catalog validator accepted duplicate profile IDs")
 		return false
