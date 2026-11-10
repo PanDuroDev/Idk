@@ -60,6 +60,13 @@ These values are editable prototype tuning, not measured real-world material con
 - The active loose-fragment budget defaults to 70, matching the current 70-piece prototype. The budget is configurable up to 256 and deterministically puts excess awake fragments to sleep. This is a baseline guardrail, not evidence that 70 is the optimal target-PC budget; profile larger structures before raising it.
 - Reset clears all age/retirement state and restores visibility, collision layers/masks, groups, transforms, velocities, and frozen state.
 
+### Lightweight effects and diagnostics
+
+- Each impact emits a short-lived dust/debris burst made from six small shared-mesh instances. At most eight bursts are alive at once; the oldest burst is evicted when the cap is reached.
+- The effect lifetime is 0.55 seconds and uses Compatibility-renderer-friendly mesh instances rather than GPU particles or expensive screen-space effects.
+- F3 toggles an opt-in diagnostics panel. The normal HUD remains unchanged while the panel is hidden. Diagnostics include intact/broken/supported/loose/awake/sleeping/retired counts, the configured active-fragment and effect budgets, debris lifetime, impact settings, FPS, physics tick rate, active physics objects, and collision pairs.
+- The overlay is a diagnostic view, not a performance benchmark. Collect target-PC measurements separately.
+
 ### Explicit limitations
 - GitHub Actions runs Godot 4.7.2 headless import, launch, and smoke validation on Linux and Windows. The smoke test simulates an initial 120-frame collapse, then five consecutive 120-frame collapse/reset cycles, checking finite fragment transforms/velocities and ground containment after each cycle. This still does not verify interactive rendering quality, long-duration settling, or target-PC performance.
 - The support graph is topological, not a physical bond network.
