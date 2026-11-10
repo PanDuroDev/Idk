@@ -1,0 +1,23 @@
+{
+	"format": "worldbreak.simulation",
+	"schema_version": 1,
+	"configuration_id": "classic_default",
+	"display_name": "Classic 70-piece default impact",
+	"building_definition_id": "classic_70_piece",
+	"building_transform": {
+		"position": [0.0, 0.0, -12.0],
+		"rotation_degrees": [0.0, 0.0, 0.0],
+		"scale": [1.0, 1.0, 1.0]
+	},
+	"material_overrides": [],
+	"impact": {
+		"radius": 4.5,
+		"damage": 4.0,
+		"impulse": 22.0,
+		"upward_bias": 0.3
+	},
+	"environment": {
+		"gravity": 9.8,
+		"time_scale": 1.0
+	}
+}
