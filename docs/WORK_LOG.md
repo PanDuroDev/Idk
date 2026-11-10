@@ -416,3 +416,13 @@ This is an append-only engineering journal. Each substantial session is recorded
 - Linux/Windows Godot 4.7.2 import, parse, and headless smoke validation are pending the PR workflow. No test success is claimed until the logs and explicit markers are inspected.
 - Interactive building authoring in the Inspector and target-PC performance with larger buildings remain manual checks.
 - Next: inspect the cross-platform CI logs, fix any Resource serialization or runtime issues, and leave the implementation PR ready for integration review.
+
+### Validation follow-up - Windows type loading and CI output capture
+
+- The first Linux CI attempt exposed stale material-profile type annotations after the builder conversion; those were corrected.
+- The first Windows run then revealed a separate issue hidden by the existing workflow: script-class names registered through the global class cache were unavailable during Windows headless execution, and console parse errors were not included in the workflow's log-file-only checks.
+- Replaced cross-script custom-class annotations in the building-definition path with explicit script preloads, matching the repository's existing preload-based pattern.
+- Updated Linux and Windows import, launch, and gameplay smoke steps to inspect captured console output together with Godot log files. The gameplay gate now explicitly requires building-definition, repeated-collapse/reset, and overall smoke success markers on both platforms.
+- The follow-up run on the pre-guard commit passed building-definition tests on both platforms without parse errors. The stricter workflow run [#42894517616](https://github.com/PanDuroDev/Idk/actions/runs/42894517616) then passed every Linux and Windows step, including building-definition tests, five repeated collapse/reset cycles, and the isolated terrain chunk regression.
+- Expanded malformed-definition coverage to include non-positive dimensions, unsupported schema versions, null cell entries, and non-finite custom transforms.
+- Next: inspect the latest stricter CI run for the added malformed-definition cases, then mark PR #18 ready for integration review. Do not merge.
