@@ -409,7 +409,7 @@ This is an append-only engineering journal. Each substantial session is recorded
 - Replaced the fixed grid/layer builder with validated definition-driven fragment creation while retaining the existing cell-indexed damage/support state and Phase 1 debris/reset lifecycle.
 - Added headless tests for both Resources, unique/in-range coordinates, original center/material compatibility, invalid duplicate/out-of-range/missing-material definitions, invalid material values, duplicate catalog IDs, sparse generation, custom transform/material mapping, collapse, and reset.
 - Added `docs/BUILDING_DEFINITIONS.md` and updated the project status, roadmap, README, architecture status, and this work log.
-- No Phase 1 implementation files, gameplay root script, or project settings were changed.
+- The existing `scripts/destructible_structure.gd` was intentionally extended to source fragment creation from the new definition Resources. Its merged Phase 1 damage, support, debris lifetime/budget, retirement, and reset behavior was preserved. No `main.gd`, gameplay scene, Phase 1 controls/effects code, or project settings were changed.
 
 ### After
 - Implementation is on `ai/phase-2/building-definitions`; no PR has been merged.
