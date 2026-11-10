@@ -319,3 +319,8 @@ This is an append-only engineering journal. Each substantial session is recorded
 - Still unverified: interactive visual seam quality, visual mesh/collider agreement, high-speed body tunneling behavior, and actual target-PC FPS/CPU/GPU measurements.
 - Current milestone: the isolated Phase 3 prototype is implemented and passes the complete automated Linux/Windows coverage; it is ready for integration review, not gameplay integration.
 - Next: review and merge the Phase 3 PR stack in dependency order after Phase 1/2 readiness, then add a separate integration adapter and interactive terrain preview.
+
+
+### Review readiness follow-up
+- After confirming that all four branch-head CI runs passed and all four PRs reported a clean mergeability state, marked PRs #12, #13, and #15 ready for review. PR #10 was already ready.
+- All four PRs are now open and ready for review in dependency order. This changes review state only; no PR was merged and `main` remains unchanged.
