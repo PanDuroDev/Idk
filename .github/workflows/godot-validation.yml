@@ -1,9 +1,14 @@
 name: Godot validation
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches:
       - main
+      - 'ai/phase-3/**'
   pull_request:
     branches:
       - '**'
@@ -48,6 +53,23 @@ jobs:
           fi
           if grep -Eq 'SCRIPT ERROR:|(^|[[:space:]])ERROR:|WORLDBREAK_SMOKE_TEST_FAILED' godot-smoke.log; then
             cat godot-smoke.log
+            exit 1
+          fi
+
+      - name: Run isolated terrain chunk test
+        run: |
+          set +e
+          ./Godot_v4.7.2-stable_linux.x86_64 --headless --path . --script res://tests/terrain/terrain_chunk_data_test.gd --log-file godot-terrain.log > godot-terrain-console.log 2>&1
+          test_status=$?
+          set -e
+          cat godot-terrain-console.log
+          if [ -f godot-terrain.log ]; then cat godot-terrain.log; fi
+          if [ "$test_status" -ne 0 ]; then exit "$test_status"; fi
+          if ! grep -q 'WORLDBREAK_TERRAIN_CHUNK_MESH_OK' godot-terrain-console.log && ! grep -q 'WORLDBREAK_TERRAIN_CHUNK_MESH_OK' godot-terrain.log; then
+            echo "Terrain chunk test did not report its success marker."
+            exit 1
+          fi
+          if grep -Eq 'SCRIPT ERROR:|(^|[[:space:]])ERROR:|Parse Error:|Failed to load script' godot-terrain-console.log godot-terrain.log; then
             exit 1
           fi
 
@@ -104,4 +126,23 @@ jobs:
           if ($log -match "SCRIPT ERROR:|(^|\s)ERROR:|WORLDBREAK_SMOKE_TEST_FAILED") {
             Write-Output $log
             throw "Gameplay smoke test reported errors."
+          }
+
+      
+      - name: Run isolated terrain chunk test
+        shell: pwsh
+        run: |
+          $godot = ".\godot\Godot_v4.7.2-stable_win64.exe"
+          $terrainOutput = & $godot --headless --path . --script res://tests/terrain/terrain_chunk_data_test.gd --log-file godot-terrain.log 2>&1
+          $testExitCode = $LASTEXITCODE
+          $consoleLog = ($terrainOutput | Out-String)
+          $engineLog = if (Test-Path "godot-terrain.log") { Get-Content "godot-terrain.log" -Raw } else { "" }
+          $combinedLog = $consoleLog + [Environment]::NewLine + $engineLog
+          Write-Output $combinedLog
+          if ($testExitCode -ne 0) { exit $testExitCode }
+          if ($combinedLog -notmatch "WORLDBREAK_TERRAIN_CHUNK_MESH_OK") {
+            throw "Terrain chunk test did not report its success marker."
+          }
+          if ($combinedLog -match "SCRIPT ERROR:|(^|\s)ERROR:|Parse Error:|Failed to load script") {
+            throw "Terrain chunk test reported script or engine errors."
           }
