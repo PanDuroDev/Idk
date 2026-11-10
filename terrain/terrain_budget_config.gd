@@ -7,6 +7,7 @@ extends Resource
 @export_range(1, 32, 1) var max_dirty_chunks_per_edit: int = 8
 @export var max_edit_radius: float = 12.0
 @export_range(1, 8, 1) var max_mesh_rebuilds_per_frame: int = 1
+@export_range(1, 32, 1) var max_pending_mesh_rebuilds: int = 8
 @export_range(1, 8, 1) var max_collision_rebuilds_per_physics_frame: int = 1
 @export_range(1, 32, 1) var max_pending_collision_rebuilds: int = 8
 @export_range(1, 256, 1) var max_density_memory_mib: int = 16
@@ -23,6 +24,8 @@ func validate_limits() -> PackedStringArray:
 		errors.append("max_edit_radius must be positive")
 	if max_mesh_rebuilds_per_frame < 1:
 		errors.append("max_mesh_rebuilds_per_frame must be positive")
+	if max_pending_mesh_rebuilds < 1:
+		errors.append("max_pending_mesh_rebuilds must be positive")
 	if max_collision_rebuilds_per_physics_frame < 1:
 		errors.append("max_collision_rebuilds_per_physics_frame must be positive")
 	if max_pending_collision_rebuilds < 1:
@@ -46,6 +49,10 @@ func estimated_density_bytes(chunk_count: int) -> int:
 func within_density_memory_budget(chunk_count: int) -> bool:
 	return estimated_density_bytes(chunk_count) <= max_density_memory_mib * 1024 * 1024
 
+func configure_mesh_queue(queue: TerrainMeshRebuildQueue) -> void:
+	queue.max_rebuilds_per_frame = maxi(1, max_mesh_rebuilds_per_frame)
+	queue.max_pending_mesh_rebuilds = maxi(1, max_pending_mesh_rebuilds)
+
 func configure_collision_queue(queue: TerrainCollisionQueue) -> void:
 	queue.max_rebuilds_per_physics_frame = maxi(1, max_collision_rebuilds_per_physics_frame)
 	queue.max_pending_collision_rebuilds = maxi(1, max_pending_collision_rebuilds)
@@ -57,6 +64,7 @@ static func low_end_fallback() -> TerrainBudgetConfig:
 	profile.max_dirty_chunks_per_edit = 4
 	profile.max_edit_radius = 6.0
 	profile.max_mesh_rebuilds_per_frame = 1
+	profile.max_pending_mesh_rebuilds = 2
 	profile.max_collision_rebuilds_per_physics_frame = 1
 	profile.max_pending_collision_rebuilds = 2
 	profile.max_density_memory_mib = 4
