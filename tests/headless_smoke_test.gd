@@ -8,8 +8,8 @@ const BUILDING_DEFINITION_VALIDATOR = preload("res://scripts/building_definition
 const BuildingDefinitionScript = preload("res://scripts/building_definition.gd")
 const BuildingCellDefinitionScript = preload("res://scripts/building_cell_definition.gd")
 const DestructionMaterialProfileScript = preload("res://scripts/destruction_material_profile.gd")
-const CLASSIC_BUILDING: BuildingDefinition = preload("res://resources/buildings/classic_70_piece.tres")
-const SPARSE_BUILDING: BuildingDefinition = preload("res://resources/buildings/sparse_pillar_beam_11.tres")
+const CLASSIC_BUILDING: BuildingDefinitionScript = preload("res://resources/buildings/classic_70_piece.tres")
+const SPARSE_BUILDING: BuildingDefinitionScript = preload("res://resources/buildings/sparse_pillar_beam_11.tres")
 
 const REQUIRED_INPUT_ACTIONS: Array[StringName] = [
 	&"move_forward",
@@ -450,7 +450,7 @@ func _test_building_definition_assets() -> bool:
 		return false
 
 	var classic_coordinates: Dictionary = {}
-	for cell: BuildingCellDefinition in CLASSIC_BUILDING.cells:
+	for cell: BuildingCellDefinitionScript in CLASSIC_BUILDING.cells:
 		if classic_coordinates.has(cell.coordinate):
 			_fail("Classic building definition contains duplicate coordinate %s" % cell.coordinate)
 			return false
@@ -459,11 +459,11 @@ func _test_building_definition_assets() -> bool:
 		_fail("Classic building coordinates are not unique")
 		return false
 
-	var classic_origin_cell: BuildingCellDefinition = null
-	var foundation_cell: BuildingCellDefinition = null
-	var masonry_cell: BuildingCellDefinition = null
-	var lightweight_cell: BuildingCellDefinition = null
-	for cell: BuildingCellDefinition in CLASSIC_BUILDING.cells:
+	var classic_origin_cell: BuildingCellDefinitionScript = null
+	var foundation_cell: BuildingCellDefinitionScript = null
+	var masonry_cell: BuildingCellDefinitionScript = null
+	var lightweight_cell: BuildingCellDefinitionScript = null
+	for cell: BuildingCellDefinitionScript in CLASSIC_BUILDING.cells:
 		if cell.coordinate == Vector3i(0, 0, 0):
 			classic_origin_cell = cell
 		elif cell.coordinate == Vector3i(3, 1, 1):
@@ -500,7 +500,7 @@ func _test_building_definition_assets() -> bool:
 
 	var custom_transform_count: int = 0
 	var lightweight_override_count: int = 0
-	for cell: BuildingCellDefinition in SPARSE_BUILDING.cells:
+	for cell: BuildingCellDefinitionScript in SPARSE_BUILDING.cells:
 		if cell.use_custom_transform:
 			custom_transform_count += 1
 		if SPARSE_BUILDING.get_cell_material_profile(cell).material_id == &"lightweight_panel":
@@ -509,15 +509,15 @@ func _test_building_definition_assets() -> bool:
 		_fail("Sparse sample must exercise one custom transform and one per-cell material override")
 		return false
 
-	var malformed := BuildingDefinition.new()
+	var malformed := BuildingDefinitionScript.new()
 	malformed.schema_version = BuildingDefinitionScript.CURRENT_SCHEMA_VERSION
 	malformed.definition_id = &"malformed_duplicate_test"
 	malformed.display_name = "Malformed duplicate test"
 	malformed.dimensions = Vector3i(2, 2, 2)
 	malformed.default_material_profile = CLASSIC_BUILDING.default_material_profile
-	var duplicate_a := BuildingCellDefinition.new()
+	var duplicate_a := BuildingCellDefinitionScript.new()
 	duplicate_a.coordinate = Vector3i.ZERO
-	var duplicate_b := BuildingCellDefinition.new()
+	var duplicate_b := BuildingCellDefinitionScript.new()
 	duplicate_b.coordinate = Vector3i.ZERO
 	malformed.cells.append(duplicate_a)
 	malformed.cells.append(duplicate_b)
@@ -551,8 +551,8 @@ func _test_building_definition_assets() -> bool:
 		_fail("Building validator did not reject cells without material assignment")
 		return false
 
-	var duplicate_profile: DestructionMaterialProfile = CLASSIC_BUILDING.default_material_profile.duplicate() as DestructionMaterialProfile
-	var duplicate_catalog: Array[DestructionMaterialProfile] = []
+	var duplicate_profile: DestructionMaterialProfileScript = CLASSIC_BUILDING.default_material_profile.duplicate() as DestructionMaterialProfileScript
+	var duplicate_catalog: Array[DestructionMaterialProfileScript] = []
 	duplicate_catalog.append(CLASSIC_BUILDING.default_material_profile)
 	duplicate_catalog.append(duplicate_profile)
 	var duplicate_catalog_errors: Array[String] = BUILDING_DEFINITION_VALIDATOR.validate_material_catalog(duplicate_catalog)
@@ -560,7 +560,7 @@ func _test_building_definition_assets() -> bool:
 		_fail("Material catalog validator accepted duplicate profile IDs")
 		return false
 
-	var invalid_profile := DestructionMaterialProfile.new()
+	var invalid_profile := DestructionMaterialProfileScript.new()
 	invalid_profile.material_id = &"invalid_profile"
 	invalid_profile.display_name = "Invalid profile"
 	invalid_profile.integrity = 0.0
