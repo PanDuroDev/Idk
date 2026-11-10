@@ -1,9 +1,9 @@
 # WORLDBREAK Project Status
 
 **Last updated:** 2026-11-10  
-**Update point:** After material-profile engineering pass 05  
-**Branch:** `feature/worldbreak-godot-foundation`  
-**PR:** [#2 - Godot foundation](https://github.com/PanDuroDev/Idk/pull/2) (draft, not merged)
+**Current branch:** `main`  
+**PR #2:** [Merged](https://github.com/PanDuroDev/Idk/pull/2) into `main`  
+**Merge commit:** `0911466d40115e835815d4072c2f075843369027`
 
 ## Project idea
 
@@ -33,26 +33,18 @@ WORLDBREAK is a 3D physics and destruction sandbox. The long-term goal is to let
 - Reset restores damage history, support state, transforms, velocities, and frozen states.
 - Runtime HUD and headless smoke tests.
 
-## Session 04 result: cumulative damage
+## Validation
 
-Godot 4.7.2 CI passed: [Actions #42857896663](https://github.com/PanDuroDev/Idk/actions/runs/42857896663). It tested one weak hit accumulating damage without breaking, a second hit crossing integrity, support retention, collapse, and reset.
-
-## Session 05 result: data-driven material profiles
-
-<badge color="success">Godot CI passed</badge>
-
-Final full-project validation: [Actions #42859021645](https://github.com/PanDuroDev/Idk/actions/runs/42859021645).
+Godot 4.7.2 CI passed on the merged implementation. The final pre-merge validation was [Actions #42859271503](https://github.com/PanDuroDev/Idk/actions/runs/42859271503).
 
 Verified:
-- Godot 4.7.2 imported the custom Resource script and all three `.tres` material profiles.
+- Godot imported the custom Resource script and all three `.tres` material profiles.
 - Project launched headlessly.
-- Structure assigned the correct material profile to foundation, middle, and top layers.
-- Foundation profile has higher integrity, blast resistance, and density than masonry.
+- Material profile assignment for foundation, middle, and top layers.
+- Foundation has higher integrity, blast resistance, and density than masonry.
 - Masonry breaks after two centered weak hits.
-- Foundation resists three such hits and breaks on the fourth.
-- Full base-row collapse, support graph behavior, and reset still pass.
-
-The first material test expected foundation concrete to break after three weak hits. The configured integrity/resistance values correctly required a fourth; the assertion was fixed, not the material model weakened.
+- Foundation resists three weak hits and breaks on the fourth.
+- Full base-row collapse, support graph behavior, and reset pass.
 
 ## Current limitations
 
