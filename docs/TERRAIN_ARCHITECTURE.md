@@ -41,7 +41,9 @@ Density edits and mesh-array generation are CPU-side operations. Do not create o
 - Collision only for chunks in the active interaction radius; distant chunks remain render-only.
 - Low-end fallback: 8 cells per axis, larger cell size, and collision only around the active test area.
 
-These are starting guardrails, not validated performance numbers. PR 4 must replace or justify them using repeatable measurements.
+The default values are implemented in TerrainBudgetConfig and are enforced at edit acceptance, resident-chunk checks, and the collision queue. The low-end profile reduces resolution to 8 cells per axis, resident chunks to 8, dirty chunks per edit to 4, edit radius to 6 world units, pending collision work to 2, and density memory to 4 MiB. The profile test records elapsed CPU mesh-build time, sample count, density payload bytes, vertex count, and estimated vertex payload bytes at 8³ and 16³ resolutions. Payload estimates exclude allocator, ArrayMesh, physics-cooking, and engine overhead; elapsed times from CI are not target-PC benchmarks.
+
+These values are conservative starting limits, not validated GTX 1660 SUPER performance guarantees. Target-PC profiling and interactive visual checks remain required before gameplay integration.
 
 ## Current limitations
 
