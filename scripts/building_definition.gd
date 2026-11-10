@@ -13,17 +13,17 @@ const CURRENT_SCHEMA_VERSION: int = 1
 @export var cell_size: Vector3 = Vector3.ONE
 @export var cell_spacing: Vector3 = Vector3.ONE
 @export var origin_offset: Vector3 = Vector3.ZERO
-@export var default_material_profile: DestructionMaterialProfile
-@export var cells: Array[BuildingCellDefinition] = []
+@export var default_material_profile: DestructionMaterialProfileScript
+@export var cells: Array[BuildingCellDefinitionScript] = []
 
 
-func get_cell_material_profile(cell: BuildingCellDefinition) -> DestructionMaterialProfile:
+func get_cell_material_profile(cell: BuildingCellDefinitionScript) -> DestructionMaterialProfileScript:
 	if cell == null:
 		return null
 	return cell.material_profile if cell.material_profile != null else default_material_profile
 
 
-func get_cell_local_transform(cell: BuildingCellDefinition) -> Transform3D:
+func get_cell_local_transform(cell: BuildingCellDefinitionScript) -> Transform3D:
 	if cell == null:
 		return Transform3D.IDENTITY
 	if cell.use_custom_transform:
