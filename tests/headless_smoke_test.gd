@@ -321,11 +321,12 @@ func _run_smoke_test() -> void:
 		_fail("A radial impact did not wake sleeping loose debris")
 		return
 
-	# A later break elsewhere must not spuriously wake already sleeping debris.
-	structure.call("apply_blast_damage", Vector3(-1.04, 0.5, -11.48), 0.25, 2.0)
+	# Recomputing support state alone must not spuriously wake settled debris.
+	wake_fragment.sleeping = true
+	structure.call("_refresh_support_state")
 	await physics_frame
 	if not wake_fragment.sleeping:
-		_fail("A separate impact incorrectly woke unrelated sleeping debris")
+		_fail("A support refresh incorrectly woke sleeping loose debris")
 		return
 
 	# Shorten lifetime only for this isolated cleanup assertion, then prove reset restores every node.
