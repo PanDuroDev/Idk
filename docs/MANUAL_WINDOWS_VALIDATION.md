@@ -21,7 +21,14 @@ This checklist covers the interactive checks that GitHub Actions cannot perform.
 
 Verify that the HUD counters change after an impact and return to zero after resetting the structure.
 
-## 3. Compare the three material thresholds
+## 3. Runtime impact controls
+
+- Use the on-screen Impact Settings panel to adjust blast radius, damage, and physical impulse independently.
+- Confirm each value changes in the panel and affects subsequent impacts without changing the other settings.
+- Press **Reset impact defaults** and confirm the values return to radius 4.5, damage 4.0, and impulse 22.0.
+- Verify values cannot move outside radius 0.5-12.0, damage 0.1-10.0, and impulse 1.0-100.0.
+
+## 4. Compare the three material thresholds
 
 For a controlled comparison, change the running scene's exported values through the Remote Inspector:
 
@@ -44,7 +51,7 @@ Approximate hit counts for a hit at the exact center of the front face are:
 
 These estimates use the current linear distance falloff and a 0.5 m distance from the front face to the block center. Actual counts can be higher if the impact lands away from the face center. This is a tuning comparison, not a claim that the values represent real construction materials.
 
-## 4. Full collapse and reset
+## 5. Full collapse and reset
 
 In the Remote Inspector for **Main**, set:
 
@@ -64,7 +71,7 @@ Check the following:
 
 Repeat the collapse/reset cycle five times and note any change in behavior.
 
-## 5. Performance observations
+## 6. Performance observations
 
 Use the HUD FPS counter and Windows Task Manager while the game is running. Record:
 
@@ -80,6 +87,6 @@ Use the HUD FPS counter and Windows Task Manager while the game is running. Reco
 
 Do not treat a single FPS reading as a benchmark. Record the resolution, graphics settings, and whether the measurement was taken during idle, active collapse, or after settling.
 
-## 6. Report the result
+## 7. Report the result
 
 Record the Godot version, Windows version, whether any errors appeared, the three material hit counts, the number of successful collapse/reset cycles, and the performance table above. Keep screenshots or a short recording of any failure. Do not mark interactive validation complete until these observations have been reviewed.
