@@ -81,7 +81,7 @@ Verified:
 ## Phase 1 validation update
 
 - CI pull-request trigger was broadened from main-only to all target branches so stacked Phase 1 PRs receive the same Linux and Windows gates.
-- Structural budget baseline is 70 original fragments, 70 loose fragments after full release, six physics props, and zero loose fragments at startup. The implementation keeps the active cap at 70 by default and allows a lower configured cap; no FPS/CPU/GPU benchmark has been measured.
+- Structural budget baseline is 70 original fragments, 70 loose fragments after full release, six physics props, and zero loose fragments at startup. The implementation keeps the active cap at 70 by default and allows a lower configured cap that parks excess bodies as frozen/sleeping until an impact wakes them; no FPS/CPU/GPU benchmark has been measured.
 
 ## Exact next step
 
