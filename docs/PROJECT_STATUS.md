@@ -68,31 +68,24 @@ Verified:
 
 ## Phase 1 progress
 
-- PR 1 implementation branch: ai/phase-1/runtime-impact-controls.
-- Runtime impact panel exposes radius, damage, and impulse with safe bounds and reset-to-default behavior. Defaults remain radius 4.5, damage 4.0, and impulse 22.0.
-- Headless assertions cover defaults, min/max clamping, and reset. Cross-platform CI is pending PR creation; interactive panel layout and input behavior still require manual validation.
+All three implementation PRs are open and deliberately stacked. Nothing has been merged by the phase agents.
 
-## Phase 1 progress
+- PR 1: [#11 - Runtime impact controls](https://github.com/PanDuroDev/Idk/pull/11), branch `ai/phase-1/runtime-impact-controls`. Adds bounded radius, damage, and impulse controls plus reset-to-default behavior. Latest recorded Linux and Windows CI run passed.
+- PR 2: [#16 - Debris lifecycle and budgets](https://github.com/PanDuroDev/Idk/pull/16), branch `ai/phase-1/debris-lifecycle`, based on PR #11. Adds released-fragment lifetime/retirement, sleeping and impact wake-up, a hard awake-fragment cap, and lossless reset. Latest recorded Linux and Windows CI run passed.
+- PR 3: [#17 - Lightweight effects and diagnostics](https://github.com/PanDuroDev/Idk/pull/17), branch `ai/phase-1/effects-and-diagnostics`, based on PR #16. Adds capped dust bursts and an F3 diagnostics panel. A final CI run is validating the latest disjoint sleeping/parked metrics and overlay assertions.
 
-- PR 1: runtime impact controls, branch ai/phase-1/runtime-impact-controls, PR #11. Linux and Windows headless jobs passed; logs include the impact-controls, physics-collapse, repeated-cycle, and smoke-test markers.
-- PR 2 implementation branch: ai/phase-1/debris-lifecycle (stacked on PR #11 pending integration). Released-only lifetime/retirement, natural sleeping and impact wake-up, active-fragment cap, and lossless reset restoration are implemented with headless coverage. Cross-platform CI is pending.
-- The current active-fragment budget is 70, matching the prototype's 70 pieces; this is a conservative fixed-scene guardrail, not a measured optimum.
+The default awake-fragment cap is 70 because the current structure contains 70 fragments. This is a conservative guardrail for the fixed prototype, not a measured optimum. Eight simultaneous effect bursts with six motes each cap the visual effect at 48 motes. No FPS/CPU/GPU improvement is claimed without target-PC profiling.
 
-## Phase 1 progress
+### Remaining manual validation
 
-- PR 1: [#11 runtime impact controls](https://github.com/PanDuroDev/Idk/pull/11), Linux and Windows headless validation passed with required smoke markers.
-- PR 2: [#16 debris lifecycle](https://github.com/PanDuroDev/Idk/pull/16), stacked on PR #11. The workflow now validates stacked pull requests targeting any branch; current cross-platform runs are queued.
-- PR 3 implementation branch: ai/phase-1/effects-and-diagnostics, stacked on PR #16. Adds eight-burst bounded dust effects and an F3 opt-in diagnostics overlay; tests and docs are added. Cross-platform CI is queued for this branch.
-- No interactive rendering or target-PC performance results are claimed from headless CI.
+- Verify impact-control panel layout and mouse interaction in a normal window.
+- Trigger repeated impacts and confirm dust visibility, fade, and oldest-burst eviction at the eight-burst cap.
+- Toggle the diagnostics panel with F3 and verify the values remain readable during collapse and after settling.
+- Profile idle, active collapse, and settled scenes on the target Windows PC. Headless CI cannot establish visual quality or performance.
 
-## Phase 1 validation update
+### Current integration order
 
-- CI pull-request trigger was broadened from main-only to all target branches so stacked Phase 1 PRs receive the same Linux and Windows gates.
-- Structural budget baseline is 70 original fragments, 70 loose fragments after full release, six physics props, and zero loose fragments at startup. The implementation keeps the active cap at 70 by default and allows a lower configured cap that parks excess bodies as frozen/sleeping until an impact wakes them; no FPS/CPU/GPU benchmark has been measured.
-
-## Exact next step
-
-Begin [AI Phase 1 issue #5](https://github.com/PanDuroDev/Idk/issues/5): runtime impact controls, bounded debris lifecycle/performance budgets, lightweight effects, and diagnostics. The user has reported that the interactive checklist works. Detailed numeric FPS/CPU/GPU measurements remain unrecorded and should be collected during Phase 1 profiling. Phase assignments and dependencies are documented in [AI_PHASE_ASSIGNMENTS.md](AI_PHASE_ASSIGNMENTS.md).
+Merge only after review, in dependency order: PR #11, then PR #16, then PR #17. Re-run CI on each updated target branch after integration.
 
 ## AI phase delegation
 
