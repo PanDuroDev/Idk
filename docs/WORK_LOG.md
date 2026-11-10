@@ -336,3 +336,11 @@ This is an append-only engineering journal. Each substantial session is recorded
 - Recorded the actual fixed-scene baseline: 70 original structure bodies, zero loose at startup, 70 released on full collapse, and six separate physics props. The default awake loose-fragment cap remains 70 to avoid suspending pieces mid-fall; smaller caps are explicitly tested.
 - The dust effect budget is eight concurrent bursts of six motes each (48 motes maximum), with a 0.55-second lifetime.
 - No FPS/CPU/GPU values were fabricated; target-PC profiling remains a manual measurement.
+
+
+### Active-budget enforcement follow-up
+
+- Linux exposed that a sleeping rigid body can be reactivated by incidental collisions after a per-tick sleep request. The earlier active cap therefore was not a hard cap under a deliberately small test budget.
+- Changed over-budget bodies to a frozen/sleeping parked state. The blast pipeline already explicitly unfreezes a hit rigid body before applying impulse, so parked debris remains impact-reactive.
+- Released-fragment counts now include budget-parked bodies; diagnostics report parked bodies separately.
+- Added a regression that reduces the cap to one during a multi-fragment release and asserts awake count stays within the cap while other released fragments remain accounted for.
