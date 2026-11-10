@@ -228,66 +228,66 @@ func _run_smoke_test() -> void:
 		return
 
 	const REPEATED_COLLAPSE_CYCLES: int = 5
-const REPEATED_COLLAPSE_PHYSICS_FRAMES: int = 120
-
-for cycle_index in range(REPEATED_COLLAPSE_CYCLES):
-	main.set("blast_radius", 4.5)
-	main.set("blast_damage", 10.0)
-	main.set("blast_impulse", 22.0)
-	main.call("request_blast", Vector3(0.0, 0.5, 6.0), Vector3(0.0, 0.0, -1.0))
-	await physics_frame
-	await physics_frame
-
-	var cycle_broken_count: int = int(structure.call("get_broken_fragment_count"))
-	var cycle_released_count: int = int(structure.call("get_released_fragment_count"))
-	var cycle_supported_count: int = int(structure.call("get_supported_fragment_count"))
-	if cycle_broken_count < 14:
-		_fail("Collapse cycle %d did not break the full foundation row" % (cycle_index + 1))
-		return
-	if cycle_released_count != 70 or cycle_supported_count != 0:
-		_fail("Collapse cycle %d did not release all 70 fragments" % (cycle_index + 1))
-		return
-
-	for frame_index in range(REPEATED_COLLAPSE_PHYSICS_FRAMES):
+	const REPEATED_COLLAPSE_PHYSICS_FRAMES: int = 120
+	
+	for cycle_index in range(REPEATED_COLLAPSE_CYCLES):
+		main.set("blast_radius", 4.5)
+		main.set("blast_damage", 10.0)
+		main.set("blast_impulse", 22.0)
+		main.call("request_blast", Vector3(0.0, 0.5, 6.0), Vector3(0.0, 0.0, -1.0))
 		await physics_frame
-
-	var cycle_fragment_count: int = 0
-	var cycle_moved_count: int = 0
-	for fragment_node in structure.get_children():
-		var fragment := fragment_node as RigidBody3D
-		if fragment == null:
-			continue
-
-		cycle_fragment_count += 1
-		if not fragment.global_position.is_finite():
-			_fail("Collapse cycle %d produced a non-finite position for %s" % [cycle_index + 1, fragment.name])
+		await physics_frame
+	
+		var cycle_broken_count: int = int(structure.call("get_broken_fragment_count"))
+		var cycle_released_count: int = int(structure.call("get_released_fragment_count"))
+		var cycle_supported_count: int = int(structure.call("get_supported_fragment_count"))
+		if cycle_broken_count < 14:
+			_fail("Collapse cycle %d did not break the full foundation row" % (cycle_index + 1))
 			return
-		if not fragment.linear_velocity.is_finite() or not fragment.angular_velocity.is_finite():
-			_fail("Collapse cycle %d produced a non-finite velocity for %s" % [cycle_index + 1, fragment.name])
+		if cycle_released_count != 70 or cycle_supported_count != 0:
+			_fail("Collapse cycle %d did not release all 70 fragments" % (cycle_index + 1))
 			return
-		if fragment.global_position.y < -0.1:
-			_fail("Collapse cycle %d let %s pass through the ground" % [cycle_index + 1, fragment.name])
+	
+		for frame_index in range(REPEATED_COLLAPSE_PHYSICS_FRAMES):
+			await physics_frame
+	
+		var cycle_fragment_count: int = 0
+		var cycle_moved_count: int = 0
+		for fragment_node in structure.get_children():
+			var fragment := fragment_node as RigidBody3D
+			if fragment == null:
+				continue
+	
+			cycle_fragment_count += 1
+			if not fragment.global_position.is_finite():
+				_fail("Collapse cycle %d produced a non-finite position for %s" % [cycle_index + 1, fragment.name])
+				return
+			if not fragment.linear_velocity.is_finite() or not fragment.angular_velocity.is_finite():
+				_fail("Collapse cycle %d produced a non-finite velocity for %s" % [cycle_index + 1, fragment.name])
+				return
+			if fragment.global_position.y < -0.1:
+				_fail("Collapse cycle %d let %s pass through the ground" % [cycle_index + 1, fragment.name])
+				return
+			var initial_position: Vector3 = initial_fragment_positions[fragment.get_instance_id()]
+			if fragment.global_position.distance_to(initial_position) > 0.05:
+				cycle_moved_count += 1
+	
+		if cycle_fragment_count != 70 or cycle_moved_count == 0:
+			_fail("Collapse cycle %d did not simulate all 70 fragments" % (cycle_index + 1))
 			return
-		var initial_position: Vector3 = initial_fragment_positions[fragment.get_instance_id()]
-		if fragment.global_position.distance_to(initial_position) > 0.05:
-			cycle_moved_count += 1
-
-	if cycle_fragment_count != 70 or cycle_moved_count == 0:
-		_fail("Collapse cycle %d did not simulate all 70 fragments" % (cycle_index + 1))
-		return
-
-	main.call("request_structure_reset")
-	await physics_frame
-	await physics_frame
-	if not bool(structure.call("is_reset_to_initial_state")):
-		_fail("Reset failed after collapse cycle %d" % (cycle_index + 1))
-		return
-
-print(
-	"WORLDBREAK_REPEAT_CYCLES_OK: cycles=%d; frames_per_cycle=%d; fragments=70; reset_checks=%d"
-	% [REPEATED_COLLAPSE_CYCLES, REPEATED_COLLAPSE_PHYSICS_FRAMES, REPEATED_COLLAPSE_CYCLES]
-)
-print("WORLDBREAK_SMOKE_TEST_OK: all material profiles, support graph, collapse, cumulative damage, repeated reset, and reset")
+	
+		main.call("request_structure_reset")
+		await physics_frame
+		await physics_frame
+		if not bool(structure.call("is_reset_to_initial_state")):
+			_fail("Reset failed after collapse cycle %d" % (cycle_index + 1))
+			return
+	
+	print(
+		"WORLDBREAK_REPEAT_CYCLES_OK: cycles=%d; frames_per_cycle=%d; fragments=70; reset_checks=%d"
+		% [REPEATED_COLLAPSE_CYCLES, REPEATED_COLLAPSE_PHYSICS_FRAMES, REPEATED_COLLAPSE_CYCLES]
+	)
+	print("WORLDBREAK_SMOKE_TEST_OK: all material profiles, support graph, collapse, cumulative damage, repeated reset, and reset")
 	quit(0)
 
 
