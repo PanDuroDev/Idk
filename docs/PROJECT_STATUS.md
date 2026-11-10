@@ -3,7 +3,9 @@
 **Last updated:** 2026-11-10  
 **Current branch:** `main`  
 **PR #2:** [Merged](https://github.com/PanDuroDev/Idk/pull/2) into `main`  
-**Merge commit:** `0911466d40115e835815d4072c2f075843369027`
+**Merge commit (PR #2):** `0911466d40115e835815d4072c2f075843369027`  
+**PR #3:** [Merged](https://github.com/PanDuroDev/Idk/pull/3) into `main`  
+**Merge commit (PR #3):** `328595ede6470700a16574bd1461e1b37d3dbe58`
 
 ## Project idea
 
@@ -41,6 +43,7 @@ Verified:
 - Godot imported the custom Resource script and all three `.tres` material profiles.
 - The final PR #3 workflow passed on both `ubuntu-latest` and `windows-latest` at head `351db972746837ebb4ade2d3ab067239b0dfd64a` ([Actions #42865744560](https://github.com/PanDuroDev/Idk/actions/runs/42865744560)). It imports the project before launch, scans Godot logs for script/runtime errors, and requires the gameplay smoke-test success marker.
 - CI now runs on pull requests targeting `main` and pushes to `main`; this closes the previous gap where the push trigger only watched the retired feature branch.
+- The post-merge push run [Actions #42866260328](https://github.com/PanDuroDev/Idk/actions/runs/42866260328) passed on both Linux and Windows at merge commit `328595ede6470700a16574bd1461e1b37d3dbe58`.
 - Project launched headlessly.
 - Material profile assignment for foundation, middle, and top layers.
 - Foundation has higher integrity, blast resistance, and density than masonry.
