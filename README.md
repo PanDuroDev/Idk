@@ -32,7 +32,7 @@ The support graph is a deterministic topology approximation. The material profil
 | R | Reset structure |
 | Escape | Release/capture mouse |
 
-Controls are defined through Godot InputMap and can be remapped in Project Settings.
+The in-game Impact Settings panel adjusts blast radius, damage, and physical impulse. Each value has bounded +/- controls; Reset impact defaults restores the prototype values. Controls are defined through Godot InputMap and can be remapped in Project Settings.
 
 ## Architecture
 - GDScript and Godot Physics 3D.
