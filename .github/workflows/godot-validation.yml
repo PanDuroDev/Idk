@@ -76,7 +76,7 @@ jobs:
       - name: Run terrain deformation test
         run: |
           set +e
-          timeout --signal=TERM 60s ./Godot_v4.7.2-stable_linux.x86_64 --headless --path . --script res://tests/terrain/terrain_deformation_test.gd --log-file godot-deformation.log > godot-deformation-console.log 2>&1
+          timeout --signal=TERM 30s ./Godot_v4.7.2-stable_linux.x86_64 --headless --path . --script res://tests/terrain/terrain_deformation_test.gd --quit-after 120 --log-file godot-deformation.log > godot-deformation-console.log 2>&1
           test_status=$?
           set -e
           cat godot-deformation-console.log
@@ -168,16 +168,11 @@ jobs:
         shell: pwsh
         run: |
           $godot = ".\godot\Godot_v4.7.2-stable_win64.exe"
-          $process = Start-Process -FilePath $godot -ArgumentList @("--headless", "--path", ".", "--script", "res://tests/terrain/terrain_deformation_test.gd", "--log-file", "godot-deformation.log") -PassThru -NoNewWindow -RedirectStandardOutput "godot-deformation-stdout.log" -RedirectStandardError "godot-deformation-stderr.log"
-          if (-not $process.WaitForExit(60000)) {
-            Stop-Process -Id $process.Id -Force
-            throw "Terrain deformation test timed out after 60 seconds."
-          }
-          $testExitCode = $process.ExitCode
-          $stdoutLog = if (Test-Path "godot-deformation-stdout.log") { Get-Content "godot-deformation-stdout.log" -Raw } else { "" }
-          $stderrLog = if (Test-Path "godot-deformation-stderr.log") { Get-Content "godot-deformation-stderr.log" -Raw } else { "" }
+          $deformationOutput = & $godot --headless --path . --script res://tests/terrain/terrain_deformation_test.gd --quit-after 120 --log-file godot-deformation.log 2>&1
+          $testExitCode = $LASTEXITCODE
+          $consoleLog = ($deformationOutput | Out-String)
           $engineLog = if (Test-Path "godot-deformation.log") { Get-Content "godot-deformation.log" -Raw } else { "" }
-          $combinedLog = $stdoutLog + [Environment]::NewLine + $stderrLog + [Environment]::NewLine + $engineLog
+          $combinedLog = $consoleLog + [Environment]::NewLine + $engineLog
           Write-Output $combinedLog
           if ($testExitCode -ne 0) { exit $testExitCode }
           if ($combinedLog -notmatch "WORLDBREAK_TERRAIN_DEFORMATION_OK") {
@@ -185,4 +180,5 @@ jobs:
           }
           if ($combinedLog -match "SCRIPT ERROR:|(^|\s)ERROR:|Parse Error:|Failed to load script") {
             throw "Terrain deformation test reported script or engine errors."
+          }
           }
