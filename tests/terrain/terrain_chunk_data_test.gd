@@ -8,27 +8,37 @@ func _initialize() -> void:
 func _run() -> void:
 	var left = ChunkData.create(Vector3i(0, 0, 0), Vector3i(4, 4, 4), 0.5)
 	var right = ChunkData.create(Vector3i(1, 0, 0), Vector3i(4, 4, 4), 0.5)
-	assert(left.sample_dimensions() == Vector3i(5, 5, 5))
-	assert(left.global_sample_coord(Vector3i(4, 2, 1)) == Vector3i(4, 2, 1))
-	assert(right.global_sample_coord(Vector3i(0, 2, 1)) == Vector3i(4, 2, 1))
-	assert(left.world_sample_position(Vector3i(4, 2, 1)) == right.world_sample_position(Vector3i(0, 2, 1)))
+	if not _expect(left.sample_dimensions() == Vector3i(5, 5, 5), "Chunk sample dimensions are incorrect"):
+		return
+	if not _expect(left.global_sample_coord(Vector3i(4, 2, 1)) == Vector3i(4, 2, 1), "Left chunk global sample coordinate is incorrect"):
+		return
+	if not _expect(right.global_sample_coord(Vector3i(0, 2, 1)) == Vector3i(4, 2, 1), "Right chunk global sample coordinate is incorrect"):
+		return
+	if not _expect(left.world_sample_position(Vector3i(4, 2, 1)) == right.world_sample_position(Vector3i(0, 2, 1)), "Duplicated chunk border world positions differ"):
+		return
 	for z in range(5):
 		for y in range(5):
 			for x in range(5):
 				left.set_density(Vector3i(x, y, z), 2.0 - float(x))
 	var mesh: ArrayMesh = Mesher.build_mesh(left)
-	assert(mesh != null)
-	assert(mesh.get_surface_count() == 1)
+	if not _expect(mesh != null, "Mesher returned a null mesh"):
+		return
+	if not _expect(mesh.get_surface_count() == 1, "Planar field did not produce exactly one surface"):
+		return
 	var arrays := mesh.surface_get_arrays(0)
 	var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
 	var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
-	assert(vertices.size() > 0)
-	assert(normals.size() == vertices.size())
+	if not _expect(vertices.size() > 0, "Planar field produced no vertices"):
+		return
+	if not _expect(normals.size() == vertices.size(), "Mesh normals do not match vertex count"):
+		return
 	for index in range(vertices.size()):
 		var vertex := vertices[index]
 		var normal := normals[index]
-		assert(is_finite(vertex.x) and is_finite(vertex.y) and is_finite(vertex.z))
-		assert(normal.x > 0.9, "Planar surface normals must face toward the empty (+X) side")
+		if not _expect(is_finite(vertex.x) and is_finite(vertex.y) and is_finite(vertex.z), "Mesh contains a non-finite vertex"):
+		return
+		if not _expect(normal.x > 0.9, "Planar surface normals must face toward the empty (+X) side"):
+		return
 
 	# Two adjacent chunks must emit the exact same vertices along their shared
 	# face when a planar isosurface crosses that face.
@@ -79,3 +89,10 @@ func _contains_approx(vertices: Array[Vector3], target: Vector3) -> bool:
 func _fail(message: String) -> void:
 	push_error(message)
 	quit(1)
+
+func _expect(condition: bool, message: String) -> bool:
+	if condition:
+		return true
+	push_error(message)
+	quit(1)
+	return false
