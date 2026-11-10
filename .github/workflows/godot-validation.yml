@@ -126,6 +126,32 @@ jobs:
             exit 1
           fi
 
+      - name: Run terrain world coordinator test
+        run: |
+          ./Godot_v4.7.2-stable_linux.x86_64 --headless --path . --script res://tests/terrain/terrain_world_test.gd --log-file godot-terrain-world.log
+          if ! grep -q 'WORLDBREAK_TERRAIN_WORLD_OK' godot-terrain-world.log; then
+            cat godot-terrain-world.log
+            echo "Terrain world coordinator test did not report its success marker."
+            exit 1
+          fi
+          if grep -Eq 'SCRIPT ERROR:|(^|[[:space:]])ERROR:' godot-terrain-world.log; then
+            cat godot-terrain-world.log
+            exit 1
+          fi
+
+      - name: Run terrain gameplay integration test
+        run: |
+          ./Godot_v4.7.2-stable_linux.x86_64 --headless --path . --script res://tests/terrain/terrain_integration_test.gd --log-file godot-terrain-integration.log
+          if ! grep -q 'WORLDBREAK_TERRAIN_INTEGRATION_OK' godot-terrain-integration.log; then
+            cat godot-terrain-integration.log
+            echo "Terrain gameplay integration test did not report its success marker."
+            exit 1
+          fi
+          if grep -Eq 'SCRIPT ERROR:|(^|[[:space:]])ERROR:' godot-terrain-integration.log; then
+            cat godot-terrain-integration.log
+            exit 1
+          fi
+
   windows-headless-validation:
     runs-on: windows-latest
     timeout-minutes: 10
@@ -265,3 +291,36 @@ jobs:
             Write-Output $meshQueueLog
             throw "Terrain mesh queue test reported errors."
           }
+
+      - name: Run terrain world coordinator test
+        shell: pwsh
+        run: |
+          $godot = ".\\godot\\Godot_v4.7.2-stable_win64.exe"
+          & $godot --headless --path . --script res://tests/terrain/terrain_world_test.gd --log-file godot-terrain-world.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $worldLog = Get-Content "godot-terrain-world.log" -Raw
+          if ($worldLog -notmatch "WORLDBREAK_TERRAIN_WORLD_OK") {
+            Write-Output $worldLog
+            throw "Terrain world coordinator test did not report its success marker."
+          }
+          if ($worldLog -match "SCRIPT ERROR:|(^|\\s)ERROR:") {
+            Write-Output $worldLog
+            throw "Terrain world coordinator test reported errors."
+          }
+
+      - name: Run terrain gameplay integration test
+        shell: pwsh
+        run: |
+          $godot = ".\\godot\\Godot_v4.7.2-stable_win64.exe"
+          & $godot --headless --path . --script res://tests/terrain/terrain_integration_test.gd --log-file godot-terrain-integration.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $integrationLog = Get-Content "godot-terrain-integration.log" -Raw
+          if ($integrationLog -notmatch "WORLDBREAK_TERRAIN_INTEGRATION_OK") {
+            Write-Output $integrationLog
+            throw "Terrain gameplay integration test did not report its success marker."
+          }
+          if ($integrationLog -match "SCRIPT ERROR:|(^|\\s)ERROR:") {
+            Write-Output $integrationLog
+            throw "Terrain gameplay integration test reported errors."
+          }
+

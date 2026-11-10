@@ -33,6 +33,10 @@ func request_rebuild(target: MeshInstance3D, data: TerrainChunkData) -> bool:
 func pending_count() -> int:
 	return _pending_by_target.size()
 
+func clear_pending() -> void:
+	_pending_order.clear()
+	_pending_by_target.clear()
+
 func _process(_delta: float) -> void:
 	var budget := maxi(1, max_rebuilds_per_frame)
 	var processed := 0

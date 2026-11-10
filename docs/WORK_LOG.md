@@ -324,3 +324,21 @@ This is an append-only engineering journal. Each substantial session is recorded
 ### Review readiness follow-up
 - After confirming that all four branch-head CI runs passed and all four PRs reported a clean mergeability state, marked PRs #12, #13, and #15 ready for review. PR #10 was already ready.
 - All four PRs are now open and ready for review in dependency order. This changes review state only; no PR was merged and `main` remains unchanged.
+
+## 2026-11-10 - Phase 3 gameplay terrain integration
+
+### Before work
+- Started from the Phase 3 budget/fallback branch head `9469e2dbbd47e5680f254147aa7dd623b4cea398`, which contains PRs #10, #12, #13, and #15.
+- Read the terrain architecture, existing terrain components, gameplay blast path, smoke test, and Linux/Windows workflow.
+- Scope: add the missing end-to-end coordinator and gameplay blast integration without duplicating the blast system, changing the terrain format, or claiming measured performance or visual quality.
+
+### During work
+- Added `terrain/terrain_world.gd` (`TerrainWorld`): four resident chunks in a 2x2 XZ footprint, deterministic base density field, edit journal, mesh and collision queues, bounded budget enforcement, low-end profile selection, localized carving, reset, and diagnostics.
+- Added `clear_pending()` to the mesh and collision queues so reset cannot apply stale pre-reset rebuild requests.
+- Connected `main.gd` to the coordinator: the existing processed blast calls `carve_sphere`; reset now restores both structure and terrain; the HUD reports terrain edits.
+- Added `tests/terrain/terrain_world_test.gd`: localized-density edits, unaffected-chunk checks, coalescing, per-frame rebuild bounds, reset, rejected edits, low-end profile, and collision presence.
+- Added `tests/terrain/terrain_integration_test.gd`: three real gameplay blast/reset cycles, structure isolation, localized mesh/collision rebuilds, and reset.
+- Fixed the existing budget/profile test to release its temporary queues and meshes so its log no longer reports exit leaks.
+- Updated README, terrain architecture, and technical direction to describe the resident patch and its limits.
+- Local Windows results: import clean; `WORLDBREAK_TERRAIN_WORLD_OK`; `WORLDBREAK_TERRAIN_INTEGRATION_OK`; all previous terrain markers; `WORLDBREAK_SMOKE_TEST_OK`; `WORLDBREAK_REPEAT_CYCLES_OK`.
+- No performance or visual-quality claim is made from these tests.

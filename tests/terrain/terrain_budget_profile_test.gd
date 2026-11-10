@@ -56,5 +56,9 @@ func _run() -> void:
 		var sample_bytes: int = data.samples.size() * 4
 		var vertex_payload_bytes: int = vertices.size() * 12
 		print("WORLDBREAK_TERRAIN_PROFILE: resolution=%d; samples=%d; density_bytes=%d; vertices=%d; vertex_payload_bytes=%d; mesh_usec=%d" % [resolution, data.samples.size(), sample_bytes, vertices.size(), vertex_payload_bytes, elapsed_usec])
+		mesh = null
+		data = null
+	queue.free()
+	mesh_queue.free()
 	print("WORLDBREAK_TERRAIN_BUDGETS_OK: validation=passed; low_end_fallback=passed; profile=recorded")
 	quit(0)

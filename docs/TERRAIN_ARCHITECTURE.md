@@ -1,6 +1,6 @@
 # Terrain Prototype Architecture
 
-**Status:** Isolated research/prototype. Not connected to the gameplay scene.
+**Status:** Resident prototype integrated into the gameplay scene. This is a bounded encounter patch, not a terrain streamer or a claim of production terrain performance.
 
 ## Decision
 
@@ -32,6 +32,17 @@ The intended collision representation is one static concave trimesh per active c
 
 Density edits and mesh-array generation are CPU-side operations. Do not create or mutate scene nodes, physics shapes, or rendering resources from worker threads. Build results can be queued; apply mesh and collider replacements on the main thread. Collision replacement is routed through a bounded queue. Requests are coalesced by CollisionShape3D, so repeated edits before processing install only the latest mesh. The queue drains at most one request per physics frame by default, cooks a static trimesh on the main thread, and defers disabling/replacing/re-enabling the CollisionShape3D until after the active physics step.
 
+## Runtime coordinator
+
+`terrain/terrain_world.gd` (`class_name TerrainWorld`) owns a small resident patch: four chunks in a 2x2 XZ footprint with one vertical layer, built at chunk coordinate Y=0. The default profile uses 16-cell chunks with a 1.0 world-unit cell size; the low-end profile uses 8-cell chunks with a 2.0 cell size, keeping the same 32 x 32 world-unit footprint. The base field is a flat 1-unit-thick slab (`1.0 - local_y`) with its top surface at local Y=1.
+
+- Each resident chunk has a `TerrainChunkData`, `MeshInstance3D`, `StaticBody3D`, and `CollisionShape3D`. Terrain bodies use collision layer 1 and the `terrain` group.
+- Initial chunk meshes and colliders are built synchronously when the patch loads so gameplay does not start above missing collision.
+- `carve_sphere(world_center, radius, strength)` converts the impact to local space, rejects edits outside the resident patch or beyond `max_edit_radius`/`max_dirty_chunks_per_edit`, appends one negative sphere edit, rebuilds only the intersected resident chunks' samples, and queues their meshes. A completed mesh rebuild queues the corresponding static trimesh collider.
+- The main scene calls `carve_sphere` from its existing blast path. Terrain remains static; `BlastService` continues to apply impulses only to `blastable` rigid bodies. There is no second blast subsystem.
+- `reset_terrain()` clears the edit journal and any pending rebuild requests, then synchronously rebuilds all resident chunk samples, meshes, and colliders. The gameplay reset input resets both the structure and the terrain.
+- Edits, meshes, and collision replacement are bounded per frame, but the initial load build and reset build are synchronous. There is no background streaming or chunk eviction yet.
+
 ## Initial target budgets (hypotheses, not measured claims)
 
 - Prototype chunk resolution: 16 cells per axis (4,913 samples).
@@ -41,17 +52,17 @@ Density edits and mesh-array generation are CPU-side operations. Do not create o
 - Collision only for chunks in the active interaction radius; distant chunks remain render-only.
 - Low-end fallback: 8 cells per axis, larger cell size, and collision only around the active test area.
 
-The default values are implemented in TerrainBudgetConfig and are enforced at edit acceptance, resident-chunk checks, the mesh queue, and the collision queue. The low-end profile reduces resolution to 8 cells per axis, resident chunks to 8, dirty chunks per edit to 4, edit radius to 6 world units, pending collision work to 2, and density memory to 4 MiB. The profile test records elapsed CPU mesh-build time, sample count, density payload bytes, vertex count, and estimated vertex payload bytes at 8³ and 16³ resolutions. Payload estimates exclude allocator, ArrayMesh, physics-cooking, and engine overhead; elapsed times from CI are not target-PC benchmarks.
+The default values are implemented in TerrainBudgetConfig and are enforced at edit acceptance, resident-chunk checks, the mesh queue, and the collision queue. The integrated patch uses four resident chunks by default (about 79 KiB of density payload at 16³) and four low-end chunks (about 12 KiB at 8³). The low-end profile reduces resolution to 8 cells per axis, resident chunks to 8, dirty chunks per edit to 4, edit radius to 6 world units, pending collision work to 2, and density memory to 4 MiB. The profile test records elapsed CPU mesh-build time, sample count, density payload bytes, vertex count, and estimated vertex payload bytes at 8³ and 16³ resolutions. Payload estimates exclude allocator, ArrayMesh, physics-cooking, and engine overhead; elapsed times from CI are not target-PC benchmarks.
 
-These values are conservative starting limits, not validated GTX 1660 SUPER performance guarantees. Target-PC profiling and interactive visual checks remain required before gameplay integration.
+These values are conservative starting limits, not validated GTX 1660 SUPER performance guarantees. Target-PC profiling and interactive visual checks remain required before treating them as performance claims.
 
 ## Current limitations
 
-- No gameplay integration or BlastService adapter; Phase 1/2 runtime contracts are not stable.
-- The world-space sphere edit journal is in-memory only. It has no disk persistence, versioning, or undo history; callers must rebuild every affected chunk from the same deterministic base field and ordered journal.
-- There is no end-to-end terrain coordinator yet. The edit journal, mesh rebuild queue, and collision rebuild queue are separate components; callers still own orchestration and chunk lifetime.
-- There is no terrain chunk streaming/residency manager, material mapping, or runtime chunk-scene factory. Budget helpers expose and validate limits but do not implement a full world streamer.
-- Automated tests verify numeric shared-face vertex agreement, but visual seam inspection, collider/mesh visual comparison, and high-speed rigid-body tunneling checks remain manual.
+- The integrated patch is fixed and resident. There is no chunk streaming, eviction, LOD, or terrain larger than the 32 x 32 prototype footprint.
+- The base field is a flat slab. There are no authored heightmaps, caves, overhangs, terrain materials, or biome blending in the scene yet.
+- The edit journal is in-memory only. It has no disk persistence, versioning, undo history, or scenario serialization; callers must rebuild every affected chunk from the same deterministic base field and ordered journal.
+- Initial load and reset rebuild all four resident chunks synchronously. Only per-edit mesh and collision work is frame-budgeted.
+- Runtime collision uses one static concave trimesh per chunk. Automated tests check collider presence and rebuild agreement, but visual seam inspection, collider/mesh visual comparison, and high-speed rigid-body tunneling checks remain manual.
 - CI profiling reports deterministic workload timings and estimated payload sizes only. It does not establish target-PC FPS/CPU/GPU performance.
 
 ## References

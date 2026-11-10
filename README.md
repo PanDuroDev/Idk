@@ -9,9 +9,10 @@ WORLDBREAK is a 3D physics and destruction sandbox in active prototyping. The lo
 - Per-fragment accumulated damage with distance falloff and material-specific integrity/resistance.
 - Three editable material profiles: Foundation Concrete, Masonry, and Lightweight Panel.
 - Radial impacts that break damaged cells and release sections that lose all support paths.
+- A small resident chunked terrain patch that blasts carve through bounded mesh and static-collision rebuild queues.
 - Six movable physics props, structure reset, and runtime HUD.
 
-The support graph is a deterministic topology approximation. The material profiles are tunable prototype values, not calibrated material data. There is no arbitrary mesh fracture or destructible terrain yet.
+The support graph is a deterministic topology approximation. The material profiles are tunable prototype values, not calibrated material data. There is no arbitrary mesh fracture. Terrain deformation is limited to the resident prototype patch described in `docs/TERRAIN_ARCHITECTURE.md`.
 
 ## Requirements
 - Godot **4.7.2 stable**, standard edition.
@@ -37,6 +38,7 @@ Controls are defined through Godot InputMap and can be remapped in Project Setti
 ## Architecture
 - GDScript and Godot Physics 3D.
 - `BlastService` handles reusable radial shape queries and physical impulse falloff.
+- `TerrainWorld` owns a bounded resident patch, delegates blasts to the terrain edit journal, and drains mesh/collision rebuild queues.
 - `StructuralSupportGraph` computes cells connected to bottom-layer anchors.
 - `DestructionMaterialProfile` Resources define integrity, blast resistance, density multiplier, and tint.
 - Cells accumulate damage until their material-specific integrity threshold is reached.
