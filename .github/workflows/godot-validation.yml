@@ -95,6 +95,19 @@ jobs:
             exit 1
           fi
 
+      - name: Run terrain budget and profile test
+        run: |
+          ./Godot_v4.7.2-stable_linux.x86_64 --headless --path . --script res://tests/terrain/terrain_budget_profile_test.gd --log-file godot-budget.log
+          if ! grep -q 'WORLDBREAK_TERRAIN_BUDGETS_OK' godot-budget.log; then
+            cat godot-budget.log
+            echo "Terrain budget test did not report its success marker."
+            exit 1
+          fi
+          if grep -Eq 'SCRIPT ERROR:|(^|[[:space:]])ERROR:' godot-budget.log; then
+            cat godot-budget.log
+            exit 1
+          fi
+
   windows-headless-validation:
     runs-on: windows-latest
     timeout-minutes: 10
@@ -201,4 +214,20 @@ jobs:
           if ($collisionLog -match "SCRIPT ERROR:|(^|\\s)ERROR:") {
             Write-Output $collisionLog
             throw "Terrain collision test reported errors."
+          }
+
+      - name: Run terrain budget and profile test
+        shell: pwsh
+        run: |
+          $godot = ".\\godot\\Godot_v4.7.2-stable_win64.exe"
+          & $godot --headless --path . --script res://tests/terrain/terrain_budget_profile_test.gd --log-file godot-budget.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $budgetLog = Get-Content "godot-budget.log" -Raw
+          if ($budgetLog -notmatch "WORLDBREAK_TERRAIN_BUDGETS_OK") {
+            Write-Output $budgetLog
+            throw "Terrain budget test did not report its success marker."
+          }
+          if ($budgetLog -match "SCRIPT ERROR:|(^|\\s)ERROR:") {
+            Write-Output $budgetLog
+            throw "Terrain budget test reported errors."
           }
