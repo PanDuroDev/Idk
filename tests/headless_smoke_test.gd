@@ -2,6 +2,7 @@ extends SceneTree
 
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
 const SUPPORT_GRAPH_SCRIPT = preload("res://scripts/structural_support_graph.gd")
+const BLAST_SERVICE_SCRIPT = preload("res://scripts/blast_service.gd")
 
 const REQUIRED_INPUT_ACTIONS: Array[StringName] = [
 	&"move_forward",
@@ -47,6 +48,21 @@ func _run_smoke_test() -> void:
 	if fragment_count != 70:
 		_fail("Expected 70 fragments, got %d" % fragment_count)
 		return
+
+	if absf(float(main.get("blast_radius")) - 4.5) > 0.001 or absf(float(main.get("blast_damage")) - 4.0) > 0.001 or absf(float(main.get("blast_impulse")) - 22.0) > 0.001:
+		_fail("Impact controls did not preserve the prototype defaults")
+		return
+	main.call("adjust_impact_setting", &"blast_radius", 100.0)
+	main.call("adjust_impact_setting", &"blast_damage", -100.0)
+	main.call("adjust_impact_setting", &"blast_impulse", 1000.0)
+	if absf(float(main.get("blast_radius")) - 12.0) > 0.001 or absf(float(main.get("blast_damage")) - 0.1) > 0.001 or absf(float(main.get("blast_impulse")) - 100.0) > 0.001:
+		_fail("Impact controls did not clamp values to their safe ranges")
+		return
+	main.call("reset_impact_settings")
+	if absf(float(main.get("blast_radius")) - 4.5) > 0.001 or absf(float(main.get("blast_damage")) - 4.0) > 0.001 or absf(float(main.get("blast_impulse")) - 22.0) > 0.001:
+		_fail("Impact controls did not restore their defaults")
+		return
+	print("WORLDBREAK_IMPACT_CONTROLS_OK: defaults, bounds, and reset")
 
 	if int(structure.call("get_supported_fragment_count")) != 70:
 		_fail("All intact fragments should initially be supported")
@@ -287,6 +303,94 @@ func _run_smoke_test() -> void:
 		"WORLDBREAK_REPEAT_CYCLES_OK: cycles=%d; frames_per_cycle=%d; fragments=70; reset_checks=%d"
 		% [REPEATED_COLLAPSE_CYCLES, REPEATED_COLLAPSE_PHYSICS_FRAMES, REPEATED_COLLAPSE_CYCLES]
 	)
+
+	# Verify sleeping loose debris can be reactivated by a legitimate radial impact.
+	structure.set("loose_debris_lifetime_seconds", 30.0)
+	var wake_cell := Vector3i(3, 0, 1)
+	structure.call("apply_blast_damage", Vector3(0.0, 0.5, -11.48), 0.25, 2.0)
+	await physics_frame
+	var wake_fragment: RigidBody3D = structure.call("get_fragment_for_cell", wake_cell)
+	if wake_fragment == null or wake_fragment.freeze:
+		_fail("The test fragment was not released for the wake-up test")
+		return
+	wake_fragment.sleeping = true
+	var blast_service: RefCounted = BLAST_SERVICE_SCRIPT.new()
+	blast_service.call("apply_radial_impulse", main.get_world_3d().direct_space_state, wake_fragment.global_position, 2.0, 2.0, 0.0)
+	await physics_frame
+	if wake_fragment.sleeping:
+		_fail("A radial impact did not wake sleeping loose debris")
+		return
+
+	# Recomputing support state alone must not spuriously wake settled debris.
+	wake_fragment.sleeping = true
+	structure.call("_refresh_support_state")
+	await physics_frame
+	if not wake_fragment.sleeping:
+		_fail("A support refresh incorrectly woke sleeping loose debris")
+		return
+
+	# Shorten lifetime only for this isolated cleanup assertion, then prove reset restores every node.
+	structure.set("loose_debris_lifetime_seconds", 0.05)
+	for frame_index in range(8):
+		await physics_frame
+	if int(structure.call("get_retired_fragment_count")) <= 0:
+		_fail("Expired loose debris was not retired")
+		return
+	structure.call("reset_structure")
+	if not bool(structure.call("is_reset_to_initial_state")) or int(structure.call("get_retired_fragment_count")) != 0:
+		_fail("Reset did not restore retired debris to the original structure")
+		return
+	if int(structure.call("get_fragment_count")) != 70 or int(structure.call("get_supported_fragment_count")) != 70:
+		_fail("Debris cleanup/reset did not restore all original structural fragments")
+		return
+	print("WORLDBREAK_DEBRIS_LIFECYCLE_OK: wake, expiry, and full reset")
+
+	# Exercise the configured awake-body cap with a deliberately small test budget.
+	structure.set("loose_debris_lifetime_seconds", 30.0)
+	structure.set("max_active_loose_fragments", 1)
+	structure.call("apply_blast_damage", Vector3(0.0, 0.5, -11.48), 4.5, 10.0)
+	for frame_index in range(2):
+		await physics_frame
+	if int(structure.call("get_released_fragment_count")) <= 1:
+		_fail("The active-fragment budget test did not release multiple fragments")
+		return
+	var active_after_budget: int = int(structure.call("get_active_loose_fragment_count"))
+	var sleeping_after_budget: int = int(structure.call("get_sleeping_loose_fragment_count"))
+	var parked_after_budget: int = int(structure.call("get_budget_parked_fragment_count"))
+	if active_after_budget > 1 or sleeping_after_budget + parked_after_budget <= 0 or parked_after_budget <= 0:
+		_fail("The configured active-fragment cap was not enforced or parked/sleeping counts overlap")
+		return
+	structure.call("reset_structure")
+	structure.set("max_active_loose_fragments", 70)
+	if not bool(structure.call("is_reset_to_initial_state")):
+		_fail("Reset after active-budget enforcement did not restore the structure")
+		return
+	print("WORLDBREAK_ACTIVE_FRAGMENT_BUDGET_OK: awake_cap=1")
+
+
+	# Debug diagnostics are opt-in, and effect bursts remain explicitly bounded.
+	var debug_panel: PanelContainer = main.get("_debug_overlay_panel") as PanelContainer
+	var debug_label: Label = main.get("_debug_overlay_label") as Label
+	if debug_panel == null or debug_label == null or debug_panel.visible or bool(main.get("_debug_overlay_visible")):
+		_fail("Debug overlay should exist and be hidden by default")
+		return
+	# Keep the UI state test independent of renderer-specific Performance monitors in headless mode.
+	main.set("_debug_overlay_label", null)
+	main.call("toggle_debug_overlay")
+	if not bool(main.get("_debug_overlay_visible")) or not debug_panel.visible:
+		_fail("F3 debug overlay toggle did not enable diagnostics")
+		return
+	main.call("toggle_debug_overlay")
+	if debug_panel.visible:
+		_fail("Debug overlay toggle did not hide diagnostics")
+		return
+	main.set("_debug_overlay_label", debug_label)
+	for effect_index in range(12):
+		main.call("_spawn_blast_flash", Vector3.ZERO)
+	if int(main.call("get_active_effect_count")) > 8:
+		_fail("Blast dust effects exceeded the active effect budget")
+		return
+	print("WORLDBREAK_DIAGNOSTICS_EFFECTS_OK: opt-in overlay and bounded dust bursts")
 	print("WORLDBREAK_SMOKE_TEST_OK: all material profiles, support graph, collapse, cumulative damage, repeated reset, and reset")
 	quit(0)
 

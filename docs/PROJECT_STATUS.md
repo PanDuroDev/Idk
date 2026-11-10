@@ -66,9 +66,26 @@ Verified:
 - No arbitrary mesh fracture, bending, crack propagation, terrain deformation, world streaming, or debris pooling.
 - The user reported that the manual Windows gameplay/visual/control validation passed on 2026-11-10. Exact FPS/CPU/GPU telemetry values were not supplied, so no numerical performance baseline is claimed.
 
-## Exact next step
+## Phase 1 progress
 
-Begin [AI Phase 1 issue #5](https://github.com/PanDuroDev/Idk/issues/5): runtime impact controls, bounded debris lifecycle/performance budgets, lightweight effects, and diagnostics. The user has reported that the interactive checklist works. Detailed numeric FPS/CPU/GPU measurements remain unrecorded and should be collected during Phase 1 profiling. Phase assignments and dependencies are documented in [AI_PHASE_ASSIGNMENTS.md](AI_PHASE_ASSIGNMENTS.md).
+All three implementation PRs are open and deliberately stacked. Nothing has been merged by the phase agents.
+
+- PR 1: [#11 - Runtime impact controls](https://github.com/PanDuroDev/Idk/pull/11), branch `ai/phase-1/runtime-impact-controls`. Adds bounded radius, damage, and impulse controls plus reset-to-default behavior. Latest recorded Linux and Windows CI run passed.
+- PR 2: [#16 - Debris lifecycle and budgets](https://github.com/PanDuroDev/Idk/pull/16), branch `ai/phase-1/debris-lifecycle`, based on PR #11. Adds released-fragment lifetime/retirement, sleeping and impact wake-up, a hard awake-fragment cap, and lossless reset. Latest recorded Linux and Windows CI run passed.
+- PR 3: [#17 - Lightweight effects and diagnostics](https://github.com/PanDuroDev/Idk/pull/17), branch `ai/phase-1/effects-and-diagnostics`, based on PR #16. Adds capped dust bursts and an F3 diagnostics panel. Latest Linux and Windows Godot 4.7.2 CI passed on the current PR head.
+
+The default awake-fragment cap is 70 because the current structure contains 70 fragments. This is a conservative guardrail for the fixed prototype, not a measured optimum. Eight simultaneous effect bursts with six motes each cap the visual effect at 48 motes. No FPS/CPU/GPU improvement is claimed without target-PC profiling.
+
+### Remaining manual validation
+
+- Verify impact-control panel layout and mouse interaction in a normal window.
+- Trigger repeated impacts and confirm dust visibility, fade, and oldest-burst eviction at the eight-burst cap.
+- Toggle the diagnostics panel with F3 and verify the values remain readable during collapse and after settling.
+- Profile idle, active collapse, and settled scenes on the target Windows PC. Headless CI cannot establish visual quality or performance.
+
+### Current integration order
+
+Merge only after review, in dependency order: PR #11, then PR #16, then PR #17. Re-run CI on each updated target branch after integration.
 
 ## AI phase delegation
 
