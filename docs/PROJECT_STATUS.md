@@ -68,30 +68,32 @@ Verified:
 
 ## Phase 1 progress
 
-All three implementation PRs are open and deliberately stacked. Nothing has been merged by the phase agents.
+Implementation PRs [#11](https://github.com/PanDuroDev/Idk/pull/11), [#16](https://github.com/PanDuroDev/Idk/pull/16), and [#17](https://github.com/PanDuroDev/Idk/pull/17) are merged into `main` in dependency order.
 
-- PR 1: [#11 - Runtime impact controls](https://github.com/PanDuroDev/Idk/pull/11), branch `ai/phase-1/runtime-impact-controls`. Adds bounded radius, damage, and impulse controls plus reset-to-default behavior. Latest recorded Linux and Windows CI run passed.
-- PR 2: [#16 - Debris lifecycle and budgets](https://github.com/PanDuroDev/Idk/pull/16), branch `ai/phase-1/debris-lifecycle`, based on PR #11. Adds released-fragment lifetime/retirement, sleeping and impact wake-up, a hard awake-fragment cap, and lossless reset. Latest recorded Linux and Windows CI run passed.
-- PR 3: [#17 - Lightweight effects and diagnostics](https://github.com/PanDuroDev/Idk/pull/17), branch `ai/phase-1/effects-and-diagnostics`, based on PR #16. Adds capped dust bursts and an F3 diagnostics panel. Latest Linux and Windows Godot 4.7.2 CI passed on the current PR head.
+- Runtime impact controls: radius, damage, and impulse are adjustable with bounded ranges and reset-to-default behavior.
+- Debris lifecycle: released fragments have a 30-second default lifetime, sleeping/wake-up behavior, a 70-awake-fragment default cap, and reset-safe retirement.
+- Effects and diagnostics: dust bursts are capped at eight concurrent effects, six motes each, with a 0.55-second lifetime; F3 toggles the diagnostics overlay.
 
-The default awake-fragment cap is 70 because the current structure contains 70 fragments. This is a conservative guardrail for the fixed prototype, not a measured optimum. Eight simultaneous effect bursts with six motes each cap the visual effect at 48 motes. No FPS/CPU/GPU improvement is claimed without target-PC profiling.
+### Remaining Phase 1 acceptance checks
 
-### Remaining manual validation
+Issue [#5](https://github.com/PanDuroDev/Idk/issues/5) remains open. Its implementation PRs being merged does not complete the phase. Still outstanding:
+- Interactive verification of impact controls, dust appearance/fade, and F3 overlay readability.
+- Long-duration settling and repeated interactive collapse/reset checks.
+- Actual idle/collapse/settled FPS, CPU, GPU, and VRAM observations on the target Windows PC. The overlay reports runtime counters but is not a benchmark; no target-PC telemetry values are currently recorded.
 
-- Verify impact-control panel layout and mouse interaction in a normal window.
-- Trigger repeated impacts and confirm dust visibility, fade, and oldest-burst eviction at the eight-burst cap.
-- Toggle the diagnostics panel with F3 and verify the values remain readable during collapse and after settling.
-- Profile idle, active collapse, and settled scenes on the target Windows PC. Headless CI cannot establish visual quality or performance.
+## Phase 2 progress
 
-### Current integration order
-
-Merge only after review, in dependency order: PR #11, then PR #16, then PR #17. Re-run CI on each updated target branch after integration.
+- [PR #14](https://github.com/PanDuroDev/Idk/pull/14) merged the architecture and schema proposal only.
+- Building-definition implementation is in progress on `ai/phase-2/building-definitions`: versioned Resource types, validation, the classic 70-cell preset, a sparse 11-cell sample, and data-driven fragment generation.
+- Linux and Windows headless CI and the new definition-specific regression tests are pending for the implementation PR.
+- Material authoring workflow and simulation configuration save/load remain separate follow-up PRs.
+- Optional breakable-joint feasibility remains deferred until profiling provides evidence.
 
 ## AI phase delegation
 
 Five dedicated implementation issues are open:
-- Phase 1: [#5 - Destruction vertical slice](https://github.com/PanDuroDev/Idk/issues/5) - ready now.
-- Phase 2: [#6 - Reusable structures and material authoring](https://github.com/PanDuroDev/Idk/issues/6) - runtime work after Phase 1.
+- Phase 1: [#5 - Destruction vertical slice](https://github.com/PanDuroDev/Idk/issues/5) - implementation PRs #11, #16, and #17 are merged; full acceptance verification remains open.
+- Phase 2: [#6 - Reusable structures and material authoring](https://github.com/PanDuroDev/Idk/issues/6) - architecture PR #14 is merged; implementation is underway on `ai/phase-2/building-definitions`.
 - Phase 3: [#7 - Chunked terrain deformation](https://github.com/PanDuroDev/Idk/issues/7) - design and isolated prototype may begin early; integration waits for Phases 1-2.
 - Phase 4: [#8 - Multiple worlds](https://github.com/PanDuroDev/Idk/issues/8) - runtime work after Phase 2-3 contracts stabilize.
 - Phase 5: [#9 - Simulation tools](https://github.com/PanDuroDev/Idk/issues/9) - runtime work after Phases 1, 2, and 4.
