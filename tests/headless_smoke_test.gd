@@ -205,7 +205,29 @@ func _run_smoke_test() -> void:
 		_fail("Reset did not clear material damage and restore all structure state")
 		return
 
-	print("WORLDBREAK_SMOKE_TEST_OK: material profiles, support graph, collapse, cumulative damage, and reset")
+	var lightweight_cell_center := Vector3(0.0, 4.66, -11.48)
+	var lightweight_hit: int = int(structure.call(
+		"apply_blast_damage",
+		lightweight_cell_center,
+		0.25,
+		0.55
+	))
+	if lightweight_hit != 1:
+		_fail("A centered weak hit should break the lower-integrity lightweight panel")
+		return
+	if float(structure.call("get_cell_damage_ratio", lightweight_cell)) < 0.999:
+		_fail("The lightweight panel did not reach its material-specific integrity threshold")
+		return
+	if int(structure.call("get_broken_fragment_count")) != 1:
+		_fail("The lightweight panel test should break exactly one fragment")
+		return
+
+	structure.call("reset_structure")
+	if not bool(structure.call("is_reset_to_initial_state")):
+		_fail("Reset did not restore the lightweight panel after its one-hit break test")
+		return
+
+	print("WORLDBREAK_SMOKE_TEST_OK: all material profiles, support graph, collapse, cumulative damage, and reset")
 	quit(0)
 
 
