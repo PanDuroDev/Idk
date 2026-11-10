@@ -142,4 +142,4 @@ jobs:
           if ($terrainLog -match "SCRIPT ERROR:|(^|\s)ERROR:") {
             Write-Output $terrainLog
             throw "Terrain chunk test reported errors."
-          }          }
+          }
