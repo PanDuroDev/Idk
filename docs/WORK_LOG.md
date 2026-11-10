@@ -287,3 +287,40 @@ This is an append-only engineering journal. Each substantial session is recorded
 - Implementation and documentation are committed on ai/phase-1/runtime-impact-controls.
 - Pending: Linux/Windows Actions logs, panel visual/input validation, and integration maintainer review.
 - Next: open PR 1, inspect both platform logs and repair any errors before proceeding to the debris lifecycle branch.
+
+
+## 2026-11-10 - Phase 1 PR 2: debris lifecycle and budgets
+
+### Before work
+- Started from Phase 1 PR 1 head 46261f8d7f6bb13a3c46d686f8acdd19235b72ca; PR #11 remains open and unmerged.
+- Existing 70 rigid bodies are the original structural nodes. Deleting them would make reset lossy, so expiry must retire released nodes without freeing their canonical structure identity.
+- Risk: a too-small awake-body budget can leave pieces suspended before they fall. The default budget therefore matches the current 70-piece structure; larger-world tuning needs measured profiling.
+
+### During work
+- Tracked only fragments that are broken or lose every support path as loose debris; intact supported fragments never enter the lifecycle.
+- Added a configurable 30-second loose-debris lifetime. Expiry hides the released fragment, disables its collision, clears motion, and retains the node for deterministic reset.
+- Added sleeping/active/retired counters and an active-fragment cap (70 by default, configurable up to 256). Godot's rigid-body sleeping remains enabled; radial impulses can wake sleeping bodies.
+- Reset restores visibility, collision layers/masks, groups, transforms, velocities, support state, and all original fragments.
+- Added smoke coverage for wake-up, expiry, and complete reset restoration. CI is pending.
+
+### After work
+- Implementation is committed on ai/phase-1/debris-lifecycle, stacked on PR #11.
+- No pooling was added; the fixed 70-node scene does not justify pooling.
+- Target-PC settling and performance measurements remain manual and unrecorded.
+- PR 2 is open as #16. Next: inspect its Linux/Windows logs, then validate PR 3 in dependency order.
+
+
+### Cross-PR validation and measured count baseline
+
+- Changed the pull-request workflow filter from main-only to all target branches. This preserves the Linux and Windows jobs while allowing the stacked Phase 1 PRs to run CI before their dependencies are merged.
+- Recorded the actual fixed-scene baseline: 70 original structure bodies, zero loose at startup, 70 released on full collapse, and six separate physics props. The default awake loose-fragment cap remains 70 to avoid suspending pieces mid-fall; smaller caps are explicitly tested.
+- The dust effect budget is eight concurrent bursts of six motes each (48 motes maximum), with a 0.55-second lifetime.
+- No FPS/CPU/GPU values were fabricated; target-PC profiling remains a manual measurement.
+
+
+### Active-budget enforcement follow-up
+
+- Linux exposed that a sleeping rigid body can be reactivated by incidental collisions after a per-tick sleep request. The earlier active cap therefore was not a hard cap under a deliberately small test budget.
+- Changed over-budget bodies to a frozen/sleeping parked state. The blast pipeline already explicitly unfreezes a hit rigid body before applying impulse, so parked debris remains impact-reactive.
+- Released-fragment counts now include budget-parked bodies; diagnostics report parked bodies separately.
+- Added a regression that reduces the cap to one during a multi-fragment release and asserts awake count stays within the cap while other released fragments remain accounted for.

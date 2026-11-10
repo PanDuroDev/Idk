@@ -9,7 +9,7 @@ WORLDBREAK is a 3D physics and destruction sandbox in active prototyping. The lo
 - Per-fragment accumulated damage with distance falloff and material-specific integrity/resistance.
 - Three editable material profiles: Foundation Concrete, Masonry, and Lightweight Panel.
 - Radial impacts that break damaged cells and release sections that lose all support paths.
-- Six movable physics props, structure reset, and runtime HUD.
+- Six movable physics props, bounded loose-debris lifetime/sleeping, structure reset, and runtime HUD.
 
 The support graph is a deterministic topology approximation. The material profiles are tunable prototype values, not calibrated material data. There is no arbitrary mesh fracture or destructible terrain yet.
 
@@ -33,6 +33,8 @@ The support graph is a deterministic topology approximation. The material profil
 | Escape | Release/capture mouse |
 
 The in-game Impact Settings panel adjusts blast radius, damage, and physical impulse. Each value has bounded +/- controls; Reset impact defaults restores the prototype values. Controls are defined through Godot InputMap and can be remapped in Project Settings.
+
+The current prototype retains all 70 original structure nodes for reset. Released fragments use a 30-second default lifetime and a 70-awake-fragment budget; excess bodies are parked until an impact wakes them. Impact dust is capped at eight concurrent bursts (six motes each) with a 0.55-second lifetime.
 
 ## Architecture
 - GDScript and Godot Physics 3D.
