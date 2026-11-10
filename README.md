@@ -67,6 +67,7 @@ Manual visual and interaction testing on the target Windows PC is still required
 ## Project documentation
 - [Project status](docs/PROJECT_STATUS.md)
 - [Building definition authoring](docs/BUILDING_DEFINITIONS.md)
+- [Material profile authoring](docs/MATERIAL_AUTHORING.md)
 - [Work log](docs/WORK_LOG.md)
 - [Manual Windows validation checklist](docs/MANUAL_WINDOWS_VALIDATION.md)
 - [Technical direction](docs/TECHNICAL_DIRECTION.md)
