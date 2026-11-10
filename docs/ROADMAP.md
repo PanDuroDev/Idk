@@ -11,16 +11,16 @@
 - [x] Headless gameplay smoke test.
 - [x] GitHub Actions validates Godot 4.7.2 headlessly on Linux and Windows, including pushes to `main`, with checked logs and simulated post-collapse rigid-body checks.
 - [x] Headless regression for five consecutive full collapse/reset cycles.
-- [ ] Manual visual, controls, and performance verification on target Windows PC.
+- [x] Manual visual, controls, collapse/reset, and gameplay verification on target Windows PC (user-reported 2026-11-10; numeric performance telemetry not supplied).
 
-## Phase 1 - Destruction vertical slice
+## Phase 1 - Destruction vertical slice ([AI issue #5](https://github.com/PanDuroDev/Idk/issues/5), ready now)
 - [ ] Validate collision stability and resets in interactive play.
 - [ ] Add in-game impact radius/strength controls.
 - [ ] Add fragment lifetime, sleeping, and active-fragment budgets.
 - [ ] Add low-cost dust/debris effects.
 - [ ] Add detailed physics/rendering debug overlay.
 
-## Phase 2 - Structural behavior
+## Phase 2 - Structural authoring and reusable configurations ([AI issue #6](https://github.com/PanDuroDev/Idk/issues/6), after Phase 1 runtime interfaces stabilize)
 - [x] Deterministic six-axis support graph.
 - [x] Detect loss of all paths to ground and release unsupported sections.
 - [x] Restore support graph on reset.
@@ -31,18 +31,18 @@
 - [ ] Add reusable building definitions and material authoring tools.
 - [ ] Add save/load for test configurations.
 
-## Phase 3 - Terrain deformation
+## Phase 3 - Terrain deformation ([AI issue #7](https://github.com/PanDuroDev/Idk/issues/7), design may run in parallel; implementation after Phases 1-2)
 - [ ] Prototype chunked terrain.
 - [ ] Deform only affected chunks.
 - [ ] Rebuild collision selectively and safely.
 - [ ] Add low-end hardware budgets and fallback behavior.
 
-## Phase 4 - Multiple worlds
+## Phase 4 - Multiple worlds ([AI issue #8](https://github.com/PanDuroDev/Idk/issues/8), after Phase 2-3 contracts stabilize)
 - [ ] Data-driven world configurations.
 - [ ] World selection and streaming boundaries.
 - [ ] Reusable environment, material, and destruction presets.
 
-## Phase 5 - Simulation tools
+## Phase 5 - Simulation tools ([AI issue #9](https://github.com/PanDuroDev/Idk/issues/9), final integration phase)
 - [ ] Expose blast, gravity, material, and environment controls.
 - [ ] Add repeatable experiments and resettable scenarios.
 - [ ] Profile before considering native extensions.
