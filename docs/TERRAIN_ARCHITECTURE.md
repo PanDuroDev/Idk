@@ -47,10 +47,12 @@ These values are conservative starting limits, not validated GTX 1660 SUPER perf
 
 ## Current limitations
 
-- No gameplay integration or BlastService adapter; Phase 1/2 contracts are not stable.
-- No persistent global density/edit ledger yet; duplicated border values are only guaranteed when the same values are supplied to both chunks.
-- No deformation queue, collision body, save/reset, material mapping, or profiling harness yet.
-- Headless tests cannot establish visual seam quality or target-PC performance.
+- No gameplay integration or BlastService adapter; Phase 1/2 runtime contracts are not stable.
+- The world-space sphere edit journal is in-memory only. It has no disk persistence, versioning, or undo history; callers must rebuild every affected chunk from the same deterministic base field and ordered journal.
+- There is no end-to-end terrain coordinator yet. The edit journal, mesh rebuild queue, and collision rebuild queue are separate components; callers still own orchestration and chunk lifetime.
+- There is no terrain chunk streaming/residency manager, material mapping, or runtime chunk-scene factory. Budget helpers expose and validate limits but do not implement a full world streamer.
+- Automated tests verify numeric shared-face vertex agreement, but visual seam inspection, collider/mesh visual comparison, and high-speed rigid-body tunneling checks remain manual.
+- CI profiling reports deterministic workload timings and estimated payload sizes only. It does not establish target-PC FPS/CPU/GPU performance.
 
 ## References
 
