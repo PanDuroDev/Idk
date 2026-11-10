@@ -70,7 +70,7 @@ These are object/count budgets derived from the actual prototype and implementat
 - Only fragments released by damage or loss of support enter the loose-debris lifecycle; intact supported structure remains frozen and is never eligible for retirement.
 - Loose fragments naturally use Godot rigid-body sleeping. A radial impulse continues to unfreeze and wake an affected sleeping body.
 - Loose debris has a configurable 30-second lifetime by default. Expiry retires the released fragment by hiding it, disabling collision, and clearing its motion; the original node and initial transform/collision/visibility state remain retained so reset restores all 70 original fragments deterministically.
-- The active loose-fragment budget defaults to 70, matching the current 70-piece prototype. The budget is configurable up to 256 and deterministically puts excess awake fragments to sleep. This is a baseline guardrail, not evidence that 70 is the optimal target-PC budget; profile larger structures before raising it.
+- The active loose-fragment budget defaults to 70, matching the current 70-piece prototype. The budget is configurable up to 256 and deterministically parks excess awake fragments in a frozen/sleeping state; BlastService unfreezes a parked fragment when a later impact hits it. This is a baseline guardrail, not evidence that 70 is the optimal target-PC budget; profile larger structures before raising it.
 - Reset clears all age/retirement state and restores visibility, collision layers/masks, groups, transforms, velocities, and frozen state.
 
 ### Explicit limitations
