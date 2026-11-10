@@ -9,6 +9,7 @@ on:
     branches:
       - main
       - 'ai/phase-3/**'
+      - 'ai/phase-4/**'
   pull_request:
     branches:
       - '**'
@@ -185,6 +186,19 @@ jobs:
           fi
           if grep -Eq 'SCRIPT ERROR:|(^|[[:space:]])ERROR:' godot-terrain-integration.log; then
             cat godot-terrain-integration.log
+            exit 1
+          fi
+
+      - name: Run world loading test
+        run: |
+          ./Godot_v4.7.2-stable_linux.x86_64 --headless --path . --script res://tests/phase4/world_loading_test.gd --log-file godot-world-loading.log
+          if ! grep -q 'WORLDBREAK_WORLD_LOADING_OK' godot-world-loading.log; then
+            cat godot-world-loading.log
+            echo "World loading test did not report its success marker."
+            exit 1
+          fi
+          if grep -Eq 'SCRIPT ERROR:|(^|[[:space:]])ERROR:|Parse Error:|Failed to load script' godot-world-loading.log; then
+            cat godot-world-loading.log
             exit 1
           fi
 
@@ -388,5 +402,21 @@ jobs:
           if ($integrationLog -match "SCRIPT ERROR:|(^|\\s)ERROR:") {
             Write-Output $integrationLog
             throw "Terrain gameplay integration test reported errors."
+          }
+
+      - name: Run world loading test
+        shell: pwsh
+        run: |
+          $godot = ".\\godot\\Godot_v4.7.2-stable_win64.exe"
+          & $godot --headless --path . --script res://tests/phase4/world_loading_test.gd --log-file godot-world-loading.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $worldLog = Get-Content "godot-world-loading.log" -Raw
+          if ($worldLog -notmatch "WORLDBREAK_WORLD_LOADING_OK") {
+            Write-Output $worldLog
+            throw "World loading test did not report its success marker."
+          }
+          if ($worldLog -match "SCRIPT ERROR:|(^|\\s)ERROR:|Parse Error:|Failed to load script") {
+            Write-Output $worldLog
+            throw "World loading test reported errors."
           }
 

@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="WorldDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/world_definition.gd" id="1_world"]
+
+[resource]
+script = ExtResource("1_world")
+schema_version = 1
+world_id = &"sparse_quarry"
+display_name = "Sparse Quarry"
+description = "The 11-cell pillar-and-beam test with a low-end terrain profile, warmer light, and heavier gravity."
+simulation_configuration_path = "res://resources/configurations/sparse_pillar_beam_test.json"
+player_spawn = Vector3(-2, 0.1, 7)
+background_color = Color(0.08, 0.055, 0.04, 1)
+ambient_color = Color(0.75, 0.6, 0.45, 1)
+ambient_energy = 0.55
+sun_rotation_degrees = Vector3(-38, 35, 0)
+sun_energy = 1.05
+sun_shadows_enabled = true
+terrain_enabled = true
+terrain_position = Vector3(-18, 0.06, -30)
+terrain_surface_color = Color(0.42, 0.33, 0.22, 1)
+terrain_low_end_fallback = true

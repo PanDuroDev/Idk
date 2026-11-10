@@ -8,12 +8,22 @@ const BUILDING_DEFINITION_CATALOG = preload("res://resources/buildings/building_
 const MATERIAL_PROFILE_CATALOG = preload("res://resources/materials/material_profile_catalog.tres")
 const SIMULATION_CONFIGURATION_CODEC = preload("res://scripts/simulation_configuration_codec.gd")
 const SimulationConfigurationScript = preload("res://scripts/simulation_configuration.gd")
+const WORLD_CATALOG = preload("res://resources/worlds/world_catalog.tres")
+const WORLD_DEFINITION_VALIDATOR = preload("res://scripts/world_definition_validator.gd")
+const WorldDefinitionScript = preload("res://scripts/world_definition.gd")
 
 const BLAST_DISTANCE: float = 70.0
 const MAX_PENDING_BLASTS: int = 4
 const MAX_ACTIVE_EFFECTS: int = 8
 const EFFECT_LIFETIME: float = 0.55
 const DEFAULT_GRAVITY: float = 9.8
+const DEFAULT_WORLD_ID: StringName = &"classic_yard"
+const MAX_RESIDENT_WORLDS: int = 1
+const DEFAULT_BACKGROUND_COLOR: Color = Color(0.035, 0.045, 0.06)
+const DEFAULT_AMBIENT_COLOR: Color = Color(0.55, 0.59, 0.68)
+const DEFAULT_AMBIENT_ENERGY: float = 0.7
+const DEFAULT_SUN_ROTATION: Vector3 = Vector3(-52.0, -28.0, 0.0)
+const DEFAULT_SUN_ENERGY: float = 1.25
 
 @export_range(0.5, 12.0, 0.25) var blast_radius: float = 4.5
 @export_range(1.0, 100.0, 1.0) var blast_impulse: float = 22.0
@@ -40,6 +50,11 @@ var _active_effects: Array[Node3D] = []
 var _headless_effect_burst_count: int = 0
 var _active_simulation_configuration: SimulationConfigurationScript
 var _simulation_gravity: float = DEFAULT_GRAVITY
+var _world_environment: WorldEnvironment
+var _sun: DirectionalLight3D
+var _active_world_definition: WorldDefinitionScript
+var _world_load_count: int = 0
+var _world_unload_count: int = 0
 
 const DEFAULT_BLAST_RADIUS: float = 4.5
 const DEFAULT_BLAST_DAMAGE: float = 4.0
@@ -50,11 +65,6 @@ func _ready() -> void:
 	_blast_service = BLAST_SERVICE_SCRIPT.new()
 	_build_environment()
 	_build_ground()
-	_build_terrain()
-
-	_structure = STRUCTURE_SCRIPT.new()
-	_structure.position = Vector3(0.0, 0.0, -12.0)
-	add_child(_structure)
 
 	_spawn_physics_props()
 
@@ -66,6 +76,9 @@ func _ready() -> void:
 	_build_hud()
 	_build_impact_controls()
 	_build_debug_overlay()
+	var load_errors: Array[String] = load_world(DEFAULT_WORLD_ID)
+	if not load_errors.is_empty():
+		push_error("Could not load default world: %s" % "\n".join(load_errors))
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -84,6 +97,7 @@ func _physics_process(_delta: float) -> void:
 			_structure.call("reset_structure")
 		if is_instance_valid(_terrain):
 			_terrain.call("reset_terrain")
+		_reset_player_to_spawn(_get_active_spawn())
 		_reset_requested = false
 		_last_broken_count = 0
 		_last_affected_count = 0
@@ -103,7 +117,9 @@ func _process(delta: float) -> void:
 	var fragment_broken: int = int(_structure.call("get_broken_fragment_count")) if is_instance_valid(_structure) else 0
 	var fragment_unsupported: int = int(_structure.call("get_unsupported_fragment_count")) if is_instance_valid(_structure) else 0
 	var terrain_edits: int = int(_terrain.call("get_terrain_edit_count")) if is_instance_valid(_terrain) else 0
-	_hud_label.text = "WORLDBREAK  |  FPS %d  |  Loose %d/%d  |  Broken %d (+%d)  |  Unsupported %d  |  Targets %d  |  Terrain %d" % [
+	var world_name: String = _active_world_definition.display_name if _active_world_definition != null else "none"
+	_hud_label.text = "WORLDBREAK [%s]  |  FPS %d  |  Loose %d/%d  |  Broken %d (+%d)  |  Unsupported %d  |  Targets %d  |  Terrain %d" % [
+		world_name,
 		Engine.get_frames_per_second(),
 		fragment_released,
 		fragment_total,
@@ -130,6 +146,10 @@ func request_structure_reset() -> void:
 	_reset_requested = true
 
 
+func request_world_reset() -> void:
+	_reset_requested = true
+
+
 func get_building_definition_catalog() -> Resource:
 	return BUILDING_DEFINITION_CATALOG
 
@@ -142,13 +162,82 @@ func get_active_simulation_configuration() -> SimulationConfigurationScript:
 	return _active_simulation_configuration
 
 
+func get_world_catalog() -> Resource:
+	return WORLD_CATALOG
+
+
+func get_world_ids() -> Array[StringName]:
+	return WORLD_CATALOG.get_world_ids()
+
+
+func get_active_world_definition() -> WorldDefinitionScript:
+	return _active_world_definition
+
+
+func get_resident_world_count() -> int:
+	return 1 if _active_world_definition != null else 0
+
+
+func get_max_resident_worlds() -> int:
+	return MAX_RESIDENT_WORLDS
+
+
+func get_world_load_count() -> int:
+	return _world_load_count
+
+
+func get_world_unload_count() -> int:
+	return _world_unload_count
+
+
+func load_world(world_id: StringName) -> Array[String]:
+	var errors: Array[String] = []
+	var world: WorldDefinitionScript = WORLD_CATALOG.get_world_by_id(world_id)
+	if world == null:
+		errors.append("Unknown world ID '%s'." % String(world_id))
+		return errors
+	var validation: Dictionary = WORLD_DEFINITION_VALIDATOR.validate_definition(
+		world,
+		BUILDING_DEFINITION_CATALOG,
+		MATERIAL_PROFILE_CATALOG
+	)
+	if not validation["ok"]:
+		errors.assign(validation["errors"])
+		return errors
+
+	var apply_errors: Array[String] = apply_simulation_configuration(validation["configuration"])
+	if not apply_errors.is_empty():
+		errors.assign(apply_errors)
+		return errors
+
+	_apply_world_environment(world)
+	_build_terrain(world)
+	_active_world_definition = world
+	_reset_player_to_spawn(world.player_spawn)
+	_world_load_count += 1
+	return errors
+
+
+func unload_world() -> void:
+	_clear_structure()
+	_remove_terrain()
+	_apply_environment_defaults()
+	_active_world_definition = null
+	_active_simulation_configuration = null
+	Engine.time_scale = 1.0
+	set_simulation_gravity(DEFAULT_GRAVITY)
+	_reset_player_to_spawn(Vector3(0.0, 0.1, 6.0))
+	_reset_requested = false
+	_pending_blasts.clear()
+	_last_broken_count = 0
+	_last_affected_count = 0
+	_world_unload_count += 1
+
+
 func apply_simulation_configuration(configuration: SimulationConfigurationScript) -> Array[String]:
 	var errors: Array[String] = []
 	if configuration == null:
 		errors.append("Simulation configuration is null.")
-		return errors
-	if not is_instance_valid(_structure):
-		errors.append("Destructible structure is not available.")
 		return errors
 	var validation: Dictionary = SIMULATION_CONFIGURATION_CODEC.validate_configuration(
 		configuration,
@@ -158,6 +247,8 @@ func apply_simulation_configuration(configuration: SimulationConfigurationScript
 	if not validation["ok"]:
 		errors.assign(validation["errors"])
 		return errors
+	if not is_instance_valid(_structure):
+		_create_structure()
 
 	var definition = BUILDING_DEFINITION_CATALOG.get_definition_by_id(configuration.building_definition_id)
 	if definition == null:
@@ -249,7 +340,7 @@ func _process_blast(ray_origin: Vector3, ray_direction: Vector3) -> void:
 	if is_instance_valid(_terrain):
 		_terrain.call("carve_sphere", impact_position, blast_radius, blast_damage)
 
-	_last_broken_count = int(_structure.call("apply_blast_damage", impact_position, blast_radius, blast_damage))
+	_last_broken_count = int(_structure.call("apply_blast_damage", impact_position, blast_radius, blast_damage)) if is_instance_valid(_structure) else 0
 	_last_affected_count = int(_blast_service.call(
 		"apply_radial_impulse",
 		space_state,
@@ -263,21 +354,23 @@ func _process_blast(ray_origin: Vector3, ray_direction: Vector3) -> void:
 
 
 func _build_environment() -> void:
-	var world_environment := WorldEnvironment.new()
+	_world_environment = WorldEnvironment.new()
+	_world_environment.name = "WorldEnvironment"
 	var environment := Environment.new()
 	environment.background_mode = Environment.BG_COLOR
-	environment.background_color = Color(0.035, 0.045, 0.06)
+	environment.background_color = DEFAULT_BACKGROUND_COLOR
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment.ambient_light_color = Color(0.55, 0.59, 0.68)
-	environment.ambient_light_energy = 0.7
-	world_environment.environment = environment
-	add_child(world_environment)
+	environment.ambient_light_color = DEFAULT_AMBIENT_COLOR
+	environment.ambient_light_energy = DEFAULT_AMBIENT_ENERGY
+	_world_environment.environment = environment
+	add_child(_world_environment)
 
-	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-52.0, -28.0, 0.0)
-	sun.light_energy = 1.25
-	sun.shadow_enabled = true
-	add_child(sun)
+	_sun = DirectionalLight3D.new()
+	_sun.name = "Sun"
+	_sun.rotation_degrees = DEFAULT_SUN_ROTATION
+	_sun.light_energy = DEFAULT_SUN_ENERGY
+	_sun.shadow_enabled = true
+	add_child(_sun)
 
 
 func _build_ground() -> void:
@@ -306,11 +399,74 @@ func _build_ground() -> void:
 	ground.add_child(mesh_instance)
 
 
-func _build_terrain() -> void:
+func _build_terrain(world: WorldDefinitionScript = null) -> void:
+	_remove_terrain()
+	if world != null and not world.terrain_enabled:
+		return
 	_terrain = TERRAIN_SCRIPT.new()
 	_terrain.name = "TerrainWorld"
-	_terrain.position = Vector3(18.0, 0.06, -30.0)
+	if world != null:
+		_terrain.position = world.terrain_position
+		_terrain.set("surface_color", world.terrain_surface_color)
+		_terrain.set("use_low_end_fallback", world.terrain_low_end_fallback)
+	else:
+		_terrain.position = Vector3(18.0, 0.06, -30.0)
 	add_child(_terrain)
+
+
+func _remove_terrain() -> void:
+	if is_instance_valid(_terrain):
+		remove_child(_terrain)
+		_terrain.queue_free()
+	_terrain = null
+
+
+func _create_structure() -> void:
+	if is_instance_valid(_structure):
+		return
+	_structure = STRUCTURE_SCRIPT.new()
+	_structure.position = Vector3(0.0, 0.0, -12.0)
+	add_child(_structure)
+
+
+func _clear_structure() -> void:
+	if is_instance_valid(_structure):
+		remove_child(_structure)
+		_structure.queue_free()
+	_structure = null
+
+
+func _apply_world_environment(world: WorldDefinitionScript) -> void:
+	if is_instance_valid(_world_environment) and _world_environment.environment != null:
+		_world_environment.environment.background_color = world.background_color
+		_world_environment.environment.ambient_light_color = world.ambient_color
+		_world_environment.environment.ambient_light_energy = world.ambient_energy
+	if is_instance_valid(_sun):
+		_sun.rotation_degrees = world.sun_rotation_degrees
+		_sun.light_energy = world.sun_energy
+		_sun.shadow_enabled = world.sun_shadows_enabled
+
+
+func _apply_environment_defaults() -> void:
+	if is_instance_valid(_world_environment) and _world_environment.environment != null:
+		_world_environment.environment.background_color = DEFAULT_BACKGROUND_COLOR
+		_world_environment.environment.ambient_light_color = DEFAULT_AMBIENT_COLOR
+		_world_environment.environment.ambient_light_energy = DEFAULT_AMBIENT_ENERGY
+	if is_instance_valid(_sun):
+		_sun.rotation_degrees = DEFAULT_SUN_ROTATION
+		_sun.light_energy = DEFAULT_SUN_ENERGY
+		_sun.shadow_enabled = true
+
+
+func _get_active_spawn() -> Vector3:
+	return _active_world_definition.player_spawn if _active_world_definition != null else Vector3(0.0, 0.1, 6.0)
+
+
+func _reset_player_to_spawn(spawn: Vector3) -> void:
+	if not is_instance_valid(_player):
+		return
+	_player.global_position = spawn
+	_player.velocity = Vector3.ZERO
 
 
 func _spawn_physics_props() -> void:

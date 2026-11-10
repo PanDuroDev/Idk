@@ -201,6 +201,14 @@ func _run_smoke_test() -> void:
 		_fail("Could not capture the initial transform of all 70 fragments")
 		return
 
+	# Keep loose props out of the blast ray; props are covered by their own physics checks.
+	var prop_index := 0
+	for child in main.get_children():
+		if child is RigidBody3D and String(child.name).begins_with("PhysicsProp"):
+			child.global_position = Vector3(40.0 + float(prop_index) * 2.0, 1.2, 40.0)
+			prop_index += 1
+	await physics_frame
+
 	main.set("blast_radius", 4.5)
 	main.set("blast_damage", 10.0)
 	main.call("request_blast", Vector3(0.0, 0.5, 6.0), Vector3(0.0, 0.0, -1.0))
