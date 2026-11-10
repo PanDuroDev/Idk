@@ -224,3 +224,14 @@ This is an append-only engineering journal. Each substantial session is recorded
 - This remains headless regression coverage. Interactive controls/rendering, 30-second settling on the GTX 1660 SUPER, and target-PC FPS/CPU/GPU measurements remain unverified.
 - Next: perform the manual Windows checklist before adding material authoring, breakable joints, or terrain deformation.
 
+## 2026-11-10 - PR #4 merge follow-up
+
+- PR #4 was marked ready after the final head `38a32db7faac7c2ead0991a6f02104f5fb4da887` passed the Linux and Windows CI jobs, including the five-cycle regression, all-fragment movement checks, saved-log checks, and material profile assertions.
+- Confirmed the PR was mergeable, with no submitted reviews or unresolved review threads.
+- Squash-merged PR #4 into `main`.
+- Merge commit: `9aaf496c74b49a7e8bc8008043731ba08918eaa2`.
+- Post-merge push validation [#42869641317](https://github.com/PanDuroDev/Idk/actions/runs/42869641317) passed on both Linux and Windows.
+- The repeated regression completed five collapse/reset cycles, 120 physics frames per cycle, with all 70 fragments moving, finite physics state, ground containment, and a full reset after each cycle.
+- Manual interactive controls/rendering, 30-second debris settling on the target GTX 1660 SUPER PC, and FPS/CPU/GPU measurements remain outstanding.
+- Next: complete `docs/MANUAL_WINDOWS_VALIDATION.md` on the target PC. Do not begin material authoring, physical breakable joints, or terrain deformation until those observations have been reviewed.
+
