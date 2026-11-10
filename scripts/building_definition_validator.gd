@@ -1,5 +1,9 @@
-class_name BuildingDefinitionValidator
+class_name BuildingDefinitionScriptValidator
 extends RefCounted
+
+const BuildingDefinitionScript = preload("res://scripts/building_definition.gd")
+const BuildingCellDefinitionScript = preload("res://scripts/building_cell_definition.gd")
+const DestructionMaterialProfileScript = preload("res://scripts/destruction_material_profile.gd")
 
 const MAX_OCCUPIED_CELLS: int = 256
 const MIN_MATERIAL_INTEGRITY: float = 0.1
@@ -19,7 +23,7 @@ static func validate_definition(
 		errors.append("Building definition is null.")
 		return errors
 
-	if definition.schema_version != BuildingDefinition.CURRENT_SCHEMA_VERSION:
+	if definition.schema_version != BuildingDefinitionScript.CURRENT_SCHEMA_VERSION:
 		errors.append("Unsupported building schema version: %d." % definition.schema_version)
 	if String(definition.definition_id).strip_edges().is_empty():
 		errors.append("Building definition ID must not be empty.")
