@@ -427,3 +427,11 @@ This is an append-only engineering journal. Each substantial session is recorded
 - Expanded malformed-definition coverage to include non-positive dimensions, unsupported schema versions, null cell entries, and non-finite custom transforms.
 - The latest strict CI run [#42894906735](https://github.com/PanDuroDev/Idk/actions/runs/42894906735) passed on Linux and Windows after the expanded malformed-definition cases. It requires captured console/log output to be free of script/parse errors and requires explicit building-definition, repeated-collapse/reset, and overall smoke success markers; the terrain regression also passed.
 - Next: mark PR #18 ready for integration review. Do not merge.
+
+### All-cell and material-behavior regression follow-up
+
+- Expanded the classic preset regression to validate the original center position and material-layer mapping for every one of the 70 occupied cells, not only representative samples.
+- Expanded the sparse sample regression to verify the selected per-cell profile controls rigid-body mass, visual material color, integrity, and the damage threshold derived from blast resistance.
+- The first color assertion exposed that the test's node-name lookup was brittle. The test now locates the visual child by node type and reports separate failures for missing visual nodes, missing material overrides, and color mismatches.
+- Final code run [#42895893291](https://github.com/PanDuroDev/Idk/actions/runs/42895893291) passed Linux and Windows import/parse, launch, gameplay smoke, and isolated terrain regression. Linux logs show the building-definition, five-cycle reset, overall smoke, and terrain success markers with no script/parse/engine errors; Windows completed the same marker-gated checks successfully.
+- Next: finish the requested CodeRabbit review, address any findings, then leave PR #18 ready for maintainer integration. Do not merge.
