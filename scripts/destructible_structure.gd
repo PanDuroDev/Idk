@@ -206,8 +206,8 @@ func _release_fragment(fragment: RigidBody3D) -> void:
 	if not _loose_age_by_fragment.has(fragment_id):
 		_loose_age_by_fragment[fragment_id] = 0.0
 		fragment.add_to_group("loose_debris")
-	fragment.freeze = false
-	fragment.sleeping = false
+		fragment.freeze = false
+		fragment.sleeping = false
 
 
 func _update_loose_debris(delta: float) -> void:
