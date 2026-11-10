@@ -181,3 +181,22 @@ This is an append-only engineering journal. Each substantial session is recorded
 - The automatic push-to-`main` workflow [#42866260328](https://github.com/PanDuroDev/Idk/actions/runs/42866260328) passed on both Windows and Linux at the merge commit.
 - Manual visual/input testing, long-duration debris settling, and target-PC performance profiling remain outstanding; headless CI does not claim to verify them.
 - Next: perform the manual Windows 4.7.2 test on the target PC before extending destruction features or starting terrain deformation.
+
+
+## 2026-11-10 - Manual target-PC validation preparation
+
+### Before work
+- Starting `main` commit: `6e9710c0e04482a1c83e5c580775134c24d398ba`.
+- CI now passes on Linux and Windows after PR #3, but interactive rendering, player controls, long-duration debris settling, and target-PC performance have not been observed.
+- Scope: prepare a reproducible Windows/Godot 4.7.2 checklist without marking any manual test as completed.
+
+### During work
+- Added `docs/MANUAL_WINDOWS_VALIDATION.md` with startup, controls, material comparison, full collapse/reset, repeated-cycle, and performance checks.
+- Documented Remote Inspector settings for the root `Main` node so all three material profiles can be compared with the same blast radius, damage, and impulse.
+- Included approximate material hit counts derived from the current linear falloff model and a measurement table for FPS, CPU, GPU, and GPU memory.
+- Linked the checklist from README and Project Status.
+
+### After work
+- Documentation is committed on `main`; no gameplay implementation was changed in this pass.
+- Interactive Windows tests have not been run by this session and remain unverified.
+- Next: run the checklist on the target Windows PC and report actual observations before adding material authoring tools, physical joints, or terrain deformation.
