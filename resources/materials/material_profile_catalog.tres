@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="MaterialProfileCatalog" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/material_profile_catalog.gd" id="1_catalog"]
+[ext_resource type="Resource" path="res://resources/materials/foundation_concrete.tres" id="2_foundation"]
+[ext_resource type="Resource" path="res://resources/materials/masonry.tres" id="3_masonry"]
+[ext_resource type="Resource" path="res://resources/materials/lightweight_panel.tres" id="4_lightweight"]
+
+[resource]
+script = ExtResource("1_catalog")
+profiles = Array[ExtResource("2_foundation")]([ExtResource("2_foundation"), ExtResource("3_masonry"), ExtResource("4_lightweight")])
