@@ -7,9 +7,10 @@ const BLOCK_SIZE: Vector3 = Vector3(1.0, 1.0, 1.0)
 const SPACING: float = 1.04
 
 const SUPPORT_GRAPH_SCRIPT = preload("res://scripts/structural_support_graph.gd")
-const FOUNDATION_PROFILE: DestructionMaterialProfile = preload("res://resources/materials/foundation_concrete.tres")
-const MASONRY_PROFILE: DestructionMaterialProfile = preload("res://resources/materials/masonry.tres")
-const LIGHTWEIGHT_PROFILE: DestructionMaterialProfile = preload("res://resources/materials/lightweight_panel.tres")
+const DestructionMaterialProfileScript = preload("res://scripts/destruction_material_profile.gd")
+const FOUNDATION_PROFILE: DestructionMaterialProfileScript = preload("res://resources/materials/foundation_concrete.tres")
+const MASONRY_PROFILE: DestructionMaterialProfileScript = preload("res://resources/materials/masonry.tres")
+const LIGHTWEIGHT_PROFILE: DestructionMaterialProfileScript = preload("res://resources/materials/lightweight_panel.tres")
 
 var _fragments: Array[RigidBody3D] = []
 var _initial_transforms: Array[Transform3D] = []
@@ -40,7 +41,7 @@ func _create_shared_resources() -> void:
 	_shared_collision_shape = BoxShape3D.new()
 	_shared_collision_shape.size = BLOCK_SIZE
 
-	for profile: DestructionMaterialProfile in [
+	for profile: DestructionMaterialProfileScript in [
 		FOUNDATION_PROFILE,
 		MASONRY_PROFILE,
 		LIGHTWEIGHT_PROFILE
@@ -48,7 +49,7 @@ func _create_shared_resources() -> void:
 		_shared_materials[profile.material_id] = profile.create_surface_material()
 
 
-func _get_profile_for_layer(layer: int) -> DestructionMaterialProfile:
+func _get_profile_for_layer(layer: int) -> DestructionMaterialProfileScript:
 	if layer == 0:
 		return FOUNDATION_PROFILE
 	if layer == HEIGHT - 1:
@@ -61,7 +62,7 @@ func _build_structure() -> void:
 		for x in range(WIDTH):
 			for z in range(DEPTH):
 				var cell := Vector3i(x, y, z)
-				var profile: DestructionMaterialProfile = _get_profile_for_layer(y)
+				var profile: DestructionMaterialProfileScript = _get_profile_for_layer(y)
 				var fragment := RigidBody3D.new()
 				fragment.name = "Fragment_%02d_%02d_%02d" % [x, y, z]
 				fragment.position = Vector3(
@@ -106,7 +107,7 @@ func apply_blast_damage(origin: Vector3, radius: float, damage_amount: float = 1
 			continue
 
 		var fragment: RigidBody3D = _fragments_by_cell[cell] as RigidBody3D
-		var profile: DestructionMaterialProfile = _material_by_cell[cell] as DestructionMaterialProfile
+		var profile: DestructionMaterialProfileScript = _material_by_cell[cell] as DestructionMaterialProfileScript
 		var distance: float = fragment.global_position.distance_to(origin)
 		if distance >= safe_radius:
 			continue
@@ -141,27 +142,27 @@ func get_cell_damage_ratio(cell: Vector3i) -> float:
 
 
 func get_cell_material_id(cell: Vector3i) -> StringName:
-	var profile: DestructionMaterialProfile = _material_by_cell.get(cell) as DestructionMaterialProfile
+	var profile: DestructionMaterialProfileScript = _material_by_cell.get(cell) as DestructionMaterialProfileScript
 	return profile.material_id if profile != null else &""
 
 
 func get_cell_material_name(cell: Vector3i) -> String:
-	var profile: DestructionMaterialProfile = _material_by_cell.get(cell) as DestructionMaterialProfile
+	var profile: DestructionMaterialProfileScript = _material_by_cell.get(cell) as DestructionMaterialProfileScript
 	return profile.display_name if profile != null else ""
 
 
 func get_cell_integrity(cell: Vector3i) -> float:
-	var profile: DestructionMaterialProfile = _material_by_cell.get(cell) as DestructionMaterialProfile
+	var profile: DestructionMaterialProfileScript = _material_by_cell.get(cell) as DestructionMaterialProfileScript
 	return maxf(profile.integrity, 0.1) if profile != null else 0.1
 
 
 func get_cell_blast_resistance(cell: Vector3i) -> float:
-	var profile: DestructionMaterialProfile = _material_by_cell.get(cell) as DestructionMaterialProfile
+	var profile: DestructionMaterialProfileScript = _material_by_cell.get(cell) as DestructionMaterialProfileScript
 	return maxf(profile.blast_resistance, 0.1) if profile != null else 0.1
 
 
 func get_cell_density_multiplier(cell: Vector3i) -> float:
-	var profile: DestructionMaterialProfile = _material_by_cell.get(cell) as DestructionMaterialProfile
+	var profile: DestructionMaterialProfileScript = _material_by_cell.get(cell) as DestructionMaterialProfileScript
 	return maxf(profile.density_multiplier, 0.1) if profile != null else 0.1
 
 

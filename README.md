@@ -45,12 +45,16 @@ Controls are defined through Godot InputMap and can be remapped in Project Setti
 - Generated fragments share mesh, collision, and material resources.
 
 ## Validation
+The workflow runs on both Linux and Windows for pull requests to `main` and pushes to `main`.
+
 GitHub Actions imports and launches the project headlessly, then tests:
 - Support graph connectivity and alternate support paths.
-- Base-row failure and collapse.
+- Base-row failure and collapse, followed by 120 physics frames of live rigid-body simulation.
+- Finite fragment transforms/velocities and ground-containment checks after the collapse.
 - Material profile assignment and relative integrity/resistance values.
 - First weak hit accumulating without break.
-- Repeated weak hits crossing different material thresholds.
+- Repeated weak hits crossing the masonry and concrete thresholds.
+- A single weak hit crossing the lightweight panel threshold.
 - Reset clearing damage and restoring fragment/graph state.
 
 Manual visual and interaction testing on the target Windows PC is still required.

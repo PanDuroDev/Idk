@@ -3,13 +3,13 @@ name: Godot validation
 on:
   push:
     branches:
-      - feature/worldbreak-godot-foundation
+      - main
   pull_request:
     branches:
       - main
 
 jobs:
-  headless-validation:
+  linux-headless-validation:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -23,10 +23,85 @@ jobs:
           chmod +x Godot_v4.7.2-stable_linux.x86_64
 
       - name: Import project and parse scripts
-        run: ./Godot_v4.7.2-stable_linux.x86_64 --headless --editor --path . --quit
+        run: |
+          ./Godot_v4.7.2-stable_linux.x86_64 --headless --path . --import --log-file godot-import.log
+          if grep -Eq 'SCRIPT ERROR:|(^|[[:space:]])ERROR:' godot-import.log; then
+            cat godot-import.log
+            exit 1
+          fi
 
       - name: Launch project headlessly
-        run: ./Godot_v4.7.2-stable_linux.x86_64 --headless --path . --quit-after 3
+        run: |
+          ./Godot_v4.7.2-stable_linux.x86_64 --headless --path . --quit-after 3 --log-file godot-launch.log
+          if grep -Eq 'SCRIPT ERROR:|(^|[[:space:]])ERROR:' godot-launch.log; then
+            cat godot-launch.log
+            exit 1
+          fi
 
       - name: Run gameplay smoke test
-        run: ./Godot_v4.7.2-stable_linux.x86_64 --headless --path . --script res://tests/headless_smoke_test.gd
+        run: |
+          ./Godot_v4.7.2-stable_linux.x86_64 --headless --path . --script res://tests/headless_smoke_test.gd --log-file godot-smoke.log
+          if ! grep -q 'WORLDBREAK_SMOKE_TEST_OK' godot-smoke.log; then
+            cat godot-smoke.log
+            echo "Gameplay smoke test did not report its success marker."
+            exit 1
+          fi
+          if grep -Eq 'SCRIPT ERROR:|(^|[[:space:]])ERROR:|WORLDBREAK_SMOKE_TEST_FAILED' godot-smoke.log; then
+            cat godot-smoke.log
+            exit 1
+          fi
+
+  windows-headless-validation:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download Godot 4.7.2
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Invoke-WebRequest -Uri "https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_win64.exe.zip" -OutFile godot.zip
+          Expand-Archive -Path godot.zip -DestinationPath godot
+          if (-not (Test-Path ".\godot\Godot_v4.7.2-stable_win64.exe")) {
+            throw "Godot 4.7.2 Windows executable was not found in the release archive."
+          }
+
+      - name: Import project and parse scripts
+        shell: pwsh
+        run: |
+          $godot = ".\godot\Godot_v4.7.2-stable_win64.exe"
+          & $godot --headless --path . --import --log-file godot-import.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (Select-String -Path "godot-import.log" -Pattern "SCRIPT ERROR:|(^|\s)ERROR:" -Quiet) {
+            Get-Content "godot-import.log"
+            throw "Godot import reported script or engine errors."
+          }
+
+      - name: Launch project headlessly
+        shell: pwsh
+        run: |
+          $godot = ".\godot\Godot_v4.7.2-stable_win64.exe"
+          & $godot --headless --path . --quit-after 3 --log-file godot-launch.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (Select-String -Path "godot-launch.log" -Pattern "SCRIPT ERROR:|(^|\s)ERROR:" -Quiet) {
+            Get-Content "godot-launch.log"
+            throw "Headless launch reported script or engine errors."
+          }
+
+      - name: Run gameplay smoke test
+        shell: pwsh
+        run: |
+          $godot = ".\godot\Godot_v4.7.2-stable_win64.exe"
+          & $godot --headless --path . --script res://tests/headless_smoke_test.gd --log-file godot-smoke.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $log = Get-Content "godot-smoke.log" -Raw
+          if ($log -notmatch "WORLDBREAK_SMOKE_TEST_OK") {
+            Write-Output $log
+            throw "Gameplay smoke test did not report its success marker."
+          }
+          if ($log -match "SCRIPT ERROR:|(^|\s)ERROR:|WORLDBREAK_SMOKE_TEST_FAILED") {
+            Write-Output $log
+            throw "Gameplay smoke test reported errors."
+          }

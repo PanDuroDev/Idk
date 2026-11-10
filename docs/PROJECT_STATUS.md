@@ -39,12 +39,16 @@ Godot 4.7.2 CI passed on the merged implementation. The final pre-merge validati
 
 Verified:
 - Godot imported the custom Resource script and all three `.tres` material profiles.
+- The final PR #3 workflow passed on both `ubuntu-latest` and `windows-latest` at head `351db972746837ebb4ade2d3ab067239b0dfd64a` ([Actions #42865744560](https://github.com/PanDuroDev/Idk/actions/runs/42865744560)). It imports the project before launch, scans Godot logs for script/runtime errors, and requires the gameplay smoke-test success marker.
+- CI now runs on pull requests targeting `main` and pushes to `main`; this closes the previous gap where the push trigger only watched the retired feature branch.
 - Project launched headlessly.
 - Material profile assignment for foundation, middle, and top layers.
 - Foundation has higher integrity, blast resistance, and density than masonry.
 - Masonry breaks after two centered weak hits.
 - Foundation resists three weak hits and breaks on the fourth.
+- A centered weak hit breaks the lightweight panel at its own integrity/resistance threshold; the follow-up reset restores the fragment.
 - Full base-row collapse, support graph behavior, and reset pass.
+- The headless integration test then simulates 120 additional physics frames: all 70 fragments moved, position/velocity values remained finite, and no fragment center crossed below the ground threshold.
 
 ## Current limitations
 

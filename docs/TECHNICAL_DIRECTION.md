@@ -48,11 +48,12 @@ Current profiles:
 | Masonry | 1.0 | 1.0 | 1.0 |
 | Lightweight Panel | 0.65 | 0.8 | 0.75 |
 
-The current test structure assigns profiles by layer: the base uses foundation concrete, the middle uses masonry, and the top uses lightweight panels. Profile Resources are loaded once and reused; their visual materials are shared between fragments. The density multiplier changes each fragment's rigid-body mass.
+The current test structure assigns profiles by layer: the base uses foundation concrete, the middle uses masonry, and the top uses lightweight panels. Profile Resources are loaded once and reused; their visual materials are shared between fragments. The density multiplier changes each fragment's rigid-body mass. The smoke test checks repeated-hit thresholds for masonry and concrete, plus a one-hit break for the lightweight panel.
 
 These values are editable prototype tuning, not measured real-world material constants. The material assignment is currently layer-based, not an in-game material editor.
 
 ### Explicit limitations
+- GitHub Actions runs Godot 4.7.2 headless import, launch, and smoke validation on Linux and Windows. The collapse test simulates 120 physics frames and checks finite fragment transforms/velocities and ground containment. This still does not verify interactive rendering quality, long-duration settling, or target-PC performance.
 - The support graph is topological, not a physical bond network.
 - Damage uses distance to fragment centers and a linear falloff.
 - No force distribution, stress, bending, crack propagation, or physical joint break thresholds.
