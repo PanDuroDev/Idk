@@ -343,6 +343,26 @@ func _run_smoke_test() -> void:
 		_fail("Debris cleanup/reset did not restore all original structural fragments")
 		return
 	print("WORLDBREAK_DEBRIS_LIFECYCLE_OK: wake, expiry, and full reset")
+
+	# Exercise the configured awake-body cap with a deliberately small test budget.
+	structure.set("loose_debris_lifetime_seconds", 30.0)
+	structure.set("max_active_loose_fragments", 1)
+	structure.call("apply_blast_damage", Vector3(0.0, 0.5, -11.48), 4.5, 10.0)
+	for frame_index in range(2):
+		await physics_frame
+	if int(structure.call("get_released_fragment_count")) <= 1:
+		_fail("The active-fragment budget test did not release multiple fragments")
+		return
+	if int(structure.call("get_active_loose_fragment_count")) > 1 or int(structure.call("get_sleeping_loose_fragment_count")) <= 0:
+		_fail("The configured active-fragment cap was not enforced")
+		return
+	structure.call("reset_structure")
+	structure.set("max_active_loose_fragments", 70)
+	if not bool(structure.call("is_reset_to_initial_state")):
+		_fail("Reset after active-budget enforcement did not restore the structure")
+		return
+	print("WORLDBREAK_ACTIVE_FRAGMENT_BUDGET_OK: awake_cap=1")
+
 	print("WORLDBREAK_SMOKE_TEST_OK: all material profiles, support graph, collapse, cumulative damage, repeated reset, and reset")
 	quit(0)
 
