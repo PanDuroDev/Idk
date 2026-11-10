@@ -200,3 +200,13 @@ This is an append-only engineering journal. Each substantial session is recorded
 - Documentation is committed on `main`; no gameplay implementation was changed in this pass.
 - Interactive Windows tests have not been run by this session and remain unverified.
 - Next: run the checklist on the target Windows PC and report actual observations before adding material authoring tools, physical joints, or terrain deformation.
+## 2026-11-10 - Repeated collapse/reset regression pass
+
+### Before work
+- Starting `main` commit: `5310224d4a415815c698d65e4c8110ba30fa280a`.
+- Confirmed PR #3 is merged; the post-merge Linux and Windows validation on `main` passed.
+- Reviewed `PROJECT_STATUS.md`, `MANUAL_WINDOWS_VALIDATION.md`, the current smoke test, structure reset implementation, and CI workflow.
+- Interactive controls, visual rendering, 30-second settling, and target-PC performance are still local/manual requirements and will not be claimed as completed here.
+- Scope: automate five complete collapse/reset cycles with physics simulation between each cycle, asserting fragment release, finite motion, ground containment, and exact reset state.
+- Risk: the existing CI timeout remains 10 minutes; the added frames are bounded and do not attempt to measure target hardware performance.
+
