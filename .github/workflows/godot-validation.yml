@@ -123,6 +123,19 @@ jobs:
             exit 1
           fi
 
+      - name: Run terrain collision queue test
+        run: |
+          ./Godot_v4.7.2-stable_linux.x86_64 --headless --path . --script res://tests/terrain/terrain_collision_queue_test.gd --log-file godot-collision.log
+          if ! grep -q 'WORLDBREAK_TERRAIN_COLLISION_OK' godot-collision.log; then
+            cat godot-collision.log
+            echo "Terrain collision test did not report its success marker."
+            exit 1
+          fi
+          if grep -Eq 'SCRIPT ERROR:|(^|[[:space:]])ERROR:' godot-collision.log; then
+            cat godot-collision.log
+            exit 1
+          fi
+
   windows-headless-validation:
     runs-on: windows-latest
     timeout-minutes: 10
@@ -243,4 +256,20 @@ jobs:
           }
           if ($combinedLog -match "SCRIPT ERROR:|(^|\s)ERROR:|Parse Error:|Failed to load script") {
             throw "Terrain deformation test reported script or engine errors."
+          }
+
+      - name: Run terrain collision queue test
+        shell: pwsh
+        run: |
+          $godot = ".\\godot\\Godot_v4.7.2-stable_win64.exe"
+          & $godot --headless --path . --script res://tests/terrain/terrain_collision_queue_test.gd --log-file godot-collision.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $collisionLog = Get-Content "godot-collision.log" -Raw
+          if ($collisionLog -notmatch "WORLDBREAK_TERRAIN_COLLISION_OK") {
+            Write-Output $collisionLog
+            throw "Terrain collision test did not report its success marker."
+          }
+          if ($collisionLog -match "SCRIPT ERROR:|(^|\\s)ERROR:") {
+            Write-Output $collisionLog
+            throw "Terrain collision test reported errors."
           }

@@ -30,7 +30,7 @@ The intended collision representation is one static concave trimesh per active c
 
 ## Threading and application
 
-Density edits and mesh-array generation are CPU-side operations. Do not create or mutate scene nodes, physics shapes, or rendering resources from worker threads. Build results can be queued; apply mesh and collider replacements on the main thread. Collision replacement must happen at a physics-safe boundary.
+Density edits and mesh-array generation are CPU-side operations. Do not create or mutate scene nodes, physics shapes, or rendering resources from worker threads. Build results can be queued; apply mesh and collider replacements on the main thread. Collision replacement is routed through a bounded queue. Requests are coalesced by CollisionShape3D, so repeated edits before processing install only the latest mesh. The queue drains at most one request per physics frame by default, cooks a static trimesh on the main thread, and defers disabling/replacing/re-enabling the CollisionShape3D until after the active physics step.
 
 ## Initial target budgets (hypotheses, not measured claims)
 
