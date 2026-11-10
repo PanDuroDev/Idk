@@ -28,7 +28,7 @@
 - [x] Separate blast damage amount from physical impulse strength.
 - [x] Add data-driven material profiles for integrity, blast resistance, density, and tint.
 - [ ] Add optional physical breakable joints after graph/damage profiling.
-- [ ] Add reusable building definitions and data-driven generation (PR in progress: `ai/phase-2/building-definitions`).
+- [x] Add reusable building definitions and data-driven generation ([PR #18](https://github.com/PanDuroDev/Idk/pull/18), open for review; Linux/Windows CI passed).
 - [ ] Add material authoring validation, duplicate workflow, and preview.
 - [ ] Add versioned save/load for test configurations.
 
