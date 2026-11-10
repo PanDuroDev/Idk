@@ -39,7 +39,7 @@ Godot 4.7.2 CI passed on the merged implementation. The final pre-merge validati
 
 Verified:
 - Godot imported the custom Resource script and all three `.tres` material profiles.
-- The hardened PR #3 workflow passed on both `ubuntu-latest` and `windows-latest` ([Actions #42864594057](https://github.com/PanDuroDev/Idk/actions/runs/42864594057)). Windows validation checks the imported global class cache, process exit codes, Godot logs, and required smoke-test success markers.
+- The final PR #3 workflow passed on both `ubuntu-latest` and `windows-latest` at head `bb5d52e8390fc888399a2e3dec7bfee2e173e97f` ([Actions #42864979202](https://github.com/PanDuroDev/Idk/actions/runs/42864979202)). It imports the project before launch, scans Godot logs for script/runtime errors, and requires the gameplay smoke-test success marker.
 - CI now runs on pull requests targeting `main` and pushes to `main`; this closes the previous gap where the push trigger only watched the retired feature branch.
 - Project launched headlessly.
 - Material profile assignment for foundation, middle, and top layers.
