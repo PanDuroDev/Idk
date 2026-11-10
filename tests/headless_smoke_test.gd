@@ -597,7 +597,7 @@ func _test_building_definition_assets() -> bool:
 	var invalid_transform_cell := BuildingCellDefinitionScript.new()
 	invalid_transform_cell.coordinate = Vector3i.ZERO
 	invalid_transform_cell.use_custom_transform = true
-	invalid_transform_cell.local_transform.origin = Vector3(INF, 0.0, 0.0)
+	invalid_transform_cell.local_transform = Transform3D(Basis.IDENTITY, Vector3(INF, 0.0, 0.0))
 	malformed.cells.clear()
 	malformed.cells.append(invalid_transform_cell)
 	var invalid_transform_errors: Array[String] = BUILDING_DEFINITION_VALIDATOR.validate_definition(malformed)
