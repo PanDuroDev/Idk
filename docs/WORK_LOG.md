@@ -145,3 +145,25 @@ This is an append-only engineering journal. Each substantial session is recorded
 - This verifies Windows headless startup and logic only. Interactive visuals, input feel, debris settling, and performance on the target GTX 1660 SUPER PC remain unverified.
 - Next: complete PR #3 review checks, then perform manual interactive verification on the target Windows PC before extending destruction features.
 
+
+## 2026-11-10 - Windows CI false-positive investigation and physics regression pass
+
+### Before work
+- Starting PR #3 head: `c40cf6994d5e8882a1e62715a43c5d60a0812989`.
+- Audited the Windows job logs rather than relying on the green job badge. Earlier runs `42863598483` and `42863780168` reported success while Godot logs contained unresolved `DestructionMaterialProfile` parse errors and a failed smoke-test marker.
+- The cause was that the Windows GUI-subsystem editor executable did not provide a reliable `$LASTEXITCODE` through direct PowerShell invocation.
+- Scope: make Windows validation fail on actual Godot errors, ensure the global script class cache is built before launching the project, and simulate the debris after collapse.
+
+### During work
+- Added a post-collapse physics simulation of 120 physics frames to the smoke test.
+- The test records all 70 initial fragment positions, then checks that all 70 fragments remain present, all moved, positions and velocities remain finite, and no fragment center falls below the ground threshold.
+- Changed the Windows workflow to use `--import`, verify `.godot/global_script_class_cache.cfg` contains `DestructionMaterialProfile`, retrieve the process exit code with `Start-Process -Wait -PassThru`, scan Godot log files for script/parse/compile/runtime errors, and require explicit smoke-test markers.
+- Intermediate Windows failures exposed two issues in the gate itself (PowerShell string interpolation and the unavailable `$LASTEXITCODE`); both were corrected before accepting a passing result.
+
+### After work
+- [Actions #42864594057](https://github.com/PanDuroDev/Idk/actions/runs/42864594057) passed on both Linux and Windows at PR head `c40cf6994d5e8882a1e62715a43c5d60a0812989`.
+- Both logs include `WORLDBREAK_PHYSICS_COLLAPSE_OK: frames=120; fragments=70; moved=70; ground_containment=passed` and `WORLDBREAK_SMOKE_TEST_OK`.
+- The hardened Windows job completed its import/cache, launch, and smoke-test checks without Godot errors.
+- Correction: the earlier runs listed above were false positives for Windows and must not be used as evidence of a successful Windows smoke test. The current checked-log run is the first accepted cross-platform result in this pass.
+- Still unverified: interactive graphics, player input feel, target-PC FPS/CPU/GPU usage, and long-duration debris settling on the GTX 1660 SUPER system.
+- Next: obtain the manual Windows interactive/performance observations before increasing physics complexity or starting terrain work.
