@@ -304,7 +304,7 @@ func _refresh_debug_overlay() -> void:
 	var parked: int = int(_structure.call("get_budget_parked_fragment_count")) if is_instance_valid(_structure) else 0
 	var active_budget: int = int(_structure.get("max_active_loose_fragments")) if is_instance_valid(_structure) else 0
 	var lifetime: float = float(_structure.get("loose_debris_lifetime_seconds")) if is_instance_valid(_structure) else 0.0
-	_debug_overlay_label.text = "DESTRUCTION / PHYSICS DEBUG (F3)\nFPS %d | Physics ticks %d\nIntact %d | Broken %d | Supported %d\nLoose %d | Awake %d/%d | Sleeping %d | Retired %d\nDebris lifetime %.0fs | Effect bursts %d/%d\nBlast radius %.2f | Damage %.2f | Impulse %.1f\nPhysics objects %d | Collision pairs %d" % [
+	_debug_overlay_label.text = "DESTRUCTION / PHYSICS DEBUG (F3)\nFPS %d | Physics ticks %d\nIntact %d | Broken %d | Supported %d\nLoose %d | Awake %d/%d | Sleeping %d | Parked %d | Retired %d\nDebris lifetime %.0fs | Effect bursts %d/%d\nBlast radius %.2f | Damage %.2f | Impulse %.1f\nPhysics objects %d | Collision pairs %d" % [
 		Engine.get_frames_per_second(),
 		Engine.get_physics_ticks_per_second(),
 		total - broken,
