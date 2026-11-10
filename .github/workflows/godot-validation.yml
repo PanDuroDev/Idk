@@ -181,4 +181,3 @@ jobs:
           if ($combinedLog -match "SCRIPT ERROR:|(^|\s)ERROR:|Parse Error:|Failed to load script") {
             throw "Terrain deformation test reported script or engine errors."
           }
-          }
