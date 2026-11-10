@@ -126,4 +126,20 @@ jobs:
           if ($log -match "SCRIPT ERROR:|(^|\s)ERROR:|WORLDBREAK_SMOKE_TEST_FAILED") {
             Write-Output $log
             throw "Gameplay smoke test reported errors."
+
+      
+      - name: Run isolated terrain chunk test
+        shell: pwsh
+        run: |
+          $godot = ".\godot\Godot_v4.7.2-stable_win64.exe"
+          & $godot --headless --path . --script res://tests/terrain/terrain_chunk_data_test.gd --log-file godot-terrain.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $terrainLog = Get-Content "godot-terrain.log" -Raw
+          if ($terrainLog -notmatch "WORLDBREAK_TERRAIN_CHUNK_MESH_OK") {
+            Write-Output $terrainLog
+            throw "Terrain chunk test did not report its success marker."
           }
+          if ($terrainLog -match "SCRIPT ERROR:|(^|\s)ERROR:") {
+            Write-Output $terrainLog
+            throw "Terrain chunk test reported errors."
+          }          }
