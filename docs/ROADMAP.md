@@ -13,14 +13,14 @@
 - [x] Headless regression for five consecutive full collapse/reset cycles.
 - [x] Manual visual, controls, collapse/reset, and gameplay verification on target Windows PC (user-reported 2026-11-10; numeric performance telemetry not supplied).
 
-## Phase 1 - Destruction vertical slice ([AI issue #5](https://github.com/PanDuroDev/Idk/issues/5), implementation PRs open)
-- [ ] Validate collision stability and resets in interactive play.
-- [x] Add in-game impact radius/damage/impulse controls ([PR #11](https://github.com/PanDuroDev/Idk/pull/11); Linux/Windows CI passed; awaiting integration review).
-- [x] Add fragment lifetime, sleeping, and active-fragment budgets ([PR #16](https://github.com/PanDuroDev/Idk/pull/16); Linux/Windows CI passed; awaiting integration review).
-- [x] Add low-cost dust/debris effects ([PR #17](https://github.com/PanDuroDev/Idk/pull/17); Linux and Windows CI passed; awaiting integration review).
-- [x] Add opt-in destruction/physics diagnostics overlay ([PR #17](https://github.com/PanDuroDev/Idk/pull/17); latest cross-platform CI pending).
+## Phase 1 - Destruction vertical slice ([AI issue #5](https://github.com/PanDuroDev/Idk/issues/5), implementation PRs merged)
+- [ ] Verify impact controls, dust appearance/fade, F3 overlay readability, long-duration settling, and repeated interactive collapse/reset.
+- [ ] Record target-PC idle/collapse/settled FPS, CPU, GPU, and VRAM. No numeric telemetry is currently recorded.
+- [x] Add in-game impact radius/damage/impulse controls ([PR #11](https://github.com/PanDuroDev/Idk/pull/11), merged).
+- [x] Add fragment lifetime, sleeping, wake-up, and active-fragment budgets ([PR #16](https://github.com/PanDuroDev/Idk/pull/16), merged).
+- [x] Add bounded dust/debris effects and opt-in diagnostics ([PR #17](https://github.com/PanDuroDev/Idk/pull/17), merged).
 
-## Phase 2 - Structural authoring and reusable configurations ([AI issue #6](https://github.com/PanDuroDev/Idk/issues/6), after Phase 1 runtime interfaces stabilize)
+## Phase 2 - Structural authoring and reusable configurations ([AI issue #6](https://github.com/PanDuroDev/Idk/issues/6), architecture merged; implementation underway)
 - [x] Deterministic six-axis support graph.
 - [x] Detect loss of all paths to ground and release unsupported sections.
 - [x] Restore support graph on reset.
@@ -28,8 +28,9 @@
 - [x] Separate blast damage amount from physical impulse strength.
 - [x] Add data-driven material profiles for integrity, blast resistance, density, and tint.
 - [ ] Add optional physical breakable joints after graph/damage profiling.
-- [ ] Add reusable building definitions and material authoring tools.
-- [ ] Add save/load for test configurations.
+- [ ] Add reusable building definitions and data-driven generation (PR in progress: `ai/phase-2/building-definitions`).
+- [ ] Add material authoring validation, duplicate workflow, and preview.
+- [ ] Add versioned save/load for test configurations.
 
 ## Phase 3 - Terrain deformation ([AI issue #7](https://github.com/PanDuroDev/Idk/issues/7), design may run in parallel; implementation after Phases 1-2)
 - [ ] Prototype chunked terrain.
