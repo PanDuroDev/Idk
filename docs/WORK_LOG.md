@@ -158,12 +158,14 @@ This is an append-only engineering journal. Each substantial session is recorded
 - Added a post-collapse physics simulation of 120 physics frames to the smoke test.
 - The test records all 70 initial fragment positions, then checks that all 70 fragments remain present, all moved, positions and velocities remain finite, and no fragment center falls below the ground threshold.
 - Changed Windows and Linux validation to use Godot's `--import` flow before the launch test and persist per-step logs.
-- Added log checks for script/parse/runtime errors and required the gameplay smoke-test success marker. A failed smoke test therefore cannot pass solely because the process returned a successful exit status.
-- Intermediate attempts at strengthening the Windows gate exposed PowerShell workflow issues; the final workflow was reworked and verified through a fresh Actions run.
+- Added log checks for script/parse/runtime errors and required the gameplay smoke-test success marker.
+- Replaced global `DestructionMaterialProfile` type references in the structure script with an explicit preloaded script type alias, avoiding the class-registration dependency that had caused Windows parse errors.
+- Added a one-hit lightweight-panel threshold assertion; the existing checks cover the repeated-hit thresholds for masonry and foundation concrete.
+- Intermediate attempts at strengthening the Windows gate exposed PowerShell workflow issues; the final workflow was reworked and verified through fresh Actions runs.
 
 ### After work
-- [Actions #42864979202](https://github.com/PanDuroDev/Idk/actions/runs/42864979202) passed on both Linux and Windows at PR head `bb5d52e8390fc888399a2e3dec7bfee2e173e97f`.
-- Both platform logs include `WORLDBREAK_PHYSICS_COLLAPSE_OK: frames=120; fragments=70; moved=70; ground_containment=passed` and `WORLDBREAK_SMOKE_TEST_OK`.
+- [Actions #42865744560](https://github.com/PanDuroDev/Idk/actions/runs/42865744560) passed on both Linux and Windows at PR head `351db972746837ebb4ade2d3ab067239b0dfd64a`.
+- Both platform logs include `WORLDBREAK_PHYSICS_COLLAPSE_OK: frames=120; fragments=70; moved=70; ground_containment=passed` and `WORLDBREAK_SMOKE_TEST_OK: all material profiles, support graph, collapse, cumulative damage, and reset`.
 - The Windows import, headless launch, and smoke-test steps completed with no Godot script/parse/runtime errors in the saved logs.
 - Correction: earlier green Windows runs listed above were false positives and are not accepted as validation evidence. The run linked here is the first accepted final cross-platform run for this PR.
 - Still unverified: interactive graphics, player input feel, target-PC FPS/CPU/GPU usage, and long-duration debris settling on the GTX 1660 SUPER system.
