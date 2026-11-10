@@ -267,24 +267,127 @@ This is an append-only engineering journal. Each substantial session is recorded
 - Next: send the Phase 1 prompt from issue #5 to the first AI.
 
 
-## 2026-11-10 - Phase 2 architecture review
+## 2026-11-10 - Phase 1 PR 1: runtime impact controls
 
 ### Before work
-- Starting `main` commit: `70da82274da67faf034afb9d98932f4fe1db03f4`.
-- Issue #6 is open and explicitly blocks runtime implementation until Phase 1 is merged.
-- Phase 1 branch `ai/phase-1/runtime-impact-controls` is ahead of main with impact-control changes; Phase 1 issue #5 remains open and there is no open Phase 1 PR.
-- Reviewed README, project status, roadmap, technical direction, this work log, the structure generator, support graph, material Resource/assets, blast service, main scene script, smoke test, project settings, and CI workflow.
-- No Phase 2 runtime files or gameplay scenes were changed.
+- Starting main commit: 70da82274da67faf034afb9d98932f4fe1db03f4.
+- Confirmed Phase 0 PRs #2-#4 are merged and no other PRs are open.
+- Reviewed README, project status, roadmap, technical direction, work log, manual validation checklist, main scene/controller, blast service, destructible structure, headless smoke test, and Linux/Windows workflow.
+- Existing pipeline already routes blast radius/damage through apply_blast_damage and radius/impulse through BlastService; the new UI mutates these existing exported properties rather than introducing parallel impact state.
+- Risk: UI geometry/input and GDScript signal binding require interactive Godot validation; headless tests can verify settings bounds and reset only.
 
 ### During work
-- Mapped the current fixed 7 x 5 x 2 generation loop and the existing cell-indexed damage/support/material state.
-- Confirmed the current material profile is already a Godot Resource with stable ID, integrity, blast resistance, density multiplier, tint, and shared visual-material creation.
-- Compared the active Phase 1 branch with main. Its current diff changes `main.gd` and the smoke test to add impact controls; it does not yet establish the loose-debris lifecycle/budget contract.
-- Drafted a Resource-first BuildingDefinition model, validation rules, material authoring workflow, versioned JSON configuration shape, failure semantics, and test plan in `docs/PHASE2_ARCHITECTURE.md`.
-- Deferred all runtime implementation and the optional joint prototype.
+- Added a compact in-game Impact Settings panel with +/- controls for radius, damage, and impulse.
+- Preserved existing defaults and blast pipeline. Bounds: radius 0.5-12.0, damage 0.1-10.0, impulse 1.0-100.0.
+- Added a single reset-to-default action and headless assertions for defaults, clamping, and reset.
+- Updated README and manual validation instructions.
+- CI has not yet run for this branch; no interactive or target-PC performance claim is made.
 
 ### After work
-- Architecture proposal is ready for review on branch `ai/phase-2/schema-design`.
-- No Godot runtime tests were run because this branch changes documentation only.
-- No runtime code, scenes, project settings, or Phase 1-owned files were modified.
-- Next: wait for Phase 1 merge and inspect the final merged interfaces before starting PR 1 runtime work. Material-only tooling may be split into an isolated PR if it can avoid Phase 1-owned files.
+- Implementation and documentation are committed on ai/phase-1/runtime-impact-controls.
+- Pending: Linux/Windows Actions logs, panel visual/input validation, and integration maintainer review.
+- Next: open PR 1, inspect both platform logs and repair any errors before proceeding to the debris lifecycle branch.
+
+
+## 2026-11-10 - Phase 1 PR 2: debris lifecycle and budgets
+
+### Before work
+- Started from Phase 1 PR 1 head 46261f8d7f6bb13a3c46d686f8acdd19235b72ca; PR #11 remains open and unmerged.
+- Existing 70 rigid bodies are the original structural nodes. Deleting them would make reset lossy, so expiry must retire released nodes without freeing their canonical structure identity.
+- Risk: a too-small awake-body budget can leave pieces suspended before they fall. The default budget therefore matches the current 70-piece structure; larger-world tuning needs measured profiling.
+
+### During work
+- Tracked only fragments that are broken or lose every support path as loose debris; intact supported fragments never enter the lifecycle.
+- Added a configurable 30-second loose-debris lifetime. Expiry hides the released fragment, disables its collision, clears motion, and retains the node for deterministic reset.
+- Added sleeping/active/retired counters and an active-fragment cap (70 by default, configurable up to 256). Godot's rigid-body sleeping remains enabled; radial impulses can wake sleeping bodies.
+- Reset restores visibility, collision layers/masks, groups, transforms, velocities, support state, and all original fragments.
+- Added smoke coverage for wake-up, expiry, and complete reset restoration. CI is pending.
+
+### After work
+- Implementation is committed on ai/phase-1/debris-lifecycle, stacked on PR #11.
+- No pooling was added; the fixed 70-node scene does not justify pooling.
+- Target-PC settling and performance measurements remain manual and unrecorded.
+- PR 2 is open as #16. Next: inspect its Linux/Windows logs, then validate PR 3 in dependency order.
+
+
+## 2026-11-10 - Phase 1 PR 3: lightweight effects and diagnostics
+
+### Before work
+- Started from Phase 1 PR 2 head 90fea6c4daf1f8b5e327bc663d650f97bc10a1a5, stacked after PR #11 and PR #16.
+- Existing blast feedback used a transient OmniLight. The new effect must be bounded, short-lived, and compatible with the Compatibility renderer.
+- Risk: headless CI can verify allocation bounds and overlay state, but cannot validate visual quality, readability, or target-PC frame cost.
+
+### During work
+- Replaced the transient light with six small mesh-based dust/debris motes per impact, a 0.55-second fade, and a hard cap of eight simultaneous bursts. The oldest burst is evicted at capacity.
+- Added an F3-toggleable diagnostics panel, hidden by default. It reports structural state, awake/sleeping/retired debris, configured budgets, debris lifetime, impact settings, FPS, physics tick rate, active physics objects, and collision pairs.
+- Added headless assertions for default-hidden/toggle behavior and the eight-burst cap.
+- Updated README, technical direction, manual validation, project status, roadmap, and work log.
+- Expanded the PR workflow target filter to all branches so stacked PRs receive Linux and Windows validation; new runs are queued. No visual/performance claim is made.
+
+### After work
+- Implementation is committed on ai/phase-1/effects-and-diagnostics.
+- Visual effect quality, F3 usability, and target-PC performance remain manual checks.
+- Next: open PR 3 against PR 2's branch; after PR 1 merges, retarget/run CI in dependency order and repair any failures before declaring implementation complete.
+
+
+### Cross-PR validation and measured count baseline
+
+- Changed the pull-request workflow filter from main-only to all target branches. This preserves the Linux and Windows jobs while allowing the stacked Phase 1 PRs to run CI before their dependencies are merged.
+- Recorded the actual fixed-scene baseline: 70 original structure bodies, zero loose at startup, 70 released on full collapse, and six separate physics props. The default awake loose-fragment cap remains 70 to avoid suspending pieces mid-fall; smaller caps are explicitly tested.
+- The dust effect budget is eight concurrent bursts of six motes each (48 motes maximum), with a 0.55-second lifetime.
+- No FPS/CPU/GPU values were fabricated; target-PC profiling remains a manual measurement.
+
+
+### Active-budget enforcement follow-up
+
+- Linux exposed that a sleeping rigid body can be reactivated by incidental collisions after a per-tick sleep request. The earlier active cap therefore was not a hard cap under a deliberately small test budget.
+- Changed over-budget bodies to a frozen/sleeping parked state. The blast pipeline already explicitly unfreezes a hit rigid body before applying impulse, so parked debris remains impact-reactive.
+- Released-fragment counts now include budget-parked bodies; diagnostics report parked bodies separately.
+- Added a regression that reduces the cap to one during a multi-fragment release and asserts awake count stays within the cap while other released fragments remain accounted for.
+
+
+## 2026-11-10 - Phase 1 final validation hardening
+
+### Before
+- PR #11, #16, and #17 are open in dependency order. No PR was merged.
+- Initial CI gates checked only broad smoke markers, so a platform could appear green without proving every phase-specific feature ran.
+- PR #17's overlay test also used an incorrect direct child path even though the panel is parented under the shared CanvasLayer.
+
+### During
+- Changed the workflow to run for pull requests targeting any branch, enabling stacked PR validation.
+- Scoped required smoke markers per PR: impact controls for PR #11; lifecycle and active-budget markers for PR #16; plus effects/diagnostics for PR #17.
+- Corrected the overlay test to inspect the actual panel reference held by the main scene.
+- Made natural sleeping and budget-parked fragment counts mutually exclusive. Updated the budget regression to assert the awake cap and the parked/sleeping accounting separately.
+- Re-synchronized PR #16 and PR #17 with their latest dependency branches using merge commits; retained separate branches and did not merge any PR.
+
+### After
+- PR #11 latest recorded Linux and Windows CI run passed.
+- PR #16 latest recorded Linux and Windows CI run passed, including the lifecycle and active-budget assertions.
+- PR #17's earlier overlay-test run passed on Linux and Windows. The newest run is validating the follow-up count semantics and regression assertions.
+- Remaining work is to inspect the newest PR #17 CI logs, then leave the three PRs open for integration review. Interactive visuals and numeric target-PC profiling remain manual checks.
+
+
+### Final Phase 1 implementation checkpoint
+
+- PR #11 latest recorded CI: Linux and Windows passed ([run 42882310314](https://github.com/PanDuroDev/Idk/actions/runs/42882310314)).
+- PR #16 latest recorded CI: Linux and Windows passed ([run 42882368777](https://github.com/PanDuroDev/Idk/actions/runs/42882368777)).
+- PR #17 latest head CI: Linux and Windows passed ([run 42882865966](https://github.com/PanDuroDev/Idk/actions/runs/42882865966)). Linux output explicitly includes impact controls, repeated cycles, debris lifecycle, active-fragment budget, diagnostics/effects, and overall smoke success markers; Windows passed the corresponding phase-scoped PowerShell gate.
+- All three PRs remain open and mergeable; no PR was merged. Dependency order remains #11 -> #16 -> #17.
+- Implementation is complete and ready for integration review. Interactive effect quality, overlay readability, and numeric target-PC performance profiling remain unverified manual checks.
+
+## 2026-11-10 - Phase 2 PR synchronization before integration
+
+### Before
+- PR #14 was open on `ai/phase-2/schema-design`, originally based on main commit `70da82274da67faf034afb9d98932f4fe1db03f4`.
+- Main advanced after the PR was created, and GitHub reported the PR as not mergeable. The shared `docs/WORK_LOG.md` had changed on both sides.
+- Phase 1 PRs #11, #16, and #17 have since been merged in dependency order. Issue #5 remains open; merging those PRs alone does not mark Phase 1 complete.
+
+### During
+- Synchronized the Phase 2 work log with the current main work log while preserving the Phase 2 architecture-review record.
+- Updated the architecture proposal to distinguish the historical baseline from the current Phase 1 integration state.
+- Kept this PR documentation-only; no runtime code, gameplay scenes, project settings, or Phase 1 implementation files were changed.
+
+### After
+- The Phase 2 proposal still defines architecture and implementation gates only.
+- Full Phase 1 acceptance verification remains outstanding, including interactive effects/diagnostics checks and target-PC performance measurements.
+- Next: verify PR #14 mergeability and CI, then merge this documentation-only proposal without treating Phase 2 as complete.
