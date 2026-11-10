@@ -106,10 +106,20 @@ func _run_smoke_test() -> void:
 	if not is_equal_approx(custom_fragment.mass, sparse_profile.density_multiplier):
 		_fail("Sparse per-cell material density was not applied to fragment mass")
 		return
-	var custom_mesh: MeshInstance3D = custom_fragment.get_node_or_null("MeshInstance3D") as MeshInstance3D
-	var custom_visual: StandardMaterial3D = custom_mesh.material_override as StandardMaterial3D if custom_mesh != null else null
-	if custom_visual == null or not custom_visual.albedo_color.is_equal_approx(sparse_profile.surface_color):
-		_fail("Sparse per-cell material color was not applied to fragment visuals")
+	var custom_mesh: MeshInstance3D = null
+	for fragment_child: Node in custom_fragment.get_children():
+		if fragment_child is MeshInstance3D:
+			custom_mesh = fragment_child as MeshInstance3D
+			break
+	if custom_mesh == null:
+		_fail("Sparse fragment is missing its MeshInstance3D visual child")
+		return
+	var custom_visual: StandardMaterial3D = custom_mesh.material_override as StandardMaterial3D
+	if custom_visual == null:
+		_fail("Sparse fragment visual has no StandardMaterial3D override")
+		return
+	if not custom_visual.albedo_color.is_equal_approx(sparse_profile.surface_color):
+		_fail("Sparse fragment color mismatch: actual=%s expected=%s" % [custom_visual.albedo_color, sparse_profile.surface_color])
 		return
 	if not is_equal_approx(float(alternate_structure.call("get_cell_integrity", Vector3i(2, 3, 1))), sparse_profile.integrity):
 		_fail("Sparse per-cell material integrity was not applied to damage thresholds")
