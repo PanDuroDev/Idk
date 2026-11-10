@@ -51,6 +51,7 @@ Verified:
 - Foundation resists three weak hits and breaks on the fourth.
 - A centered weak hit breaks the lightweight panel at its own integrity/resistance threshold; the follow-up reset restores the fragment.
 - Full base-row collapse, support graph behavior, and reset pass.
+- Five consecutive collapse/reset cycles pass headlessly, with 120 physics frames per cycle, all 70 fragments simulated, finite transforms/velocities, and ground containment.
 - The headless integration test then simulates 120 additional physics frames: all 70 fragments moved, position/velocity values remained finite, and no fragment center crossed below the ground threshold.
 
 ## Current limitations
