@@ -95,7 +95,7 @@ Five dedicated implementation issues are open:
 - Phase 1: [#5 - Destruction vertical slice](https://github.com/PanDuroDev/Idk/issues/5) - implementation PRs #11, #16, and #17 are merged; full acceptance verification remains open.
 - Phase 2: [#6 - Reusable structures and material authoring](https://github.com/PanDuroDev/Idk/issues/6) - merged via PRs #18, #19, and #20.
 - Phase 3: [#7 - Chunked terrain deformation](https://github.com/PanDuroDev/Idk/issues/7) - merged via PRs #10, #12, #13, #15, and #21.
-- Phase 4: [#8 - Multiple worlds](https://github.com/PanDuroDev/Idk/issues/8) - versioned world definitions, catalog, two sample worlds, bounded load/unload/reset, and regression coverage are implemented on `ai/phase-4/world-definitions`; Linux + Windows CI passed, review and merge pending.
+- Phase 4: [#8 - Multiple worlds](https://github.com/PanDuroDev/Idk/issues/8) - merged via [PR #22](https://github.com/PanDuroDev/Idk/pull/22) as `a61fe2e`.
 - Phase 5: [#9 - Simulation tools](https://github.com/PanDuroDev/Idk/issues/9) - runtime work after Phases 1, 2, and 4.
 
 Each issue contains its own AI prompt, PR breakdown, acceptance criteria, and common engineering rules. Agents may implement and open PRs proactively without asking between ordinary subtasks, but they must not merge. One integration maintainer reviews and merges PRs in dependency order. See [AI_PHASE_ASSIGNMENTS.md](AI_PHASE_ASSIGNMENTS.md).

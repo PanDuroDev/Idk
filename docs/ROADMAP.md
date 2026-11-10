@@ -41,7 +41,7 @@
 
 ## Phase 4 - Multiple worlds ([AI issue #8](https://github.com/PanDuroDev/Idk/issues/8), after Phase 2-3 contracts stabilize)
 - [x] Data-driven world configurations (`WorldDefinition` schema version 1, `WorldCatalog`, validator, two sample worlds).
-- [x] Programmatic world selection and one-world residency; interactive selection is deferred to the Phase 5 simulation panel. Linux + Windows CI passed for the Phase 4 branch.
+- [x] Programmatic world selection and one-world residency ([PR #22](https://github.com/PanDuroDev/Idk/pull/22), merged as `a61fe2e`); interactive selection is deferred to the Phase 5 simulation panel.
 - [x] Reusable environment, material, building, destruction, and terrain presets; world definitions reference the existing simulation-configuration JSON and terrain runtime instead of duplicating formats.
 
 ## Phase 5 - Simulation tools ([AI issue #9](https://github.com/PanDuroDev/Idk/issues/9), final integration phase)
