@@ -15,7 +15,7 @@
 
 ## Phase 1 - Destruction vertical slice ([AI issue #5](https://github.com/PanDuroDev/Idk/issues/5), ready now)
 - [ ] Validate collision stability and resets in interactive play.
-- [ ] Add in-game impact radius/strength controls.
+- [x] Add in-game impact radius/damage/impulse controls (PR 1 implementation; pending CI and integration review).
 - [ ] Add fragment lifetime, sleeping, and active-fragment budgets.
 - [ ] Add low-cost dust/debris effects.
 - [ ] Add detailed physics/rendering debug overlay.
