@@ -72,7 +72,7 @@ All three implementation PRs are open and deliberately stacked. Nothing has been
 
 - PR 1: [#11 - Runtime impact controls](https://github.com/PanDuroDev/Idk/pull/11), branch `ai/phase-1/runtime-impact-controls`. Adds bounded radius, damage, and impulse controls plus reset-to-default behavior. Latest recorded Linux and Windows CI run passed.
 - PR 2: [#16 - Debris lifecycle and budgets](https://github.com/PanDuroDev/Idk/pull/16), branch `ai/phase-1/debris-lifecycle`, based on PR #11. Adds released-fragment lifetime/retirement, sleeping and impact wake-up, a hard awake-fragment cap, and lossless reset. Latest recorded Linux and Windows CI run passed.
-- PR 3: [#17 - Lightweight effects and diagnostics](https://github.com/PanDuroDev/Idk/pull/17), branch `ai/phase-1/effects-and-diagnostics`, based on PR #16. Adds capped dust bursts and an F3 diagnostics panel. A final CI run is validating the latest disjoint sleeping/parked metrics and overlay assertions.
+- PR 3: [#17 - Lightweight effects and diagnostics](https://github.com/PanDuroDev/Idk/pull/17), branch `ai/phase-1/effects-and-diagnostics`, based on PR #16. Adds capped dust bursts and an F3 diagnostics panel. Latest Linux and Windows Godot 4.7.2 CI passed on the current PR head.
 
 The default awake-fragment cap is 70 because the current structure contains 70 fragments. This is a conservative guardrail for the fixed prototype, not a measured optimum. Eight simultaneous effect bursts with six motes each cap the visual effect at 48 motes. No FPS/CPU/GPU improvement is claimed without target-PC profiling.
 
