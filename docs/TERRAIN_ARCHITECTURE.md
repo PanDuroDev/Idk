@@ -41,7 +41,7 @@ Density edits and mesh-array generation are CPU-side operations. Do not create o
 - Collision only for chunks in the active interaction radius; distant chunks remain render-only.
 - Low-end fallback: 8 cells per axis, larger cell size, and collision only around the active test area.
 
-The default values are implemented in TerrainBudgetConfig and are enforced at edit acceptance, resident-chunk checks, and the collision queue. The low-end profile reduces resolution to 8 cells per axis, resident chunks to 8, dirty chunks per edit to 4, edit radius to 6 world units, pending collision work to 2, and density memory to 4 MiB. The profile test records elapsed CPU mesh-build time, sample count, density payload bytes, vertex count, and estimated vertex payload bytes at 8³ and 16³ resolutions. Payload estimates exclude allocator, ArrayMesh, physics-cooking, and engine overhead; elapsed times from CI are not target-PC benchmarks.
+The default values are implemented in TerrainBudgetConfig and are enforced at edit acceptance, resident-chunk checks, the mesh queue, and the collision queue. The low-end profile reduces resolution to 8 cells per axis, resident chunks to 8, dirty chunks per edit to 4, edit radius to 6 world units, pending collision work to 2, and density memory to 4 MiB. The profile test records elapsed CPU mesh-build time, sample count, density payload bytes, vertex count, and estimated vertex payload bytes at 8³ and 16³ resolutions. Payload estimates exclude allocator, ArrayMesh, physics-cooking, and engine overhead; elapsed times from CI are not target-PC benchmarks.
 
 These values are conservative starting limits, not validated GTX 1660 SUPER performance guarantees. Target-PC profiling and interactive visual checks remain required before gameplay integration.
 
@@ -57,4 +57,5 @@ These values are conservative starting limits, not validated GTX 1660 SUPER perf
 - Godot 4.7 ConcavePolygonShape3D: https://docs.godotengine.org/en/4.7/classes/class_concavepolygonshape3d.html
 - Godot 4.7 Shape3D: https://docs.godotengine.org/en/4.7/classes/class_shape3d.html
 - Godot 4.7 CSGShape3D: https://docs.godotengine.org/en/4.7/classes/class_csgshape3d.html
+- Godot 4.7 SurfaceTool and clockwise front-face winding: https://docs.godotengine.org/en/4.7/classes/class_surfacetool.html
 - Voxel Tools performance notes: https://voxel-tools.readthedocs.io/en/latest/performance/
