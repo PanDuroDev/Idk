@@ -64,7 +64,7 @@ Verified:
 
 ## Exact next step
 
-Manually open the project in Godot 4.7.2 and test the three material layers, repeated impacts, collapse, debris settling, and reset on the target PC. Then add material authoring/building presets and evaluate optional physical breakable joints. Terrain deformation remains later.
+Follow [the manual Windows validation checklist](MANUAL_WINDOWS_VALIDATION.md) on the target PC: test controls, compare all three material thresholds, perform repeated collapse/reset cycles, observe 30-second debris settling, and record FPS/CPU/GPU usage. Then add material authoring/building presets and evaluate optional physical breakable joints. Terrain deformation remains later.
 
 ## Required update protocol
 
