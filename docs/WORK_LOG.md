@@ -344,3 +344,24 @@ This is an append-only engineering journal. Each substantial session is recorded
 - Changed over-budget bodies to a frozen/sleeping parked state. The blast pipeline already explicitly unfreezes a hit rigid body before applying impulse, so parked debris remains impact-reactive.
 - Released-fragment counts now include budget-parked bodies; diagnostics report parked bodies separately.
 - Added a regression that reduces the cap to one during a multi-fragment release and asserts awake count stays within the cap while other released fragments remain accounted for.
+
+
+## 2026-11-10 - Phase 1 final validation hardening
+
+### Before
+- PR #11, #16, and #17 are open in dependency order. No PR was merged.
+- Initial CI gates checked only broad smoke markers, so a platform could appear green without proving every phase-specific feature ran.
+- PR #17's overlay test also used an incorrect direct child path even though the panel is parented under the shared CanvasLayer.
+
+### During
+- Changed the workflow to run for pull requests targeting any branch, enabling stacked PR validation.
+- Scoped required smoke markers per PR: impact controls for PR #11; lifecycle and active-budget markers for PR #16; plus effects/diagnostics for PR #17.
+- Corrected the overlay test to inspect the actual panel reference held by the main scene.
+- Made natural sleeping and budget-parked fragment counts mutually exclusive. Updated the budget regression to assert the awake cap and the parked/sleeping accounting separately.
+- Re-synchronized PR #16 and PR #17 with their latest dependency branches using merge commits; retained separate branches and did not merge any PR.
+
+### After
+- PR #11 latest recorded Linux and Windows CI run passed.
+- PR #16 latest recorded Linux and Windows CI run passed, including the lifecycle and active-budget assertions.
+- PR #17's earlier overlay-test run passed on Linux and Windows. The newest run is validating the follow-up count semantics and regression assertions.
+- Remaining work is to inspect the newest PR #17 CI logs, then leave the three PRs open for integration review. Interactive visuals and numeric target-PC profiling remain manual checks.
