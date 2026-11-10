@@ -1,1 +1,62 @@
-# Idk
+# WORLDBREAK
+
+WORLDBREAK is a 3D physics and destruction sandbox in active prototyping. The long-term goal is to let users experiment with impacts, forces, structural collapse, terrain damage, and multiple simulation worlds.
+
+## Current prototype
+- First-person movement and a generated 3D test arena.
+- A 7 x 5 x 2 modular block structure (70 rigid-body fragments).
+- Six-axis support graph rooted at surviving ground anchors.
+- Per-fragment accumulated damage with distance falloff and material-specific integrity/resistance.
+- Three editable material profiles: Foundation Concrete, Masonry, and Lightweight Panel.
+- Radial impacts that break damaged cells and release sections that lose all support paths.
+- Six movable physics props, structure reset, and runtime HUD.
+
+The support graph is a deterministic topology approximation. The material profiles are tunable prototype values, not calibrated material data. There is no arbitrary mesh fracture or destructible terrain yet.
+
+## Requirements
+- Godot **4.7.2 stable**, standard edition.
+- No .NET SDK required.
+- Compatibility renderer baseline.
+
+## Run
+1. Open `project.godot` in Godot 4.7.2.
+2. Press **F5**.
+
+## Controls
+| Input | Action |
+|---|---|
+| WASD | Move |
+| Space | Jump |
+| Mouse | Look |
+| Left mouse button or F | Trigger radial impact |
+| R | Reset structure |
+| Escape | Release/capture mouse |
+
+Controls are defined through Godot InputMap and can be remapped in Project Settings.
+
+## Architecture
+- GDScript and Godot Physics 3D.
+- `BlastService` handles reusable radial shape queries and physical impulse falloff.
+- `StructuralSupportGraph` computes cells connected to bottom-layer anchors.
+- `DestructionMaterialProfile` Resources define integrity, blast resistance, density multiplier, and tint.
+- Cells accumulate damage until their material-specific integrity threshold is reached.
+- Blast damage and physical impulse strength are independent settings.
+- Physics queries and rigid-body mutations run in the physics tick.
+- Generated fragments share mesh, collision, and material resources.
+
+## Validation
+GitHub Actions imports and launches the project headlessly, then tests:
+- Support graph connectivity and alternate support paths.
+- Base-row failure and collapse.
+- Material profile assignment and relative integrity/resistance values.
+- First weak hit accumulating without break.
+- Repeated weak hits crossing different material thresholds.
+- Reset clearing damage and restoring fragment/graph state.
+
+Manual visual and interaction testing on the target Windows PC is still required.
+
+## Project documentation
+- [Project status](docs/PROJECT_STATUS.md)
+- [Work log](docs/WORK_LOG.md)
+- [Technical direction](docs/TECHNICAL_DIRECTION.md)
+- [Roadmap](docs/ROADMAP.md)
