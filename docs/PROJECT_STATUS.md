@@ -78,6 +78,13 @@ Verified:
 - PR 2 implementation branch: ai/phase-1/debris-lifecycle (stacked on PR #11 pending integration). Released-only lifetime/retirement, natural sleeping and impact wake-up, active-fragment cap, and lossless reset restoration are implemented with headless coverage. Cross-platform CI is pending.
 - The current active-fragment budget is 70, matching the prototype's 70 pieces; this is a conservative fixed-scene guardrail, not a measured optimum.
 
+## Phase 1 progress
+
+- PR 1: [#11 runtime impact controls](https://github.com/PanDuroDev/Idk/pull/11), Linux and Windows headless validation passed with required smoke markers.
+- PR 2: [#16 debris lifecycle](https://github.com/PanDuroDev/Idk/pull/16), stacked on PR #11. CI cannot run until the dependency is merged because the current workflow only triggers for PRs targeting main.
+- PR 3 implementation branch: ai/phase-1/effects-and-diagnostics, stacked on PR #16. Adds eight-burst bounded dust effects and an F3 opt-in diagnostics overlay; tests and docs are added. Cross-platform CI is pending dependency integration.
+- No interactive rendering or target-PC performance results are claimed from headless CI.
+
 ## Exact next step
 
 Begin [AI Phase 1 issue #5](https://github.com/PanDuroDev/Idk/issues/5): runtime impact controls, bounded debris lifecycle/performance budgets, lightweight effects, and diagnostics. The user has reported that the interactive checklist works. Detailed numeric FPS/CPU/GPU measurements remain unrecorded and should be collected during Phase 1 profiling. Phase assignments and dependencies are documented in [AI_PHASE_ASSIGNMENTS.md](AI_PHASE_ASSIGNMENTS.md).
