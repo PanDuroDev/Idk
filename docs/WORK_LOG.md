@@ -210,3 +210,9 @@ This is an append-only engineering journal. Each substantial session is recorded
 - Scope: automate five complete collapse/reset cycles with physics simulation between each cycle, asserting fragment release, finite motion, ground containment, and exact reset state.
 - Risk: the existing CI timeout remains 10 minutes; the added frames are bounded and do not attempt to measure target hardware performance.
 
+### During work
+- Extended `tests/headless_smoke_test.gd` with five successive full-base-row collapse/reset cycles.
+- Each cycle requires at least 14 broken foundation fragments, all 70 fragments released, zero supported fragments, 120 physics frames, finite positions and velocities, no fragment center below the ground threshold, and a successful full reset.
+- Added a distinct `WORLDBREAK_REPEAT_CYCLES_OK` marker; both Linux and Windows CI must find it in the saved Godot smoke-test log.
+- Kept this as a headless regression only; it does not replace the manual five-cycle and 30-second settling checks on the target PC.
+
