@@ -36,9 +36,9 @@ func _run() -> void:
 		var vertex := vertices[index]
 		var normal := normals[index]
 		if not _expect(is_finite(vertex.x) and is_finite(vertex.y) and is_finite(vertex.z), "Mesh contains a non-finite vertex"):
-		return
+			return
 		if not _expect(normal.x > 0.9, "Planar surface normals must face toward the empty (+X) side"):
-		return
+			return
 
 	# Two adjacent chunks must emit the exact same vertices along their shared
 	# face when a planar isosurface crosses that face.
