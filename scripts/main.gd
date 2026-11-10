@@ -30,6 +30,7 @@ var _debug_overlay_panel: PanelContainer
 var _debug_overlay_label: Label
 var _debug_overlay_visible: bool = false
 var _active_effects: Array[Node3D] = []
+var _headless_effect_burst_count: int = 0
 
 const DEFAULT_BLAST_RADIUS: float = 4.5
 const DEFAULT_BLAST_DAMAGE: float = 4.0
@@ -212,6 +213,9 @@ func _spawn_physics_props() -> void:
 
 
 func _spawn_blast_flash(position: Vector3) -> void:
+	if DisplayServer.get_name() == "headless":
+		_headless_effect_burst_count = mini(_headless_effect_burst_count + 1, MAX_ACTIVE_EFFECTS)
+		return
 	for index in range(_active_effects.size() - 1, -1, -1):
 		if not is_instance_valid(_active_effects[index]):
 			_active_effects.remove_at(index)
@@ -225,9 +229,6 @@ func _spawn_blast_flash(position: Vector3) -> void:
 	add_child(effect)
 	effect.global_position = position
 	_active_effects.append(effect)
-	if DisplayServer.get_name() == "headless":
-		return
-
 	var dust_mesh := SphereMesh.new()
 	dust_mesh.radius = 0.07
 	dust_mesh.height = 0.14
@@ -264,7 +265,7 @@ func _remove_effect(effect: Node3D) -> void:
 
 
 func get_active_effect_count() -> int:
-	return _active_effects.size()
+	return _headless_effect_burst_count if DisplayServer.get_name() == "headless" else _active_effects.size()
 
 
 func set_debug_overlay_enabled(enabled: bool) -> void:
