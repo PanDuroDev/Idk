@@ -5,7 +5,9 @@
 **PR #2:** [Merged](https://github.com/PanDuroDev/Idk/pull/2) into `main`  
 **Merge commit (PR #2):** `0911466d40115e835815d4072c2f075843369027`  
 **PR #3:** [Merged](https://github.com/PanDuroDev/Idk/pull/3) into `main`  
-**Merge commit (PR #3):** `328595ede6470700a16574bd1461e1b37d3dbe58`
+**Merge commit (PR #3):** `328595ede6470700a16574bd1461e1b37d3dbe58`  
+**PR #4:** [Merged](https://github.com/PanDuroDev/Idk/pull/4) into `main`  
+**Merge commit (PR #4):** `9aaf496c74b49a7e8bc8008043731ba08918eaa2`
 
 ## Project idea
 
@@ -43,6 +45,7 @@ Verified:
 - Godot imported the custom Resource script and all three `.tres` material profiles.
 - The final PR #3 workflow passed on both `ubuntu-latest` and `windows-latest` at head `351db972746837ebb4ade2d3ab067239b0dfd64a` ([Actions #42865744560](https://github.com/PanDuroDev/Idk/actions/runs/42865744560)). It imports the project before launch, scans Godot logs for script/runtime errors, and requires the gameplay smoke-test success marker.
 - CI now runs on pull requests targeting `main` and pushes to `main`; this closes the previous gap where the push trigger only watched the retired feature branch.
+- PR #4 was squash-merged as `9aaf496c74b49a7e8bc8008043731ba08918eaa2`; the post-merge push run [Actions #42869641317](https://github.com/PanDuroDev/Idk/actions/runs/42869641317) passed on Linux and Windows.
 - The post-merge push run [Actions #42866260328](https://github.com/PanDuroDev/Idk/actions/runs/42866260328) passed on both Linux and Windows at merge commit `328595ede6470700a16574bd1461e1b37d3dbe58`.
 - Project launched headlessly.
 - Material profile assignment for foundation, middle, and top layers.
@@ -51,9 +54,8 @@ Verified:
 - Foundation resists three weak hits and breaks on the fourth.
 - A centered weak hit breaks the lightweight panel at its own integrity/resistance threshold; the follow-up reset restores the fragment.
 - Full base-row collapse, support graph behavior, and reset pass.
-- Five consecutive collapse/reset cycles pass headlessly, with 120 physics frames per cycle, all 70 fragments simulated, finite transforms/velocities, and ground containment.
 - The headless integration test then simulates 120 additional physics frames: all 70 fragments moved, position/velocity values remained finite, and no fragment center crossed below the ground threshold.
-- A further headless regression passes five consecutive collapse/reset cycles: all 70 fragments move in every cycle, complete 120 physics frames with finite state and ground containment, and return to the initial state after each reset ([Actions #42868983866](https://github.com/PanDuroDev/Idk/actions/runs/42868983866)).
+- A further headless regression passes five consecutive collapse/reset cycles: all 70 fragments move in every cycle, complete 120 physics frames with finite state and ground containment, and return to the initial state after each reset ([post-merge Actions #42869641317](https://github.com/PanDuroDev/Idk/actions/runs/42869641317)).
 
 ## Current limitations
 
