@@ -9,7 +9,8 @@ WORLDBREAK is a 3D physics and destruction sandbox in active prototyping. The lo
 - Per-fragment accumulated damage with distance falloff and material-specific integrity/resistance.
 - Three editable material profiles: Foundation Concrete, Masonry, and Lightweight Panel.
 - Radial impacts that break damaged cells and release sections that lose all support paths.
-- Six movable physics props, bounded loose-debris lifetime/sleeping, structure reset, and runtime HUD.
+- Six movable physics props, bounded loose-debris lifetime/sleeping, reset-safe cleanup, lightweight dust bursts, and runtime HUD.
+- Optional destruction/physics diagnostics overlay toggled with F3.
 
 The support graph is a deterministic topology approximation. The material profiles are tunable prototype values, not calibrated material data. There is no arbitrary mesh fracture or destructible terrain yet.
 

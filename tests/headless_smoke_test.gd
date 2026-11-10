@@ -354,8 +354,11 @@ func _run_smoke_test() -> void:
 	if int(structure.call("get_released_fragment_count")) <= 1:
 		_fail("The active-fragment budget test did not release multiple fragments")
 		return
-	if int(structure.call("get_active_loose_fragment_count")) > 1 or int(structure.call("get_sleeping_loose_fragment_count")) <= 0:
-		_fail("The configured active-fragment cap was not enforced")
+	var active_after_budget: int = int(structure.call("get_active_loose_fragment_count"))
+	var sleeping_after_budget: int = int(structure.call("get_sleeping_loose_fragment_count"))
+	var parked_after_budget: int = int(structure.call("get_budget_parked_fragment_count"))
+	if active_after_budget > 1 or sleeping_after_budget + parked_after_budget <= 0 or parked_after_budget <= 0:
+		_fail("The configured active-fragment cap was not enforced or parked/sleeping counts overlap")
 		return
 	structure.call("reset_structure")
 	structure.set("max_active_loose_fragments", 70)
@@ -364,6 +367,30 @@ func _run_smoke_test() -> void:
 		return
 	print("WORLDBREAK_ACTIVE_FRAGMENT_BUDGET_OK: awake_cap=1")
 
+
+	# Debug diagnostics are opt-in, and effect bursts remain explicitly bounded.
+	var debug_panel: PanelContainer = main.get("_debug_overlay_panel") as PanelContainer
+	var debug_label: Label = main.get("_debug_overlay_label") as Label
+	if debug_panel == null or debug_label == null or debug_panel.visible or bool(main.get("_debug_overlay_visible")):
+		_fail("Debug overlay should exist and be hidden by default")
+		return
+	# Keep the UI state test independent of renderer-specific Performance monitors in headless mode.
+	main.set("_debug_overlay_label", null)
+	main.call("toggle_debug_overlay")
+	if not bool(main.get("_debug_overlay_visible")) or not debug_panel.visible:
+		_fail("F3 debug overlay toggle did not enable diagnostics")
+		return
+	main.call("toggle_debug_overlay")
+	if debug_panel.visible:
+		_fail("Debug overlay toggle did not hide diagnostics")
+		return
+	main.set("_debug_overlay_label", debug_label)
+	for effect_index in range(12):
+		main.call("_spawn_blast_flash", Vector3.ZERO)
+	if int(main.call("get_active_effect_count")) > 8:
+		_fail("Blast dust effects exceeded the active effect budget")
+		return
+	print("WORLDBREAK_DIAGNOSTICS_EFFECTS_OK: opt-in overlay and bounded dust bursts")
 	print("WORLDBREAK_SMOKE_TEST_OK: all material profiles, support graph, collapse, cumulative damage, repeated reset, and reset")
 	quit(0)
 

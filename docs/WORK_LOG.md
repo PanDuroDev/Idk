@@ -310,6 +310,26 @@ This is an append-only engineering journal. Each substantial session is recorded
 - PR 2 is open as #16. Next: inspect its Linux/Windows logs, then validate PR 3 in dependency order.
 
 
+## 2026-11-10 - Phase 1 PR 3: lightweight effects and diagnostics
+
+### Before work
+- Started from Phase 1 PR 2 head 90fea6c4daf1f8b5e327bc663d650f97bc10a1a5, stacked after PR #11 and PR #16.
+- Existing blast feedback used a transient OmniLight. The new effect must be bounded, short-lived, and compatible with the Compatibility renderer.
+- Risk: headless CI can verify allocation bounds and overlay state, but cannot validate visual quality, readability, or target-PC frame cost.
+
+### During work
+- Replaced the transient light with six small mesh-based dust/debris motes per impact, a 0.55-second fade, and a hard cap of eight simultaneous bursts. The oldest burst is evicted at capacity.
+- Added an F3-toggleable diagnostics panel, hidden by default. It reports structural state, awake/sleeping/retired debris, configured budgets, debris lifetime, impact settings, FPS, physics tick rate, active physics objects, and collision pairs.
+- Added headless assertions for default-hidden/toggle behavior and the eight-burst cap.
+- Updated README, technical direction, manual validation, project status, roadmap, and work log.
+- Expanded the PR workflow target filter to all branches so stacked PRs receive Linux and Windows validation; new runs are queued. No visual/performance claim is made.
+
+### After work
+- Implementation is committed on ai/phase-1/effects-and-diagnostics.
+- Visual effect quality, F3 usability, and target-PC performance remain manual checks.
+- Next: open PR 3 against PR 2's branch; after PR 1 merges, retarget/run CI in dependency order and repair any failures before declaring implementation complete.
+
+
 ### Cross-PR validation and measured count baseline
 
 - Changed the pull-request workflow filter from main-only to all target branches. This preserves the Linux and Windows jobs while allowing the stacked Phase 1 PRs to run CI before their dependencies are merged.
@@ -324,3 +344,33 @@ This is an append-only engineering journal. Each substantial session is recorded
 - Changed over-budget bodies to a frozen/sleeping parked state. The blast pipeline already explicitly unfreezes a hit rigid body before applying impulse, so parked debris remains impact-reactive.
 - Released-fragment counts now include budget-parked bodies; diagnostics report parked bodies separately.
 - Added a regression that reduces the cap to one during a multi-fragment release and asserts awake count stays within the cap while other released fragments remain accounted for.
+
+
+## 2026-11-10 - Phase 1 final validation hardening
+
+### Before
+- PR #11, #16, and #17 are open in dependency order. No PR was merged.
+- Initial CI gates checked only broad smoke markers, so a platform could appear green without proving every phase-specific feature ran.
+- PR #17's overlay test also used an incorrect direct child path even though the panel is parented under the shared CanvasLayer.
+
+### During
+- Changed the workflow to run for pull requests targeting any branch, enabling stacked PR validation.
+- Scoped required smoke markers per PR: impact controls for PR #11; lifecycle and active-budget markers for PR #16; plus effects/diagnostics for PR #17.
+- Corrected the overlay test to inspect the actual panel reference held by the main scene.
+- Made natural sleeping and budget-parked fragment counts mutually exclusive. Updated the budget regression to assert the awake cap and the parked/sleeping accounting separately.
+- Re-synchronized PR #16 and PR #17 with their latest dependency branches using merge commits; retained separate branches and did not merge any PR.
+
+### After
+- PR #11 latest recorded Linux and Windows CI run passed.
+- PR #16 latest recorded Linux and Windows CI run passed, including the lifecycle and active-budget assertions.
+- PR #17's earlier overlay-test run passed on Linux and Windows. The newest run is validating the follow-up count semantics and regression assertions.
+- Remaining work is to inspect the newest PR #17 CI logs, then leave the three PRs open for integration review. Interactive visuals and numeric target-PC profiling remain manual checks.
+
+
+### Final Phase 1 implementation checkpoint
+
+- PR #11 latest recorded CI: Linux and Windows passed ([run 42882310314](https://github.com/PanDuroDev/Idk/actions/runs/42882310314)).
+- PR #16 latest recorded CI: Linux and Windows passed ([run 42882368777](https://github.com/PanDuroDev/Idk/actions/runs/42882368777)).
+- PR #17 latest head CI: Linux and Windows passed ([run 42882865966](https://github.com/PanDuroDev/Idk/actions/runs/42882865966)). Linux output explicitly includes impact controls, repeated cycles, debris lifecycle, active-fragment budget, diagnostics/effects, and overall smoke success markers; Windows passed the corresponding phase-scoped PowerShell gate.
+- All three PRs remain open and mergeable; no PR was merged. Dependency order remains #11 -> #16 -> #17.
+- Implementation is complete and ready for integration review. Interactive effect quality, overlay readability, and numeric target-PC performance profiling remain unverified manual checks.

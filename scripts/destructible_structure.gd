@@ -282,7 +282,7 @@ func get_sleeping_loose_fragment_count() -> int:
 		if not is_instance_valid(fragment):
 			continue
 		var fragment_id: int = fragment.get_instance_id()
-		if _loose_age_by_fragment.has(fragment_id) and not _retired_fragment_ids.has(fragment_id) and fragment.sleeping:
+		if _loose_age_by_fragment.has(fragment_id) and not _retired_fragment_ids.has(fragment_id) and not fragment.freeze and fragment.sleeping:
 			count += 1
 	return count
 
