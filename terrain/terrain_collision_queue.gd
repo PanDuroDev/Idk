@@ -5,10 +5,15 @@ extends Node
 ## are never installed when several edits arrive before the next physics tick.
 
 @export_range(1, 8, 1) var max_rebuilds_per_physics_frame: int = 1
+@export_range(1, 32, 1) var max_pending_collision_rebuilds: int = 8
 
 var _pending_order: Array[int] = []
 var _pending_by_shape: Dictionary = {}
 var total_rebuilds: int = 0
+var rejected_requests: int = 0
+
+func configure_from_budget(budget: TerrainBudgetConfig) -> void:
+	budget.configure_collision_queue(self)
 
 func request_rebuild(body: StaticBody3D, collision_node: CollisionShape3D, mesh: ArrayMesh) -> bool:
 	if not is_instance_valid(body) or not is_instance_valid(collision_node):
@@ -17,6 +22,9 @@ func request_rebuild(body: StaticBody3D, collision_node: CollisionShape3D, mesh:
 		return false
 	var key := collision_node.get_instance_id()
 	if not _pending_by_shape.has(key):
+		if _pending_by_shape.size() >= maxi(1, max_pending_collision_rebuilds):
+			rejected_requests += 1
+			return false
 		_pending_order.append(key)
 	_pending_by_shape[key] = {
 		"body": body,
