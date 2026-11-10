@@ -9,7 +9,8 @@
 - [x] Shared generated mesh, collision, and material resources.
 - [x] Named InputMap actions.
 - [x] Headless gameplay smoke test.
-- [x] GitHub Actions validates Godot 4.7.2 headlessly on Linux and Windows, including pushes to `main`, with checked Windows logs and simulated post-collapse rigid-body checks.
+- [x] GitHub Actions validates Godot 4.7.2 headlessly on Linux and Windows, including pushes to `main`, with checked logs and simulated post-collapse rigid-body checks.
+- [x] Headless regression for five consecutive full collapse/reset cycles.
 - [ ] Manual visual, controls, and performance verification on target Windows PC.
 
 ## Phase 1 - Destruction vertical slice

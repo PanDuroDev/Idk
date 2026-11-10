@@ -200,3 +200,27 @@ This is an append-only engineering journal. Each substantial session is recorded
 - Documentation is committed on `main`; no gameplay implementation was changed in this pass.
 - Interactive Windows tests have not been run by this session and remain unverified.
 - Next: run the checklist on the target Windows PC and report actual observations before adding material authoring tools, physical joints, or terrain deformation.
+## 2026-11-10 - Repeated collapse/reset regression pass
+
+### Before work
+- Starting `main` commit: `5310224d4a415815c698d65e4c8110ba30fa280a`.
+- Confirmed PR #3 is merged; the post-merge Linux and Windows validation on `main` passed.
+- Reviewed `PROJECT_STATUS.md`, `MANUAL_WINDOWS_VALIDATION.md`, the current smoke test, structure reset implementation, and CI workflow.
+- Interactive controls, visual rendering, 30-second settling, and target-PC performance are still local/manual requirements and will not be claimed as completed here.
+- Scope: automate five complete collapse/reset cycles with physics simulation between each cycle, asserting fragment release, finite motion, ground containment, and exact reset state.
+- Risk: the existing CI timeout remains 10 minutes; the added frames are bounded and do not attempt to measure target hardware performance.
+
+### During work
+- Extended `tests/headless_smoke_test.gd` with five successive full-base-row collapse/reset cycles.
+- Each cycle requires at least 14 broken foundation fragments, all 70 fragments released and moved, zero supported fragments, 120 physics frames, finite positions and velocities, no fragment center below the ground threshold, and a successful full reset.
+- Added a distinct `WORLDBREAK_REPEAT_CYCLES_OK` marker; both Linux and Windows CI must find it in the saved Godot smoke-test log.
+- Kept this as a headless regression only; it does not replace the manual five-cycle and 30-second settling checks on the target PC.
+
+### After work
+- Final PR-head run [#42868983866](https://github.com/PanDuroDev/Idk/actions/runs/42868983866) passed on both `ubuntu-latest` and `windows-latest` at head `b411874cdcfcffd2a59b916dc4b6897879316231`.
+- Linux printed `WORLDBREAK_REPEAT_CYCLES_OK: cycles=5; frames_per_cycle=120; fragments=70; reset_checks=5` and the final smoke-test success marker.
+- The Windows job completed the same smoke test; its PowerShell gate confirmed the repeated-cycle marker and overall success marker were present and found no script/parse/compile/runtime error messages in the Godot log.
+- Each of the five cycles broke the foundation row, released all 70 fragments, simulated 120 physics frames, verified that all 70 fragments moved with finite positions/velocities and remained above the ground threshold, then confirmed a full reset.
+- This remains headless regression coverage. Interactive controls/rendering, 30-second settling on the GTX 1660 SUPER, and target-PC FPS/CPU/GPU measurements remain unverified.
+- Next: perform the manual Windows checklist before adding material authoring, breakable joints, or terrain deformation.
+

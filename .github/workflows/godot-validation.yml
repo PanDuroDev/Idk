@@ -41,6 +41,11 @@ jobs:
       - name: Run gameplay smoke test
         run: |
           ./Godot_v4.7.2-stable_linux.x86_64 --headless --path . --script res://tests/headless_smoke_test.gd --log-file godot-smoke.log
+          if ! grep -q 'WORLDBREAK_REPEAT_CYCLES_OK' godot-smoke.log; then
+            cat godot-smoke.log
+            echo "Repeated collapse/reset regression did not report its success marker."
+            exit 1
+          fi
           if ! grep -q 'WORLDBREAK_SMOKE_TEST_OK' godot-smoke.log; then
             cat godot-smoke.log
             echo "Gameplay smoke test did not report its success marker."
@@ -97,6 +102,10 @@ jobs:
           & $godot --headless --path . --script res://tests/headless_smoke_test.gd --log-file godot-smoke.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $log = Get-Content "godot-smoke.log" -Raw
+          if ($log -notmatch "WORLDBREAK_REPEAT_CYCLES_OK") {
+            Write-Output $log
+            throw "Repeated collapse/reset regression did not report its success marker."
+          }
           if ($log -notmatch "WORLDBREAK_SMOKE_TEST_OK") {
             Write-Output $log
             throw "Gameplay smoke test did not report its success marker."

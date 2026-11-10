@@ -51,7 +51,9 @@ Verified:
 - Foundation resists three weak hits and breaks on the fourth.
 - A centered weak hit breaks the lightweight panel at its own integrity/resistance threshold; the follow-up reset restores the fragment.
 - Full base-row collapse, support graph behavior, and reset pass.
+- Five consecutive collapse/reset cycles pass headlessly, with 120 physics frames per cycle, all 70 fragments simulated, finite transforms/velocities, and ground containment.
 - The headless integration test then simulates 120 additional physics frames: all 70 fragments moved, position/velocity values remained finite, and no fragment center crossed below the ground threshold.
+- A further headless regression passes five consecutive collapse/reset cycles: all 70 fragments move in every cycle, complete 120 physics frames with finite state and ground containment, and return to the initial state after each reset ([Actions #42868983866](https://github.com/PanDuroDev/Idk/actions/runs/42868983866)).
 
 ## Current limitations
 

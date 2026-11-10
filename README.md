@@ -50,6 +50,7 @@ The workflow runs on both Linux and Windows for pull requests to `main` and push
 GitHub Actions imports and launches the project headlessly, then tests:
 - Support graph connectivity and alternate support paths.
 - Base-row failure and collapse, followed by 120 physics frames of live rigid-body simulation.
+- Five consecutive collapse/reset cycles, with 120 physics frames and ground/finite-state checks per cycle.
 - Finite fragment transforms/velocities and ground-containment checks after the collapse.
 - Material profile assignment and relative integrity/resistance values.
 - First weak hit accumulating without break.
