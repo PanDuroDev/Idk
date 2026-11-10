@@ -2,6 +2,7 @@ extends SceneTree
 
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
 const SUPPORT_GRAPH_SCRIPT = preload("res://scripts/structural_support_graph.gd")
+const BLAST_SERVICE_SCRIPT = preload("res://scripts/blast_service.gd")
 
 const REQUIRED_INPUT_ACTIONS: Array[StringName] = [
 	&"move_forward",
@@ -302,6 +303,39 @@ func _run_smoke_test() -> void:
 		"WORLDBREAK_REPEAT_CYCLES_OK: cycles=%d; frames_per_cycle=%d; fragments=70; reset_checks=%d"
 		% [REPEATED_COLLAPSE_CYCLES, REPEATED_COLLAPSE_PHYSICS_FRAMES, REPEATED_COLLAPSE_CYCLES]
 	)
+
+	# Verify sleeping loose debris can be reactivated by a legitimate radial impact.
+	structure.set("loose_debris_lifetime_seconds", 30.0)
+	var wake_cell := Vector3i(3, 0, 1)
+	structure.call("apply_blast_damage", Vector3(0.0, 0.5, -11.48), 0.25, 2.0)
+	await physics_frame
+	var wake_fragment: RigidBody3D = structure.call("get_fragment_for_cell", wake_cell)
+	if wake_fragment == null or wake_fragment.freeze:
+		_fail("The test fragment was not released for the wake-up test")
+		return
+	wake_fragment.sleeping = true
+	var blast_service: RefCounted = BLAST_SERVICE_SCRIPT.new()
+	blast_service.call("apply_radial_impulse", main.get_world_3d().direct_space_state, wake_fragment.global_position, 2.0, 2.0, 0.0)
+	await physics_frame
+	if wake_fragment.sleeping:
+		_fail("A radial impact did not wake sleeping loose debris")
+		return
+
+	# Shorten lifetime only for this isolated cleanup assertion, then prove reset restores every node.
+	structure.set("loose_debris_lifetime_seconds", 0.05)
+	for frame_index in range(8):
+		await physics_frame
+	if int(structure.call("get_retired_fragment_count")) <= 0:
+		_fail("Expired loose debris was not retired")
+		return
+	structure.call("reset_structure")
+	if not bool(structure.call("is_reset_to_initial_state")) or int(structure.call("get_retired_fragment_count")) != 0:
+		_fail("Reset did not restore retired debris to the original structure")
+		return
+	if int(structure.call("get_fragment_count")) != 70 or int(structure.call("get_supported_fragment_count")) != 70:
+		_fail("Debris cleanup/reset did not restore all original structural fragments")
+		return
+	print("WORLDBREAK_DEBRIS_LIFECYCLE_OK: wake, expiry, and full reset")
 	print("WORLDBREAK_SMOKE_TEST_OK: all material profiles, support graph, collapse, cumulative damage, repeated reset, and reset")
 	quit(0)
 
