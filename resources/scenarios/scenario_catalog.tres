@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ScenarioCatalog" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/scenario_catalog.gd" id="1_catalog"]
+[ext_resource type="Resource" path="res://resources/scenarios/foundation_strike.tres" id="2_foundation"]
+[ext_resource type="Resource" path="res://resources/scenarios/terrain_crater.tres" id="3_terrain"]
+[ext_resource type="Resource" path="res://resources/scenarios/sparse_beam_shear.tres" id="4_sparse"]
+[ext_resource type="Script" path="res://scripts/experiment_scenario.gd" id="5_scenario"]
+
+[resource]
+script = ExtResource("1_catalog")
+scenarios = Array[ExtResource("5_scenario")]([ExtResource("2_foundation"), ExtResource("3_terrain"), ExtResource("4_sparse")])
