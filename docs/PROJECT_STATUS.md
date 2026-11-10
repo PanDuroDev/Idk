@@ -66,6 +66,12 @@ Verified:
 - No arbitrary mesh fracture, bending, crack propagation, terrain deformation, world streaming, or debris pooling.
 - The user reported that the manual Windows gameplay/visual/control validation passed on 2026-11-10. Exact FPS/CPU/GPU telemetry values were not supplied, so no numerical performance baseline is claimed.
 
+## Phase 1 progress
+
+- PR 1 implementation branch: ai/phase-1/runtime-impact-controls.
+- Runtime impact panel exposes radius, damage, and impulse with safe bounds and reset-to-default behavior. Defaults remain radius 4.5, damage 4.0, and impulse 22.0.
+- Headless assertions cover defaults, min/max clamping, and reset. Cross-platform CI is pending PR creation; interactive panel layout and input behavior still require manual validation.
+
 ## Exact next step
 
 Begin [AI Phase 1 issue #5](https://github.com/PanDuroDev/Idk/issues/5): runtime impact controls, bounded debris lifecycle/performance budgets, lightweight effects, and diagnostics. The user has reported that the interactive checklist works. Detailed numeric FPS/CPU/GPU measurements remain unrecorded and should be collected during Phase 1 profiling. Phase assignments and dependencies are documented in [AI_PHASE_ASSIGNMENTS.md](AI_PHASE_ASSIGNMENTS.md).
