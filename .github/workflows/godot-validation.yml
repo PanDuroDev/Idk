@@ -80,7 +80,7 @@ jobs:
             }
             foreach ($marker in $RequiredMarkers) {
               if ($combinedOutput -notmatch [regex]::Escape($marker)) {
-                throw "Expected Godot success marker was missing from $LogPath: $marker"
+                throw "Expected Godot success marker was missing from ${LogPath}: $marker"
               }
             }
           }
