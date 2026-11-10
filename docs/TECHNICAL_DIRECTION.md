@@ -111,3 +111,6 @@ Runtime terrain deformation is a separate subsystem. The planned direction is ch
 ### Diagnostics count semantics
 
 Natural sleeping debris excludes budget-parked frozen bodies. Parked bodies are reported separately, so the sleeping and parked counts are disjoint; retired bodies are excluded from both. Released count includes both active and parked non-retired fragments.
+
+### Configuration persistence
+Simulation test settings use a versioned JSON document (worldbreak.simulation, schema version 1). Building and material authoring remains in native Resources. A configuration references stable IDs through a building catalog and the material catalog; it never supplies arbitrary resource paths. Parsing builds and validates a complete candidate before the active simulation is touched. Unknown fields warn; malformed JSON, unsupported versions, missing required fields, unknown IDs, invalid ranges, duplicate cells, and degenerate transforms reject the whole file. Saves are written to a temporary file, re-read, re-validated, and only then replace the destination. Live application rebuilds the structure from the resolved definition and per-cell material overrides, applies the building transform and impact settings, and uses per-body gravity scale plus Engine.time_scale; an invalid configuration leaves the active building and settings unchanged.

@@ -466,3 +466,26 @@ This is an append-only engineering journal. Each substantial session is recorded
 - Linux console output explicitly included `WORLDBREAK_MATERIAL_AUTHORING_OK`, `WORLDBREAK_MATERIAL_PREVIEW_OK`, `WORLDBREAK_BUILDING_DEFINITIONS_OK`, `WORLDBREAK_REPEAT_CYCLES_OK`, `WORLDBREAK_SMOKE_TEST_OK`, and `WORLDBREAK_TERRAIN_CHUNK_MESH_OK`, with no script, parse, or engine runtime errors. Windows passed the same marker-gated steps.
 - Headless validation confirms catalog operations and preview scene state/tint/metadata behavior, but does not prove the editor's File → Run workflow or visual quality in a normal Godot editor window. Those remain manual validation items.
 - Next: update PR #19 with CI evidence, mark it ready for integration review, and continue Phase 2 configuration save/load on a separate stacked branch. Do not merge.
+
+## 2026-11-10 - Phase 2 PR 3: configuration persistence
+
+### Before work
+- Started from Phase 2 PR #19 head 241834b9cdd12218c1f4e254e03eddf62137ecde on branch ai/phase-2/material-authoring; PR #18 and #19 are open, stacked, and green on Linux and Windows.
+- Confirmed the architecture proposal keeps building/material authoring as native Resources and uses versioned JSON only for portable test configurations.
+- Risk: applying a configuration must not partially mutate the live structure if validation fails; rebuilding must preserve Phase 1 lifecycle, reset, support, and damage behavior.
+
+### During work
+- Added BuildingDefinitionCatalog with stable-ID lookup and duplicate/validation checks.
+- Added SimulationConfiguration and SimulationMaterialOverride resources plus a versioned JSON codec.
+- Added trusted catalog resolution, documented defaults, unknown-field warnings, range/transform/occupancy validation, transactional save with re-read verification, and building-definition .tres save/load helpers.
+- Extended DestructibleStructure with validate-before-rebuild definition/override application; existing damage, support, debris lifecycle, budgets, and reset paths are retained.
+- Extended main with apply/load/save APIs, per-body gravity scale, and Engine.time_scale configuration.
+- Added classic and sparse sample configurations and a dedicated round-trip/rejection/live-apply regression.
+- Updated CI on Linux and Windows to require WORLDBREAK_CONFIGURATION_PERSISTENCE_OK and reject script/engine errors.
+
+### After work
+- Local Windows import, configuration persistence test, and the full gameplay smoke test passed; no script or parse errors were reported.
+- The new test verifies catalogs, samples, defaults, additive warnings, unsupported versions, malformed files, invalid IDs/ranges/cells/transforms, save/load round-trips, building-definition round-trips, live apply/reset, and failed-apply atomicity.
+- Linux/Windows CI will be recorded on PR #20 after push. Interactive UI, file-picker ergonomics, and visual correctness remain manual checks.
+- Phase 2 implementation is now complete pending integration review and merge of #18, #19, and #20.
+
