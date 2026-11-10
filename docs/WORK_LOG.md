@@ -307,4 +307,12 @@ This is an append-only engineering journal. Each substantial session is recorded
 - Implementation is committed on ai/phase-1/debris-lifecycle, stacked on PR #11.
 - No pooling was added; the fixed 70-node scene does not justify pooling.
 - Target-PC settling and performance measurements remain manual and unrecorded.
-- Next: open PR 2 against PR 1's branch, inspect Linux/Windows logs, and proceed to effects/diagnostics.
+- PR 2 is open as #16. Next: inspect its Linux/Windows logs, then validate PR 3 in dependency order.
+
+
+### Cross-PR validation and measured count baseline
+
+- Changed the pull-request workflow filter from main-only to all target branches. This preserves the Linux and Windows jobs while allowing the stacked Phase 1 PRs to run CI before their dependencies are merged.
+- Recorded the actual fixed-scene baseline: 70 original structure bodies, zero loose at startup, 70 released on full collapse, and six separate physics props. The default awake loose-fragment cap remains 70 to avoid suspending pieces mid-fall; smaller caps are explicitly tested.
+- The dust effect budget is eight concurrent bursts of six motes each (48 motes maximum), with a 0.55-second lifetime.
+- No FPS/CPU/GPU values were fabricated; target-PC profiling remains a manual measurement.
