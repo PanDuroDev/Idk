@@ -10,6 +10,7 @@ const BuildingCellDefinitionScript = preload("res://scripts/building_cell_defini
 const DestructionMaterialProfileScript = preload("res://scripts/destruction_material_profile.gd")
 const MaterialProfileCatalogScript = preload("res://scripts/material_profile_catalog.gd")
 const MATERIAL_PROFILE_CATALOG: MaterialProfileCatalogScript = preload("res://resources/materials/material_profile_catalog.tres")
+const MATERIAL_PREVIEW_SCENE: PackedScene = preload("res://scenes/material_profile_preview.tscn")
 const CLASSIC_BUILDING: BuildingDefinitionScript = preload("res://resources/buildings/classic_70_piece.tres")
 const SPARSE_BUILDING: BuildingDefinitionScript = preload("res://resources/buildings/sparse_pillar_beam_11.tres")
 
@@ -31,6 +32,8 @@ func _initialize() -> void:
 
 func _run_smoke_test() -> void:
 	if not _test_material_authoring():
+		return
+	if not await _test_material_preview():
 		return
 	if not _test_building_definition_assets():
 		return
@@ -544,6 +547,45 @@ func _test_material_authoring() -> bool:
 		return false
 
 	print("WORLDBREAK_MATERIAL_AUTHORING_OK: catalog, lookup, validation, duplicate, and duplicate-ID rejection")
+	return true
+
+
+func _test_material_preview() -> bool:
+	var preview: Node = MATERIAL_PREVIEW_SCENE.instantiate()
+	root.add_child(preview)
+	preview.set("material_profile", MATERIAL_PROFILE_CATALOG.get_profile_by_id(&"foundation_concrete"))
+
+	var mesh: MeshInstance3D = preview.get_node_or_null("PreviewMesh") as MeshInstance3D
+	var label: Label3D = preview.get_node_or_null("PreviewLabel") as Label3D
+	if mesh == null or label == null:
+		_fail("Material preview scene is missing its mesh or label nodes")
+		preview.queue_free()
+		return false
+
+	var material: StandardMaterial3D = mesh.material_override as StandardMaterial3D
+	var expected_profile: DestructionMaterialProfileScript = MATERIAL_PROFILE_CATALOG.get_profile_by_id(&"foundation_concrete")
+	if material == null or expected_profile == null:
+		_fail("Material preview did not assign a visual material")
+		preview.queue_free()
+		return false
+	if not material.albedo_color.is_equal_approx(expected_profile.surface_color):
+		_fail("Material preview did not display the selected profile tint")
+		preview.queue_free()
+		return false
+	if not label.text.contains("foundation_concrete") or not label.text.contains("Integrity"):
+		_fail("Material preview label did not display the selected profile identity/tuning values")
+		preview.queue_free()
+		return false
+
+	preview.set("material_profile", null)
+	if mesh.material_override != null or not label.text.contains("Assign a DestructionMaterialProfile"):
+		_fail("Material preview did not clear its view when the profile is removed")
+		preview.queue_free()
+		return false
+
+	preview.queue_free()
+	await process_frame
+	print("WORLDBREAK_MATERIAL_PREVIEW_OK: scene, tint, metadata, and clear state")
 	return true
 
 
