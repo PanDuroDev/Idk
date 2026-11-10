@@ -8,6 +8,8 @@ const BUILDING_DEFINITION_VALIDATOR = preload("res://scripts/building_definition
 const BuildingDefinitionScript = preload("res://scripts/building_definition.gd")
 const BuildingCellDefinitionScript = preload("res://scripts/building_cell_definition.gd")
 const DestructionMaterialProfileScript = preload("res://scripts/destruction_material_profile.gd")
+const MaterialProfileCatalogScript = preload("res://scripts/material_profile_catalog.gd")
+const MATERIAL_PROFILE_CATALOG: MaterialProfileCatalogScript = preload("res://resources/materials/material_profile_catalog.tres")
 const CLASSIC_BUILDING: BuildingDefinitionScript = preload("res://resources/buildings/classic_70_piece.tres")
 const SPARSE_BUILDING: BuildingDefinitionScript = preload("res://resources/buildings/sparse_pillar_beam_11.tres")
 
@@ -28,6 +30,8 @@ func _initialize() -> void:
 
 
 func _run_smoke_test() -> void:
+	if not _test_material_authoring():
+		return
 	if not _test_building_definition_assets():
 		return
 
@@ -481,6 +485,66 @@ func _run_smoke_test() -> void:
 	print("WORLDBREAK_DIAGNOSTICS_EFFECTS_OK: opt-in overlay and bounded dust bursts")
 	print("WORLDBREAK_SMOKE_TEST_OK: all material profiles, support graph, collapse, cumulative damage, repeated reset, and reset")
 	quit(0)
+
+
+func _test_material_authoring() -> bool:
+	var errors: Array[String] = MATERIAL_PROFILE_CATALOG.validate_catalog()
+	if not errors.is_empty():
+		_fail("Material profile catalog is invalid: %s" % "; ".join(errors))
+		return false
+	if MATERIAL_PROFILE_CATALOG.profiles.size() != 3:
+		_fail("Material profile catalog should contain the three original shared profiles")
+		return false
+
+	var expected_ids: Array[StringName] = [
+		&"foundation_concrete",
+		&"masonry",
+		&"lightweight_panel"
+	]
+	for expected_id: StringName in expected_ids:
+		if MATERIAL_PROFILE_CATALOG.get_profile_by_id(expected_id) == null:
+			_fail("Material catalog could not resolve profile ID '%s'" % String(expected_id))
+			return false
+
+	var original: DestructionMaterialProfileScript = MATERIAL_PROFILE_CATALOG.get_profile_by_id(&"masonry")
+	var duplicate: DestructionMaterialProfileScript = MATERIAL_PROFILE_CATALOG.duplicate_profile(
+		&"masonry",
+		&"reinforced_masonry_test",
+		"Reinforced Masonry Test"
+	)
+	if duplicate == null:
+		_fail("Material catalog could not duplicate a valid profile")
+		return false
+	if duplicate == original or duplicate.material_id != &"reinforced_masonry_test":
+		_fail("Duplicated material profile must be an independent Resource with its new ID")
+		return false
+	if duplicate.integrity != original.integrity or duplicate.blast_resistance != original.blast_resistance or duplicate.density_multiplier != original.density_multiplier or duplicate.surface_color != original.surface_color:
+		_fail("Duplicated material profile did not preserve the source tuning values")
+		return false
+
+	var add_errors: Array[String] = MATERIAL_PROFILE_CATALOG.add_profile(duplicate)
+	if not add_errors.is_empty():
+		_fail("Material catalog rejected a valid new profile: %s" % "; ".join(add_errors))
+		return false
+	if MATERIAL_PROFILE_CATALOG.get_profile_by_id(&"reinforced_masonry_test") != duplicate:
+		_fail("Material catalog did not retain the newly added profile")
+		return false
+
+	var conflicting_copy: DestructionMaterialProfileScript = original.duplicate(true) as DestructionMaterialProfileScript
+	var duplicate_add_errors: Array[String] = MATERIAL_PROFILE_CATALOG.add_profile(conflicting_copy)
+	if duplicate_add_errors.is_empty():
+		_fail("Material catalog accepted a second Resource with an existing material ID")
+		return false
+
+	if MATERIAL_PROFILE_CATALOG.duplicate_profile(&"masonry", &"reinforced_masonry_test", "Duplicate ID") != null:
+		_fail("Material duplicate helper accepted an ID already used by the catalog")
+		return false
+	if MATERIAL_PROFILE_CATALOG.duplicate_profile(&"missing_source", &"new_id", "Missing Source") != null:
+		_fail("Material duplicate helper accepted an unknown source ID")
+		return false
+
+	print("WORLDBREAK_MATERIAL_AUTHORING_OK: catalog, lookup, validation, duplicate, and duplicate-ID rejection")
+	return true
 
 
 func _test_building_definition_assets() -> bool:
