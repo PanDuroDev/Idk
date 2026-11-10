@@ -374,3 +374,20 @@ This is an append-only engineering journal. Each substantial session is recorded
 - PR #17 latest head CI: Linux and Windows passed ([run 42882865966](https://github.com/PanDuroDev/Idk/actions/runs/42882865966)). Linux output explicitly includes impact controls, repeated cycles, debris lifecycle, active-fragment budget, diagnostics/effects, and overall smoke success markers; Windows passed the corresponding phase-scoped PowerShell gate.
 - All three PRs remain open and mergeable; no PR was merged. Dependency order remains #11 -> #16 -> #17.
 - Implementation is complete and ready for integration review. Interactive effect quality, overlay readability, and numeric target-PC performance profiling remain unverified manual checks.
+
+## 2026-11-10 - Phase 2 PR synchronization before integration
+
+### Before
+- PR #14 was open on `ai/phase-2/schema-design`, originally based on main commit `70da82274da67faf034afb9d98932f4fe1db03f4`.
+- Main advanced after the PR was created, and GitHub reported the PR as not mergeable. The shared `docs/WORK_LOG.md` had changed on both sides.
+- Phase 1 PRs #11, #16, and #17 have since been merged in dependency order. Issue #5 remains open; merging those PRs alone does not mark Phase 1 complete.
+
+### During
+- Synchronized the Phase 2 work log with the current main work log while preserving the Phase 2 architecture-review record.
+- Updated the architecture proposal to distinguish the historical baseline from the current Phase 1 integration state.
+- Kept this PR documentation-only; no runtime code, gameplay scenes, project settings, or Phase 1 implementation files were changed.
+
+### After
+- The Phase 2 proposal still defines architecture and implementation gates only.
+- Full Phase 1 acceptance verification remains outstanding, including interactive effects/diagnostics checks and target-PC performance measurements.
+- Next: verify PR #14 mergeability and CI, then merge this documentation-only proposal without treating Phase 2 as complete.
