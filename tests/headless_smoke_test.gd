@@ -3,6 +3,10 @@ extends SceneTree
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
 const SUPPORT_GRAPH_SCRIPT = preload("res://scripts/structural_support_graph.gd")
 const BLAST_SERVICE_SCRIPT = preload("res://scripts/blast_service.gd")
+const STRUCTURE_SCRIPT = preload("res://scripts/destructible_structure.gd")
+const BUILDING_DEFINITION_VALIDATOR = preload("res://scripts/building_definition_validator.gd")
+const CLASSIC_BUILDING: BuildingDefinition = preload("res://resources/buildings/classic_70_piece.tres")
+const SPARSE_BUILDING: BuildingDefinition = preload("res://resources/buildings/sparse_pillar_beam_11.tres")
 
 const REQUIRED_INPUT_ACTIONS: Array[StringName] = [
 	&"move_forward",
@@ -21,6 +25,9 @@ func _initialize() -> void:
 
 
 func _run_smoke_test() -> void:
+	if not _test_building_definition_assets():
+		return
+
 	for action: StringName in REQUIRED_INPUT_ACTIONS:
 		if not InputMap.has_action(action):
 			_fail("Missing InputMap action: %s" % action)
@@ -63,6 +70,41 @@ func _run_smoke_test() -> void:
 		_fail("Impact controls did not restore their defaults")
 		return
 	print("WORLDBREAK_IMPACT_CONTROLS_OK: defaults, bounds, and reset")
+
+	# Build the sparse sample through the same runtime structure component used by the main scene.
+	var alternate_structure: Node3D = STRUCTURE_SCRIPT.new()
+	alternate_structure.set("building_definition", SPARSE_BUILDING)
+	alternate_structure.position = Vector3(25.0, 0.0, -12.0)
+	root.add_child(alternate_structure)
+	await process_frame
+	await physics_frame
+	if int(alternate_structure.call("get_fragment_count")) != 11:
+		_fail("Sparse building should generate exactly 11 fragments")
+		return
+	if int(alternate_structure.call("get_supported_fragment_count")) != 11:
+		_fail("All 11 sparse building fragments should start supported")
+		return
+	var custom_fragment: RigidBody3D = alternate_structure.call("get_fragment_for_cell", Vector3i(2, 3, 1))
+	if custom_fragment == null or absf(custom_fragment.position.y - 3.74) > 0.001:
+		_fail("Sparse per-cell custom transform was not applied by the builder")
+		return
+	if StringName(alternate_structure.call("get_cell_material_id", Vector3i(2, 3, 1))) != &"lightweight_panel":
+		_fail("Sparse per-cell material override was not applied by the builder")
+		return
+	var sparse_left_anchor: RigidBody3D = alternate_structure.call("get_fragment_for_cell", Vector3i(0, 0, 1))
+	var sparse_right_anchor: RigidBody3D = alternate_structure.call("get_fragment_for_cell", Vector3i(4, 0, 1))
+	alternate_structure.call("apply_blast_damage", sparse_left_anchor.global_position, 0.1, 10.0)
+	alternate_structure.call("apply_blast_damage", sparse_right_anchor.global_position, 0.1, 10.0)
+	if int(alternate_structure.call("get_released_fragment_count")) != 11:
+		_fail("Sparse structure collapse did not release all definition cells")
+		return
+	alternate_structure.call("reset_structure")
+	if not bool(alternate_structure.call("is_reset_to_initial_state")):
+		_fail("Sparse structure reset did not restore all definition cells")
+		return
+	alternate_structure.queue_free()
+	await process_frame
+	print("WORLDBREAK_BUILDING_DEFINITIONS_OK: 70-piece compatibility, sparse generation, transforms, materials, validation, collapse and reset")
 
 	if int(structure.call("get_supported_fragment_count")) != 70:
 		_fail("All intact fragments should initially be supported")
@@ -393,6 +435,109 @@ func _run_smoke_test() -> void:
 	print("WORLDBREAK_DIAGNOSTICS_EFFECTS_OK: opt-in overlay and bounded dust bursts")
 	print("WORLDBREAK_SMOKE_TEST_OK: all material profiles, support graph, collapse, cumulative damage, repeated reset, and reset")
 	quit(0)
+
+
+func _test_building_definition_assets() -> bool:
+	var classic_errors: Array[String] = BUILDING_DEFINITION_VALIDATOR.validate_definition(CLASSIC_BUILDING)
+	if not classic_errors.is_empty():
+		_fail("Classic building definition is invalid: %s" % "; ".join(classic_errors))
+		return false
+	if CLASSIC_BUILDING.get_occupied_cell_count() != 70:
+		_fail("Classic building definition must contain exactly 70 occupied cells")
+		return false
+
+	var classic_coordinates: Dictionary = {}
+	for cell: BuildingCellDefinition in CLASSIC_BUILDING.cells:
+		if classic_coordinates.has(cell.coordinate):
+			_fail("Classic building definition contains duplicate coordinate %s" % cell.coordinate)
+			return false
+		classic_coordinates[cell.coordinate] = true
+	if classic_coordinates.size() != 70:
+		_fail("Classic building coordinates are not unique")
+		return false
+
+	var classic_origin_cell: BuildingCellDefinition = null
+	var foundation_cell: BuildingCellDefinition = null
+	var masonry_cell: BuildingCellDefinition = null
+	var lightweight_cell: BuildingCellDefinition = null
+	for cell: BuildingCellDefinition in CLASSIC_BUILDING.cells:
+		match cell.coordinate:
+			Vector3i(0, 0, 0):
+				classic_origin_cell = cell
+			Vector3i(3, 1, 1):
+				masonry_cell = cell
+			Vector3i(3, 4, 1):
+				lightweight_cell = cell
+			Vector3i(3, 0, 1):
+				foundation_cell = cell
+
+	if classic_origin_cell == null or foundation_cell == null or masonry_cell == null or lightweight_cell == null:
+		_fail("Classic preset is missing one of its material/position regression cells")
+		return false
+	var classic_origin: Vector3 = CLASSIC_BUILDING.get_cell_local_transform(classic_origin_cell).origin
+	if classic_origin.distance_to(Vector3(-3.12, 0.5, -0.52)) > 0.001:
+		_fail("Classic preset changed the legacy first-cell center")
+		return false
+	if CLASSIC_BUILDING.get_cell_material_profile(foundation_cell).material_id != &"foundation_concrete":
+		_fail("Classic preset bottom layer must retain foundation concrete")
+		return false
+	if CLASSIC_BUILDING.get_cell_material_profile(masonry_cell).material_id != &"masonry":
+		_fail("Classic preset middle layers must retain masonry")
+		return false
+	if CLASSIC_BUILDING.get_cell_material_profile(lightweight_cell).material_id != &"lightweight_panel":
+		_fail("Classic preset top layer must retain lightweight panel material")
+		return false
+
+	var sparse_errors: Array[String] = BUILDING_DEFINITION_VALIDATOR.validate_definition(SPARSE_BUILDING)
+	if not sparse_errors.is_empty():
+		_fail("Sparse building definition is invalid: %s" % "; ".join(sparse_errors))
+		return false
+	if SPARSE_BUILDING.dimensions == CLASSIC_BUILDING.dimensions or SPARSE_BUILDING.get_occupied_cell_count() != 11:
+		_fail("Sparse sample must prove a different 11-cell layout")
+		return false
+
+	var custom_transform_count: int = 0
+	var lightweight_override_count: int = 0
+	for cell: BuildingCellDefinition in SPARSE_BUILDING.cells:
+		if cell.use_custom_transform:
+			custom_transform_count += 1
+		if SPARSE_BUILDING.get_cell_material_profile(cell).material_id == &"lightweight_panel":
+			lightweight_override_count += 1
+	if custom_transform_count != 1 or lightweight_override_count != 1:
+		_fail("Sparse sample must exercise one custom transform and one per-cell material override")
+		return false
+
+	var malformed := BuildingDefinition.new()
+	malformed.schema_version = BuildingDefinition.CURRENT_SCHEMA_VERSION
+	malformed.definition_id = &"malformed_duplicate_test"
+	malformed.display_name = "Malformed duplicate test"
+	malformed.dimensions = Vector3i(2, 2, 2)
+	malformed.default_material_profile = CLASSIC_BUILDING.default_material_profile
+	var duplicate_a := BuildingCellDefinition.new()
+	duplicate_a.coordinate = Vector3i.ZERO
+	var duplicate_b := BuildingCellDefinition.new()
+	duplicate_b.coordinate = Vector3i.ZERO
+	malformed.cells.append(duplicate_a)
+	malformed.cells.append(duplicate_b)
+	var malformed_errors: Array[String] = BUILDING_DEFINITION_VALIDATOR.validate_definition(malformed)
+	var found_duplicate_error: bool = false
+	for error_text: String in malformed_errors:
+		if error_text.contains("duplicates coordinate"):
+			found_duplicate_error = true
+	if not found_duplicate_error:
+		_fail("Building validator did not reject duplicate cell coordinates")
+		return false
+
+	var invalid_profile := DestructionMaterialProfile.new()
+	invalid_profile.material_id = &"invalid_profile"
+	invalid_profile.display_name = "Invalid profile"
+	invalid_profile.integrity = 0.0
+	var profile_errors: Array[String] = BUILDING_DEFINITION_VALIDATOR.validate_material_profile(invalid_profile)
+	if profile_errors.is_empty():
+		_fail("Material profile validator accepted an out-of-range integrity value")
+		return false
+
+	return true
 
 
 func _test_support_graph() -> bool:
