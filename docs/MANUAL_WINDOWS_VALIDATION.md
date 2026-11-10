@@ -71,7 +71,16 @@ Check the following:
 
 Repeat the collapse/reset cycle five times and note any change in behavior.
 
-## 6. Performance observations
+## 6. Debris lifecycle and budgets
+
+- Trigger a full collapse and confirm all released fragments remain visible and settle naturally.
+- Confirm the structure reports active and sleeping loose fragments separately and that active fragments never exceed the configured budget (default 70).
+- Leave released debris for at least 30 seconds and confirm only released fragments are retired; supported intact blocks must remain visible and unchanged.
+- Trigger another impact against sleeping debris and confirm it wakes and responds.
+- Press **R** after some debris has expired. All 70 original blocks, transforms, collision, and support state must return.
+- Repeat collapse, expiry, and reset at least five times. Record observations; do not infer a performance improvement without measurements.
+
+## 7. Performance observations
 
 Use the HUD FPS counter and Windows Task Manager while the game is running. Record:
 
@@ -87,6 +96,6 @@ Use the HUD FPS counter and Windows Task Manager while the game is running. Reco
 
 Do not treat a single FPS reading as a benchmark. Record the resolution, graphics settings, and whether the measurement was taken during idle, active collapse, or after settling.
 
-## 7. Report the result
+## 8. Report the result
 
 Record the Godot version, Windows version, whether any errors appeared, the three material hit counts, the number of successful collapse/reset cycles, and the performance table above. Keep screenshots or a short recording of any failure. Do not mark interactive validation complete until these observations have been reviewed.
