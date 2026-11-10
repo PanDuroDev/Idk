@@ -78,13 +78,23 @@ static func _interpolate(a: Vector3, b: Vector3, density_a: float, density_b: fl
 	return a.lerp(b, clampf((iso_level - density_a) / denominator, 0.0, 1.0))
 
 static func _add_oriented_triangle(surface: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, outward: Vector3) -> void:
-	var normal := (b - a).cross(c - a)
-	if normal.length_squared() <= 0.0000001:
+	var geometric_normal := (b - a).cross(c - a)
+	if geometric_normal.length_squared() <= 0.0000001:
 		return
-	surface.add_vertex(a)
-	if normal.dot(outward) < 0.0:
-		surface.add_vertex(c)
-		surface.add_vertex(b)
+	var reverse_winding := geometric_normal.dot(outward) > 0.0
+	var vertex_normal := geometric_normal.normalized()
+	if not reverse_winding:
+		vertex_normal = -vertex_normal
+	# Godot treats clockwise triangles as front faces. Keep winding clockwise
+	# while supplying an explicit outward normal for lighting.
+	_add_vertex_with_normal(surface, a, vertex_normal)
+	if reverse_winding:
+		_add_vertex_with_normal(surface, c, vertex_normal)
+		_add_vertex_with_normal(surface, b, vertex_normal)
 	else:
-		surface.add_vertex(b)
-		surface.add_vertex(c)
+		_add_vertex_with_normal(surface, b, vertex_normal)
+		_add_vertex_with_normal(surface, c, vertex_normal)
+
+static func _add_vertex_with_normal(surface: SurfaceTool, position: Vector3, normal: Vector3) -> void:
+	surface.add_normal(normal)
+	surface.add_vertex(position)
