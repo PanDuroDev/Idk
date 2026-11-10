@@ -18,6 +18,7 @@ var _blast_service: RefCounted
 var _pending_blasts: Array[Dictionary] = []
 var _reset_requested: bool = false
 var _hud_label: Label
+var _ui_canvas: CanvasLayer
 var _hud_refresh_timer: float = 0.0
 var _total_impacts: int = 0
 var _last_affected_count: int = 0
@@ -211,14 +212,14 @@ func _spawn_blast_flash(position: Vector3) -> void:
 
 
 func _build_hud() -> void:
-	var canvas := CanvasLayer.new()
-	add_child(canvas)
+	_ui_canvas = CanvasLayer.new()
+	add_child(_ui_canvas)
 
 	_hud_label = Label.new()
 	_hud_label.position = Vector2(18.0, 16.0)
 	_hud_label.add_theme_font_size_override("font_size", 15)
 	_hud_label.add_theme_color_override("font_color", Color(0.88, 0.91, 0.96))
-	canvas.add_child(_hud_label)
+	_ui_canvas.add_child(_hud_label)
 	_hud_label.text = "WORLDBREAK - initializing"
 
 
@@ -247,7 +248,7 @@ func _build_impact_controls() -> void:
 	panel.name = "ImpactControls"
 	panel.position = Vector2(910.0, 54.0)
 	panel.custom_minimum_size = Vector2(350.0, 0.0)
-	add_child(panel)
+	_ui_canvas.add_child(panel)
 
 	var layout := VBoxContainer.new()
 	layout.add_theme_constant_override("separation", 5)
