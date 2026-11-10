@@ -365,3 +365,12 @@ This is an append-only engineering journal. Each substantial session is recorded
 - PR #16 latest recorded Linux and Windows CI run passed, including the lifecycle and active-budget assertions.
 - PR #17's earlier overlay-test run passed on Linux and Windows. The newest run is validating the follow-up count semantics and regression assertions.
 - Remaining work is to inspect the newest PR #17 CI logs, then leave the three PRs open for integration review. Interactive visuals and numeric target-PC profiling remain manual checks.
+
+
+### Final Phase 1 implementation checkpoint
+
+- PR #11 latest recorded CI: Linux and Windows passed ([run 42882310314](https://github.com/PanDuroDev/Idk/actions/runs/42882310314)).
+- PR #16 latest recorded CI: Linux and Windows passed ([run 42882368777](https://github.com/PanDuroDev/Idk/actions/runs/42882368777)).
+- PR #17 latest head CI: Linux and Windows passed ([run 42882865966](https://github.com/PanDuroDev/Idk/actions/runs/42882865966)). Linux output explicitly includes impact controls, repeated cycles, debris lifecycle, active-fragment budget, diagnostics/effects, and overall smoke success markers; Windows passed the corresponding phase-scoped PowerShell gate.
+- All three PRs remain open and mergeable; no PR was merged. Dependency order remains #11 -> #16 -> #17.
+- Implementation is complete and ready for integration review. Interactive effect quality, overlay readability, and numeric target-PC performance profiling remain unverified manual checks.
