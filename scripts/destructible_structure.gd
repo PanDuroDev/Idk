@@ -114,7 +114,7 @@ func apply_blast_damage(origin: Vector3, radius: float, damage_amount: float = 1
 			continue
 
 		var fragment: RigidBody3D = _fragments_by_cell[cell] as RigidBody3D
-		var profile: DestructionMaterialProfileScript = _material_by_cell[cell] as DestructionMaterialProfileScript
+		var profile: DestructionMaterialProfile = _material_by_cell[cell] as DestructionMaterialProfile
 		var distance: float = fragment.global_position.distance_to(origin)
 		if distance >= safe_radius:
 			continue
@@ -148,27 +148,27 @@ func get_cell_damage_ratio(cell: Vector3i) -> float:
 
 
 func get_cell_material_id(cell: Vector3i) -> StringName:
-	var profile: DestructionMaterialProfileScript = _material_by_cell.get(cell) as DestructionMaterialProfileScript
+	var profile: DestructionMaterialProfile = _material_by_cell.get(cell) as DestructionMaterialProfile
 	return profile.material_id if profile != null else &""
 
 
 func get_cell_material_name(cell: Vector3i) -> String:
-	var profile: DestructionMaterialProfileScript = _material_by_cell.get(cell) as DestructionMaterialProfileScript
+	var profile: DestructionMaterialProfile = _material_by_cell.get(cell) as DestructionMaterialProfile
 	return profile.display_name if profile != null else ""
 
 
 func get_cell_integrity(cell: Vector3i) -> float:
-	var profile: DestructionMaterialProfileScript = _material_by_cell.get(cell) as DestructionMaterialProfileScript
+	var profile: DestructionMaterialProfile = _material_by_cell.get(cell) as DestructionMaterialProfile
 	return maxf(profile.integrity, 0.1) if profile != null else 0.1
 
 
 func get_cell_blast_resistance(cell: Vector3i) -> float:
-	var profile: DestructionMaterialProfileScript = _material_by_cell.get(cell) as DestructionMaterialProfileScript
+	var profile: DestructionMaterialProfile = _material_by_cell.get(cell) as DestructionMaterialProfile
 	return maxf(profile.blast_resistance, 0.1) if profile != null else 0.1
 
 
 func get_cell_density_multiplier(cell: Vector3i) -> float:
-	var profile: DestructionMaterialProfileScript = _material_by_cell.get(cell) as DestructionMaterialProfileScript
+	var profile: DestructionMaterialProfile = _material_by_cell.get(cell) as DestructionMaterialProfile
 	return maxf(profile.density_multiplier, 0.1) if profile != null else 0.1
 
 
