@@ -1,4 +1,4 @@
-class_name BuildingDefinitionScriptValidator
+class_name BuildingDefinitionValidator
 extends RefCounted
 
 const BuildingDefinitionScript = preload("res://scripts/building_definition.gd")
@@ -15,7 +15,7 @@ const MAX_DENSITY_MULTIPLIER: float = 10.0
 
 
 static func validate_definition(
-	definition: BuildingDefinition,
+	definition: BuildingDefinitionScript,
 	max_occupied_cells: int = MAX_OCCUPIED_CELLS
 ) -> Array[String]:
 	var errors: Array[String] = []
@@ -60,7 +60,7 @@ static func validate_definition(
 		)
 
 	for index in range(definition.cells.size()):
-		var cell: BuildingCellDefinition = definition.cells[index]
+		var cell: BuildingCellDefinitionScript = definition.cells[index]
 		if cell == null:
 			errors.append("Cell entry %d is null." % index)
 			continue
@@ -81,7 +81,7 @@ static func validate_definition(
 		if cell.use_custom_transform and not _is_valid_transform(cell.local_transform):
 			errors.append("Cell entry %d has a non-finite or degenerate custom transform." % index)
 
-		var profile: DestructionMaterialProfile = definition.get_cell_material_profile(cell)
+		var profile: DestructionMaterialProfileScript = definition.get_cell_material_profile(cell)
 		if profile == null:
 			errors.append("Cell entry %d has no material profile and no building default." % index)
 		else:
@@ -96,7 +96,7 @@ static func validate_definition(
 	return errors
 
 
-static func validate_material_profile(profile: DestructionMaterialProfile) -> Array[String]:
+static func validate_material_profile(profile: DestructionMaterialProfileScript) -> Array[String]:
 	var errors: Array[String] = []
 	if profile == null:
 		errors.append("Material profile is null.")
@@ -124,12 +124,12 @@ static func validate_material_profile(profile: DestructionMaterialProfile) -> Ar
 	return errors
 
 
-static func validate_material_catalog(profiles: Array[DestructionMaterialProfile]) -> Array[String]:
+static func validate_material_catalog(profiles: Array[DestructionMaterialProfileScript]) -> Array[String]:
 	var errors: Array[String] = []
 	var profiles_by_id: Dictionary = {}
 	var checked_profile_instances: Dictionary = {}
 	for index in range(profiles.size()):
-		var profile: DestructionMaterialProfile = profiles[index]
+		var profile: DestructionMaterialProfileScript = profiles[index]
 		if profile == null:
 			errors.append("Material catalog entry %d is null." % index)
 			continue
@@ -144,7 +144,7 @@ static func validate_material_catalog(profiles: Array[DestructionMaterialProfile
 
 
 static func _register_profile(
-	profile: DestructionMaterialProfile,
+	profile: DestructionMaterialProfileScript,
 	source_label: String,
 	profiles_by_id: Dictionary,
 	checked_profile_instances: Dictionary,
@@ -160,7 +160,7 @@ static func _register_profile(
 	if String(material_id).strip_edges().is_empty():
 		return
 	if profiles_by_id.has(material_id):
-		var existing: DestructionMaterialProfile = profiles_by_id[material_id] as DestructionMaterialProfile
+		var existing: DestructionMaterialProfileScript = profiles_by_id[material_id] as DestructionMaterialProfileScript
 		if existing != profile:
 			errors.append("Material ID '%s' is assigned to multiple profile resources." % String(material_id))
 	else:
