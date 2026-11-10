@@ -183,3 +183,8 @@ Each implementation PR will use its own `ai/phase-2/<short-scope>` branch and ta
 ## Current gate
 
 **No Phase 2 runtime implementation is authorized yet.** Phase 1 PRs #11, #16, and #17 have merged, but issue #5 remains open pending verification of the complete Phase 1 scope. Headless CI does not establish interactive effect/overlay quality or target-PC FPS/CPU/GPU measurements. Before Phase 2 runtime work, inspect the final merged control, debris cleanup/budget, reset, and diagnostics interfaces and confirm they satisfy the Phase 1 acceptance criteria. This document is architecture planning only.
+
+
+## Implementation progress: reusable building definitions
+
+The first implementation slice is being developed on `ai/phase-2/building-definitions`. It adds `BuildingDefinition` and `BuildingCellDefinition` Resources, shared definition/material validation, data-driven generation in `DestructibleStructure`, the backward-compatible 70-cell preset, and an 11-cell sparse sample. Tests cover compatibility positions/material mapping, sparse generation, per-cell override/custom transform, invalid definitions/material values, collapse, and reset. This PR remains in progress until Linux and Windows CI have passed and the diff has been reviewed.
