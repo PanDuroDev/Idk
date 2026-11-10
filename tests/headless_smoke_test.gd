@@ -461,15 +461,14 @@ func _test_building_definition_assets() -> bool:
 	var masonry_cell: BuildingCellDefinition = null
 	var lightweight_cell: BuildingCellDefinition = null
 	for cell: BuildingCellDefinition in CLASSIC_BUILDING.cells:
-		match cell.coordinate:
-			Vector3i(0, 0, 0):
-				classic_origin_cell = cell
-			Vector3i(3, 1, 1):
-				masonry_cell = cell
-			Vector3i(3, 4, 1):
-				lightweight_cell = cell
-			Vector3i(3, 0, 1):
-				foundation_cell = cell
+		if cell.coordinate == Vector3i(0, 0, 0):
+			classic_origin_cell = cell
+		elif cell.coordinate == Vector3i(3, 1, 1):
+			masonry_cell = cell
+		elif cell.coordinate == Vector3i(3, 4, 1):
+			lightweight_cell = cell
+		elif cell.coordinate == Vector3i(3, 0, 1):
+			foundation_cell = cell
 
 	if classic_origin_cell == null or foundation_cell == null or masonry_cell == null or lightweight_cell == null:
 		_fail("Classic preset is missing one of its material/position regression cells")
