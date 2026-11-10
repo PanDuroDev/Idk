@@ -265,3 +265,29 @@ This is an append-only engineering journal. Each substantial session is recorded
 - The five phase issues describe 15 core future PRs, plus one optional breakable-joint feasibility PR if evidence supports it. The three already merged foundation PRs make 18 planned core PRs overall.
 - No implementation PR was created or merged in this delegation session. The integration maintainer remains responsible for review and ordered merges.
 - Next: send the Phase 1 prompt from issue #5 to the first AI.
+
+
+## 2026-11-10 - Phase 3 terrain prototype
+
+### Before work
+- Starting main commit: `70da82274da67faf034afb9d98932f4fe1db03f4`.
+- Read README, Project Status, Roadmap, Technical Direction, Work Log, and inspected the existing gameplay scripts, main scene, headless tests, and Linux/Windows workflow.
+- Phase 1 runtime work and Phase 2 planning are active in separate branches/PRs. Their runtime contracts are not merged, so terrain work is restricted to `terrain/`, `tests/terrain/`, terrain documentation, and CI validation. No active gameplay files may be modified.
+- Evaluated heightfields, block voxels, density voxels with Marching Cubes, and density voxels with Marching Tetrahedra. Chose a density field with deterministic tetrahedral meshing for a compact prototype, with the higher triangle count explicitly recorded as a trade-off.
+- Main risks: chunk seam consistency, tetrahedron winding, collision cooking cost, physics-safe replacement, and CPU/memory budgets on the GTX 1660 SUPER / 16 GB target system.
+
+### During work
+- PR #10 adds the chunk data model, duplicated border samples/global sample coordinates, deterministic six-tetrahedra mesher, architecture decision, and isolated headless test. Linux and Windows passed on Actions run [#42877484374](https://github.com/PanDuroDev/Idk/actions/runs/42877484374) at commit `ea6d19f8963162363ce90f6da2f320f9893de6b1`. An earlier Windows failure was traced to a missing PowerShell brace in the workflow; it was corrected and the fresh run passed.
+- PR #12 adds a deterministic world-space sphere edit journal, affected-chunk AABB query, shared-border density reevaluation, and reset coverage. It is stacked on PR #10.
+- PR #13 adds a coalescing static collision rebuild queue, a default one-rebuild-per-physics-frame budget, deferred collider replacement, and stale-shape removal tests. It is stacked on PR #12.
+- PR #15 implementation adds configurable budgets, an 8-cell low-end profile, queue limits, invalid-limit tests, and a repeatable CPU mesh-build/payload-size profiling harness. Timings and payload sizes are reported by CI; they are not represented as target-PC benchmarks.
+- Added phase-branch push triggers so each stacked branch can run the full Linux and Windows suite independently, rather than waiting for retargeting to main.
+- Updated terrain architecture, technical direction, roadmap, and project status. No files in the active gameplay scene, BlastService, destructible structure, player controller, or material profiles were changed.
+
+### After work
+- PRs #10, #12, and #13 are open and unmerged. PR #15 is being prepared as the fourth narrow review unit.
+- PR #10 has accepted Linux and Windows headless validation. The branch trigger-only follow-up and the stacked PR #12/#13/#15 full suites are pending their current runs; do not treat them as passed until job logs and success markers are inspected.
+- Headless tests cover data dimensions, border coordinate equality, mesh generation, localized edit bounds, shared-border density equality, reset, collider queue coalescing/removal, budgets, and low-end profile validity.
+- Still unverified: interactive visual seam inspection, collision agreement under high-speed rigid bodies, target-PC FPS/CPU/GPU telemetry, and actual terrain performance on the GTX 1660 SUPER. The profiling harness measures deterministic workloads on CI hosts and reports estimated payload bytes only.
+- Gameplay integration is intentionally deferred: Phase 1 and Phase 2 runtime interfaces have not both merged and stabilized. The terrain subsystem remains isolated.
+- Next: inspect all four branch CI runs and logs, fix any failures, then leave the PR stack ready for integration review. The integration maintainer owns all merges and later gameplay integration.
