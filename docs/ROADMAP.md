@@ -37,7 +37,7 @@
 - [x] PR #12: localized sphere edits, affected-chunk query, shared-border density equality, and journal reset (Linux + Windows CI passed; stacked PR ready for review).
 - [x] PR #13: coalesced static collision replacement with a bounded physics-safe queue (Linux + Windows CI passed; stacked draft PR).
 - [x] PR #15: budgets, low-end fallback, bounded mesh queue, and repeatable CPU/memory-payload profiling (Linux + Windows CI passed; stacked draft PR).
-- [ ] Integrate terrain with BlastService and the active gameplay scene only after Phase 1 and Phase 2 have merged and their interfaces are stable.
+- [x] Integrate terrain with the gameplay blast path: a bounded resident `TerrainWorld` patch, localized carve-to-mesh-to-collision rebuilds, terrain reset, and end-to-end regression coverage. Runtime integration branch is based on PR #15; review remains open.
 
 ## Phase 4 - Multiple worlds ([AI issue #8](https://github.com/PanDuroDev/Idk/issues/8), after Phase 2-3 contracts stabilize)
 - [ ] Data-driven world configurations.

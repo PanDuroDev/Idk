@@ -36,6 +36,10 @@ func request_rebuild(body: StaticBody3D, collision_node: CollisionShape3D, mesh:
 func pending_count() -> int:
 	return _pending_by_shape.size()
 
+func clear_pending() -> void:
+	_pending_order.clear()
+	_pending_by_shape.clear()
+
 func _physics_process(_delta: float) -> void:
 	var budget := maxi(1, max_rebuilds_per_physics_frame)
 	var processed := 0

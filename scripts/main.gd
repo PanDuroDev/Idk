@@ -3,6 +3,7 @@ extends Node3D
 const PLAYER_SCRIPT = preload("res://scripts/player_controller.gd")
 const STRUCTURE_SCRIPT = preload("res://scripts/destructible_structure.gd")
 const BLAST_SERVICE_SCRIPT = preload("res://scripts/blast_service.gd")
+const TERRAIN_SCRIPT = preload("res://terrain/terrain_world.gd")
 const BUILDING_DEFINITION_CATALOG = preload("res://resources/buildings/building_definition_catalog.tres")
 const MATERIAL_PROFILE_CATALOG = preload("res://resources/materials/material_profile_catalog.tres")
 const SIMULATION_CONFIGURATION_CODEC = preload("res://scripts/simulation_configuration_codec.gd")
@@ -20,6 +21,7 @@ const DEFAULT_GRAVITY: float = 9.8
 @export_range(0.1, 10.0, 0.1) var blast_damage: float = 4.0
 
 var _structure: Node3D
+var _terrain: Node3D
 var _player: CharacterBody3D
 var _blast_service: RefCounted
 var _pending_blasts: Array[Dictionary] = []
@@ -48,6 +50,7 @@ func _ready() -> void:
 	_blast_service = BLAST_SERVICE_SCRIPT.new()
 	_build_environment()
 	_build_ground()
+	_build_terrain()
 
 	_structure = STRUCTURE_SCRIPT.new()
 	_structure.position = Vector3(0.0, 0.0, -12.0)
@@ -79,6 +82,8 @@ func _physics_process(_delta: float) -> void:
 	if _reset_requested:
 		if is_instance_valid(_structure):
 			_structure.call("reset_structure")
+		if is_instance_valid(_terrain):
+			_terrain.call("reset_terrain")
 		_reset_requested = false
 		_last_broken_count = 0
 		_last_affected_count = 0
@@ -97,14 +102,16 @@ func _process(delta: float) -> void:
 	var fragment_released: int = int(_structure.call("get_released_fragment_count")) if is_instance_valid(_structure) else 0
 	var fragment_broken: int = int(_structure.call("get_broken_fragment_count")) if is_instance_valid(_structure) else 0
 	var fragment_unsupported: int = int(_structure.call("get_unsupported_fragment_count")) if is_instance_valid(_structure) else 0
-	_hud_label.text = "WORLDBREAK  |  FPS %d  |  Loose %d/%d  |  Broken %d (+%d)  |  Unsupported %d  |  Targets %d" % [
+	var terrain_edits: int = int(_terrain.call("get_terrain_edit_count")) if is_instance_valid(_terrain) else 0
+	_hud_label.text = "WORLDBREAK  |  FPS %d  |  Loose %d/%d  |  Broken %d (+%d)  |  Unsupported %d  |  Targets %d  |  Terrain %d" % [
 		Engine.get_frames_per_second(),
 		fragment_released,
 		fragment_total,
 		fragment_broken,
 		_last_broken_count,
 		fragment_unsupported,
-		_last_affected_count
+		_last_affected_count,
+		terrain_edits
 	]
 	_refresh_impact_controls()
 	_refresh_debug_overlay()
@@ -239,6 +246,9 @@ func _process_blast(ray_origin: Vector3, ray_direction: Vector3) -> void:
 	var ray_hit: Dictionary = space_state.intersect_ray(ray_query)
 	var impact_position: Vector3 = ray_hit.get("position", ray_end)
 
+	if is_instance_valid(_terrain):
+		_terrain.call("carve_sphere", impact_position, blast_radius, blast_damage)
+
 	_last_broken_count = int(_structure.call("apply_blast_damage", impact_position, blast_radius, blast_damage))
 	_last_affected_count = int(_blast_service.call(
 		"apply_radial_impulse",
@@ -294,6 +304,13 @@ func _build_ground() -> void:
 	material.roughness = 0.95
 	mesh.material = material
 	ground.add_child(mesh_instance)
+
+
+func _build_terrain() -> void:
+	_terrain = TERRAIN_SCRIPT.new()
+	_terrain.name = "TerrainWorld"
+	_terrain.position = Vector3(18.0, 0.06, -30.0)
+	add_child(_terrain)
 
 
 func _spawn_physics_props() -> void:

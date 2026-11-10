@@ -85,7 +85,7 @@ These are object/count budgets derived from the actual prototype and implementat
 - The support graph is topological, not a physical bond network.
 - Damage uses distance to fragment centers and a linear falloff.
 - No force distribution, stress, bending, crack propagation, or physical joint break thresholds.
-- No arbitrary mesh fracture or runtime terrain deformation.
+- No arbitrary mesh fracture. Runtime terrain deformation is limited to the resident prototype patch.
 - Headless tests verify logic and state transitions, not visual quality or real-world frame rate.
 
 ### Future physical-bond model
@@ -99,7 +99,7 @@ Godot `Joint3D` can constrain pairs of physics bodies. Optional breakable links 
 - Avoid PhysicsServer3D or native extensions until profiling shows a real bottleneck.
 
 ## Terrain and worlds
-Runtime terrain deformation is a separate subsystem. The Phase 3 prototype uses chunked scalar density fields with a fixed tetrahedral isosurface mesher, duplicated global border samples, a deterministic world-space edit journal, and a bounded static-collider replacement queue. Heightfields are insufficient for caves/overhangs; Marching Tetrahedra is a compact spike with a higher triangle-count trade-off versus Marching Cubes. See docs/TERRAIN_ARCHITECTURE.md for the current API, limits, and known gaps. The terrain subsystem is not connected to the gameplay scene until Phase 1 and Phase 2 runtime contracts are merged and stable. World definitions should be data-driven.
+Runtime terrain deformation is a separate subsystem. The Phase 3 prototype uses chunked scalar density fields with a fixed tetrahedral isosurface mesher, duplicated global border samples, a deterministic edit journal, and bounded static-collider and mesh replacement queues. Heightfields are insufficient for caves/overhangs; Marching Tetrahedra is a compact spike with a higher triangle-count trade-off versus Marching Cubes. `TerrainWorld` now coordinates a small resident patch in the gameplay scene: blasts carve only the resident chunks they intersect, and reset clears the journal and restores base density. This is an encounter-sized resident patch, not a chunk streamer. See docs/TERRAIN_ARCHITECTURE.md for the current API, limits, and known gaps. World definitions should be data-driven.
 
 ## Research references
 - Godot 4.7 RigidBody3D: https://docs.godotengine.org/en/4.7/classes/class_rigidbody3d.html
