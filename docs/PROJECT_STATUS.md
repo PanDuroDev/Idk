@@ -85,7 +85,7 @@ Issue [#5](https://github.com/PanDuroDev/Idk/issues/5) remains open. Its impleme
 
 - [PR #14](https://github.com/PanDuroDev/Idk/pull/14) merged the architecture and schema proposal only.
 - [PR #18](https://github.com/PanDuroDev/Idk/pull/18) implements reusable building definitions on `ai/phase-2/building-definitions`: versioned Resource types, validation, the classic 70-cell preset, an 11-cell sparse sample, and data-driven fragment generation.
-- Godot 4.7.2 CI passed on Linux and Windows in [Actions run #42894517616](https://github.com/PanDuroDev/Idk/actions/runs/42894517616), including explicit building-definition, repeated-collapse/reset, and terrain-prototype success markers. The Windows gate now checks console output as well as engine log files.
+- Godot 4.7.2 CI passed on Linux and Windows in [Actions run #42894906735](https://github.com/PanDuroDev/Idk/actions/runs/42894906735), including explicit building-definition, repeated-collapse/reset, and terrain-prototype success markers. The Windows gate checks captured console output as well as engine log files.
 - PR #18 remains open for integration review; it is not merged and does not complete Phase 2.
 - Material authoring workflow and simulation configuration save/load remain separate follow-up PRs.
 - Optional breakable-joint feasibility remains deferred until profiling provides evidence.
