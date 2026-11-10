@@ -560,6 +560,55 @@ func _test_building_definition_assets() -> bool:
 		_fail("Material catalog validator accepted duplicate profile IDs")
 		return false
 
+	malformed.default_material_profile = CLASSIC_BUILDING.default_material_profile
+	malformed.dimensions = Vector3i(2, 0, 2)
+	var invalid_dimensions_errors: Array[String] = BUILDING_DEFINITION_VALIDATOR.validate_definition(malformed)
+	var found_dimensions_error: bool = false
+	for error_text: String in invalid_dimensions_errors:
+		if error_text.contains("dimensions must be positive"):
+			found_dimensions_error = true
+	if not found_dimensions_error:
+		_fail("Building validator did not reject non-positive dimensions")
+		return false
+
+	malformed.dimensions = Vector3i(2, 2, 2)
+	malformed.schema_version = BuildingDefinitionScript.CURRENT_SCHEMA_VERSION + 1
+	var unsupported_schema_errors: Array[String] = BUILDING_DEFINITION_VALIDATOR.validate_definition(malformed)
+	var found_schema_error: bool = false
+	for error_text: String in unsupported_schema_errors:
+		if error_text.contains("Unsupported building schema version"):
+			found_schema_error = true
+	if not found_schema_error:
+		_fail("Building validator did not reject an unsupported schema version")
+		return false
+
+	malformed.schema_version = BuildingDefinitionScript.CURRENT_SCHEMA_VERSION
+	malformed.cells.clear()
+	malformed.cells.append(null)
+	var null_cell_errors: Array[String] = BUILDING_DEFINITION_VALIDATOR.validate_definition(malformed)
+	var found_null_cell_error: bool = false
+	for error_text: String in null_cell_errors:
+		if error_text.contains("Cell entry 0 is null"):
+			found_null_cell_error = true
+	if not found_null_cell_error:
+		_fail("Building validator did not reject a null cell entry")
+		return false
+
+	var invalid_transform_cell := BuildingCellDefinitionScript.new()
+	invalid_transform_cell.coordinate = Vector3i.ZERO
+	invalid_transform_cell.use_custom_transform = true
+	invalid_transform_cell.local_transform.origin = Vector3(INF, 0.0, 0.0)
+	malformed.cells.clear()
+	malformed.cells.append(invalid_transform_cell)
+	var invalid_transform_errors: Array[String] = BUILDING_DEFINITION_VALIDATOR.validate_definition(malformed)
+	var found_transform_error: bool = false
+	for error_text: String in invalid_transform_errors:
+		if error_text.contains("non-finite or degenerate custom transform"):
+			found_transform_error = true
+	if not found_transform_error:
+		_fail("Building validator did not reject a non-finite custom transform")
+		return false
+
 	var invalid_profile := DestructionMaterialProfileScript.new()
 	invalid_profile.material_id = &"invalid_profile"
 	invalid_profile.display_name = "Invalid profile"
