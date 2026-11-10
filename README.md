@@ -35,6 +35,8 @@ The support graph is a deterministic topology approximation. The material profil
 
 The in-game Impact Settings panel adjusts blast radius, damage, and physical impulse. Each value has bounded +/- controls; Reset impact defaults restores the prototype values. Controls are defined through Godot InputMap and can be remapped in Project Settings.
 
+The current prototype retains all 70 original structure nodes for reset. Released fragments use a 30-second default lifetime and a 70-awake-fragment budget. Impact dust is capped at eight concurrent bursts (six motes each) with a 0.55-second lifetime.
+
 ## Architecture
 - GDScript and Godot Physics 3D.
 - `BlastService` handles reusable radial shape queries and physical impulse falloff.
