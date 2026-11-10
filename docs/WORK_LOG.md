@@ -170,3 +170,14 @@ This is an append-only engineering journal. Each substantial session is recorded
 - Correction: earlier green Windows runs listed above were false positives and are not accepted as validation evidence. The run linked here is the first accepted final cross-platform run for this PR.
 - Still unverified: interactive graphics, player input feel, target-PC FPS/CPU/GPU usage, and long-duration debris settling on the GTX 1660 SUPER system.
 - Next: obtain manual Windows interactive/performance observations before increasing physics complexity or starting terrain work.
+
+
+## 2026-11-10 - PR #3 merge follow-up
+
+- PR #3 was marked ready after its final head `0871c476f4c24a26f283ec1e18ad2f97a709bccd` passed the Linux and Windows validation jobs, including log scanning, the three material threshold checks, and the 120-frame post-collapse physics test.
+- Confirmed zero submitted PR reviews and zero review threads, with GitHub reporting `mergeable_state=clean`.
+- Squash-merged PR #3 into `main`.
+- Merge commit: `328595ede6470700a16574bd1461e1b37d3dbe58`.
+- The automatic push-to-`main` workflow [#42866260328](https://github.com/PanDuroDev/Idk/actions/runs/42866260328) passed on both Windows and Linux at the merge commit.
+- Manual visual/input testing, long-duration debris settling, and target-PC performance profiling remain outstanding; headless CI does not claim to verify them.
+- Next: perform the manual Windows 4.7.2 test on the target PC before extending destruction features or starting terrain deformation.
