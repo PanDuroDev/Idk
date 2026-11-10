@@ -12,7 +12,7 @@ const TETRAHEDRA: Array[Array] = [
 	[0, 3, 7, 6], [0, 7, 4, 6], [0, 4, 5, 6]
 ]
 
-static func build_mesh(data: TerrainChunkData, iso_level: float = 0.0) -> ArrayMesh:
+static func build_mesh(data: Variant, iso_level: float = 0.0) -> ArrayMesh:
 	var surface := SurfaceTool.new()
 	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
 	for z in range(data.cells.z):

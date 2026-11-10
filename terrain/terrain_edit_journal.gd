@@ -33,7 +33,7 @@ func evaluate_density(base_density: float, world_position: Vector3) -> float:
 		density += float(edit["delta"]) * falloff
 	return density
 
-func rebuild_chunk_samples(data: TerrainChunkData, base_field: Callable) -> void:
+func rebuild_chunk_samples(data: Variant, base_field: Callable) -> void:
 	var dimensions := data.sample_dimensions()
 	for z in range(dimensions.z):
 		for y in range(dimensions.y):

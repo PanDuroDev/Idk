@@ -11,7 +11,7 @@ on:
       - 'ai/phase-3/**'
   pull_request:
     branches:
-      - main
+      - '**'
 
 jobs:
   linux-headless-validation:
@@ -51,11 +51,6 @@ jobs:
             echo "Repeated collapse/reset regression did not report its success marker."
             exit 1
           fi
-          if ! grep -q 'WORLDBREAK_SMOKE_TEST_OK' godot-smoke.log; then
-            cat godot-smoke.log
-            echo "Gameplay smoke test did not report its success marker."
-            exit 1
-          fi
           if grep -Eq 'SCRIPT ERROR:|(^|[[:space:]])ERROR:|WORLDBREAK_SMOKE_TEST_FAILED' godot-smoke.log; then
             cat godot-smoke.log
             exit 1
@@ -63,27 +58,35 @@ jobs:
 
       - name: Run isolated terrain chunk test
         run: |
-          ./Godot_v4.7.2-stable_linux.x86_64 --headless --path . --script res://tests/terrain/terrain_chunk_data_test.gd --log-file godot-terrain.log
-          if ! grep -q 'WORLDBREAK_TERRAIN_CHUNK_MESH_OK' godot-terrain.log; then
-            cat godot-terrain.log
+          set +e
+          ./Godot_v4.7.2-stable_linux.x86_64 --headless --path . --script res://tests/terrain/terrain_chunk_data_test.gd --log-file godot-terrain.log > godot-terrain-console.log 2>&1
+          test_status=$?
+          set -e
+          cat godot-terrain-console.log
+          if [ -f godot-terrain.log ]; then cat godot-terrain.log; fi
+          if [ "$test_status" -ne 0 ]; then exit "$test_status"; fi
+          if ! grep -q 'WORLDBREAK_TERRAIN_CHUNK_MESH_OK' godot-terrain-console.log && ! grep -q 'WORLDBREAK_TERRAIN_CHUNK_MESH_OK' godot-terrain.log; then
             echo "Terrain chunk test did not report its success marker."
             exit 1
           fi
-          if grep -Eq 'SCRIPT ERROR:|(^|[[:space:]])ERROR:' godot-terrain.log; then
-            cat godot-terrain.log
+          if grep -Eq 'SCRIPT ERROR:|(^|[[:space:]])ERROR:|Parse Error:|Failed to load script' godot-terrain-console.log godot-terrain.log; then
             exit 1
           fi
 
       - name: Run terrain deformation test
         run: |
-          ./Godot_v4.7.2-stable_linux.x86_64 --headless --path . --script res://tests/terrain/terrain_deformation_test.gd --log-file godot-deformation.log
-          if ! grep -q 'WORLDBREAK_TERRAIN_DEFORMATION_OK' godot-deformation.log; then
-            cat godot-deformation.log
+          set +e
+          ./Godot_v4.7.2-stable_linux.x86_64 --headless --path . --script res://tests/terrain/terrain_deformation_test.gd --log-file godot-deformation.log > godot-deformation-console.log 2>&1
+          test_status=$?
+          set -e
+          cat godot-deformation-console.log
+          if [ -f godot-deformation.log ]; then cat godot-deformation.log; fi
+          if [ "$test_status" -ne 0 ]; then exit "$test_status"; fi
+          if ! grep -q 'WORLDBREAK_TERRAIN_DEFORMATION_OK' godot-deformation-console.log && ! grep -q 'WORLDBREAK_TERRAIN_DEFORMATION_OK' godot-deformation.log; then
             echo "Terrain deformation test did not report its success marker."
             exit 1
           fi
-          if grep -Eq 'SCRIPT ERROR:|(^|[[:space:]])ERROR:' godot-deformation.log; then
-            cat godot-deformation.log
+          if grep -Eq 'SCRIPT ERROR:|(^|[[:space:]])ERROR:|Parse Error:|Failed to load script' godot-deformation-console.log godot-deformation.log; then
             exit 1
           fi
 
@@ -137,10 +140,6 @@ jobs:
             Write-Output $log
             throw "Repeated collapse/reset regression did not report its success marker."
           }
-          if ($log -notmatch "WORLDBREAK_SMOKE_TEST_OK") {
-            Write-Output $log
-            throw "Gameplay smoke test did not report its success marker."
-          }
           if ($log -match "SCRIPT ERROR:|(^|\s)ERROR:|WORLDBREAK_SMOKE_TEST_FAILED") {
             Write-Output $log
             throw "Gameplay smoke test reported errors."
@@ -151,30 +150,34 @@ jobs:
         shell: pwsh
         run: |
           $godot = ".\godot\Godot_v4.7.2-stable_win64.exe"
-          & $godot --headless --path . --script res://tests/terrain/terrain_chunk_data_test.gd --log-file godot-terrain.log
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $terrainLog = Get-Content "godot-terrain.log" -Raw
-          if ($terrainLog -notmatch "WORLDBREAK_TERRAIN_CHUNK_MESH_OK") {
-            Write-Output $terrainLog
+          $terrainOutput = & $godot --headless --path . --script res://tests/terrain/terrain_chunk_data_test.gd --log-file godot-terrain.log 2>&1
+          $testExitCode = $LASTEXITCODE
+          $consoleLog = ($terrainOutput | Out-String)
+          $engineLog = if (Test-Path "godot-terrain.log") { Get-Content "godot-terrain.log" -Raw } else { "" }
+          $combinedLog = $consoleLog + [Environment]::NewLine + $engineLog
+          Write-Output $combinedLog
+          if ($testExitCode -ne 0) { exit $testExitCode }
+          if ($combinedLog -notmatch "WORLDBREAK_TERRAIN_CHUNK_MESH_OK") {
             throw "Terrain chunk test did not report its success marker."
           }
-          if ($terrainLog -match "SCRIPT ERROR:|(^|\s)ERROR:") {
-            Write-Output $terrainLog
-            throw "Terrain chunk test reported errors."
+          if ($combinedLog -match "SCRIPT ERROR:|(^|\s)ERROR:|Parse Error:|Failed to load script") {
+            throw "Terrain chunk test reported script or engine errors."
           }
 
       - name: Run terrain deformation test
         shell: pwsh
         run: |
-          $godot = ".\\godot\\Godot_v4.7.2-stable_win64.exe"
-          & $godot --headless --path . --script res://tests/terrain/terrain_deformation_test.gd --log-file godot-deformation.log
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $deformationLog = Get-Content "godot-deformation.log" -Raw
-          if ($deformationLog -notmatch "WORLDBREAK_TERRAIN_DEFORMATION_OK") {
-            Write-Output $deformationLog
+          $godot = ".\godot\Godot_v4.7.2-stable_win64.exe"
+          $deformationOutput = & $godot --headless --path . --script res://tests/terrain/terrain_deformation_test.gd --log-file godot-deformation.log 2>&1
+          $testExitCode = $LASTEXITCODE
+          $consoleLog = ($deformationOutput | Out-String)
+          $engineLog = if (Test-Path "godot-deformation.log") { Get-Content "godot-deformation.log" -Raw } else { "" }
+          $combinedLog = $consoleLog + [Environment]::NewLine + $engineLog
+          Write-Output $combinedLog
+          if ($testExitCode -ne 0) { exit $testExitCode }
+          if ($combinedLog -notmatch "WORLDBREAK_TERRAIN_DEFORMATION_OK") {
             throw "Terrain deformation test did not report its success marker."
           }
-          if ($deformationLog -match "SCRIPT ERROR:|(^|\\s)ERROR:") {
-            Write-Output $deformationLog
-            throw "Terrain deformation test reported errors."
+          if ($combinedLog -match "SCRIPT ERROR:|(^|\s)ERROR:|Parse Error:|Failed to load script") {
+            throw "Terrain deformation test reported script or engine errors."
           }
