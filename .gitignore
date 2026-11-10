@@ -1,0 +1,22 @@
+# Godot generated files
+.godot/
+.import/
+.export/
+
+# Exported builds
+/build/
+/dist/
+
+# IDE / editor
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln
+*.csproj
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
