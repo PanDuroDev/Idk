@@ -265,3 +265,26 @@ This is an append-only engineering journal. Each substantial session is recorded
 - The five phase issues describe 15 core future PRs, plus one optional breakable-joint feasibility PR if evidence supports it. The three already merged foundation PRs make 18 planned core PRs overall.
 - No implementation PR was created or merged in this delegation session. The integration maintainer remains responsible for review and ordered merges.
 - Next: send the Phase 1 prompt from issue #5 to the first AI.
+
+
+## 2026-11-10 - Phase 2 architecture review
+
+### Before work
+- Starting `main` commit: `70da82274da67faf034afb9d98932f4fe1db03f4`.
+- Issue #6 is open and explicitly blocks runtime implementation until Phase 1 is merged.
+- Phase 1 branch `ai/phase-1/runtime-impact-controls` is ahead of main with impact-control changes; Phase 1 issue #5 remains open and there is no open Phase 1 PR.
+- Reviewed README, project status, roadmap, technical direction, this work log, the structure generator, support graph, material Resource/assets, blast service, main scene script, smoke test, project settings, and CI workflow.
+- No Phase 2 runtime files or gameplay scenes were changed.
+
+### During work
+- Mapped the current fixed 7 x 5 x 2 generation loop and the existing cell-indexed damage/support/material state.
+- Confirmed the current material profile is already a Godot Resource with stable ID, integrity, blast resistance, density multiplier, tint, and shared visual-material creation.
+- Compared the active Phase 1 branch with main. Its current diff changes `main.gd` and the smoke test to add impact controls; it does not yet establish the loose-debris lifecycle/budget contract.
+- Drafted a Resource-first BuildingDefinition model, validation rules, material authoring workflow, versioned JSON configuration shape, failure semantics, and test plan in `docs/PHASE2_ARCHITECTURE.md`.
+- Deferred all runtime implementation and the optional joint prototype.
+
+### After work
+- Architecture proposal is ready for review on branch `ai/phase-2/schema-design`.
+- No Godot runtime tests were run because this branch changes documentation only.
+- No runtime code, scenes, project settings, or Phase 1-owned files were modified.
+- Next: wait for Phase 1 merge and inspect the final merged interfaces before starting PR 1 runtime work. Material-only tooling may be split into an isolated PR if it can avoid Phase 1-owned files.
