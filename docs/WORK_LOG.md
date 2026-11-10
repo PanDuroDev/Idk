@@ -113,3 +113,11 @@ This is an append-only engineering journal. Each substantial session is recorded
 - PR #2 remains a draft and unmerged; Unreal PR #1 remains closed and unmerged.
 - Current milestone: headlessly tested material-aware cumulative damage and support-loss collapse.
 - Next: manual Windows verification, then material/building authoring tools and evaluation of optional physical breakable joints.
+
+## 2026-11-10 - Merge follow-up
+
+- PR #2 was marked ready for review after confirming its merge state was clean, GitHub Actions validation passed on head `d8e15c4f9bf820a5157573f270931c34b2424b42`, and there were no unresolved review threads or change-request reviews.
+- Merged PR #2 into `main` using squash merge.
+- Merge commit: `0911466d40115e835815d4072c2f075843369027`.
+- Verified GitHub reports PR #2 as closed and merged, and `main` points to the merge commit.
+- Manual visual/input/performance testing on the target Windows PC remains outstanding.
