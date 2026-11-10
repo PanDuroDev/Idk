@@ -391,3 +391,47 @@ This is an append-only engineering journal. Each substantial session is recorded
 - The Phase 2 proposal still defines architecture and implementation gates only.
 - Full Phase 1 acceptance verification remains outstanding, including interactive effects/diagnostics checks and target-PC performance measurements.
 - Next: verify PR #14 mergeability and CI, then merge this documentation-only proposal without treating Phase 2 as complete.
+
+## 2026-11-10 - Phase 2 PR 1: reusable building definitions
+
+### Before
+- Starting `main` commit: `0a4153d275cf03d8ac0229f2fa31e64add0f989d` (Phase 2 architecture PR #14 merged).
+- Phase 1 implementation PRs #11, #16, and #17 are merged. Issue #5 remains open for interactive effects/diagnostics checks and target-PC performance observations; those checks are not inferred from merge state or headless CI.
+- Inspected the merged `DestructibleStructure`, support graph, blast service, material Resource/assets, runtime impact controls, debris lifecycle and budgets, scene setup, smoke tests, and Linux/Windows workflow.
+- Existing structure generation was still a hard-coded 7 x 5 x 2 loop with layer-based materials. Existing damage, support, blast, cleanup, and reset code already operate on `Vector3i` cell identities and can be reused.
+- Implementation risk: custom Resource typed-array serialization and the second sparse layout require actual Godot 4.7.2 import/runtime validation on both CI platforms.
+
+### During
+- Added versioned `BuildingDefinition` and per-cell `BuildingCellDefinition` Resources.
+- Added whole-definition and material-profile validation for schema, IDs, dimensions, finite values, cell bounds/uniqueness, custom transforms, required material references, profile ranges, catalog ID conflicts, and a conservative 256 occupied-cell ceiling.
+- Added `classic_70_piece.tres`, preserving all 70 coordinates, original cell centers, and foundation/masonry/lightweight layer assignments.
+- Added `sparse_pillar_beam_11.tres`, an 11-cell sparse sample with a per-cell lightweight material override and a custom local transform.
+- Replaced the fixed grid/layer builder with validated definition-driven fragment creation while retaining the existing cell-indexed damage/support state and Phase 1 debris/reset lifecycle.
+- Added headless tests for both Resources, unique/in-range coordinates, original center/material compatibility, invalid duplicate/out-of-range/missing-material definitions, invalid material values, duplicate catalog IDs, sparse generation, custom transform/material mapping, collapse, and reset.
+- Added `docs/BUILDING_DEFINITIONS.md` and updated the project status, roadmap, README, architecture status, and this work log.
+- The existing `scripts/destructible_structure.gd` was intentionally extended to source fragment creation from the new definition Resources. Its merged Phase 1 damage, support, debris lifetime/budget, retirement, and reset behavior was preserved. No `main.gd`, gameplay scene, Phase 1 controls/effects code, or project settings were changed.
+
+### After
+- Implementation is on `ai/phase-2/building-definitions`; no PR has been merged.
+- Linux/Windows Godot 4.7.2 import, parse, and headless smoke validation are pending the PR workflow. No test success is claimed until the logs and explicit markers are inspected.
+- Interactive building authoring in the Inspector and target-PC performance with larger buildings remain manual checks.
+- Next: inspect the cross-platform CI logs, fix any Resource serialization or runtime issues, and leave the implementation PR ready for integration review.
+
+### Validation follow-up - Windows type loading and CI output capture
+
+- The first Linux CI attempt exposed stale material-profile type annotations after the builder conversion; those were corrected.
+- The first Windows run then revealed a separate issue hidden by the existing workflow: script-class names registered through the global class cache were unavailable during Windows headless execution, and console parse errors were not included in the workflow's log-file-only checks.
+- Replaced cross-script custom-class annotations in the building-definition path with explicit script preloads, matching the repository's existing preload-based pattern.
+- Updated Linux and Windows import, launch, and gameplay smoke steps to inspect captured console output together with Godot log files. The gameplay gate now explicitly requires building-definition, repeated-collapse/reset, and overall smoke success markers on both platforms.
+- The follow-up run on the pre-guard commit passed building-definition tests on both platforms without parse errors. The stricter workflow run [#42894517616](https://github.com/PanDuroDev/Idk/actions/runs/42894517616) then passed every Linux and Windows step, including building-definition tests, five repeated collapse/reset cycles, and the isolated terrain chunk regression.
+- Expanded malformed-definition coverage to include non-positive dimensions, unsupported schema versions, null cell entries, and non-finite custom transforms.
+- The latest strict CI run [#42894906735](https://github.com/PanDuroDev/Idk/actions/runs/42894906735) passed on Linux and Windows after the expanded malformed-definition cases. It requires captured console/log output to be free of script/parse errors and requires explicit building-definition, repeated-collapse/reset, and overall smoke success markers; the terrain regression also passed.
+- Next: mark PR #18 ready for integration review. Do not merge.
+
+### All-cell and material-behavior regression follow-up
+
+- Expanded the classic preset regression to validate the original center position and material-layer mapping for every one of the 70 occupied cells, not only representative samples.
+- Expanded the sparse sample regression to verify the selected per-cell profile controls rigid-body mass, visual material color, integrity, and the damage threshold derived from blast resistance.
+- The first color assertion exposed that the test's node-name lookup was brittle. The test now locates the visual child by node type and reports separate failures for missing visual nodes, missing material overrides, and color mismatches.
+- Final code run [#42895893291](https://github.com/PanDuroDev/Idk/actions/runs/42895893291) passed Linux and Windows import/parse, launch, gameplay smoke, and isolated terrain regression. Linux logs show the building-definition, five-cycle reset, overall smoke, and terrain success markers with no script/parse/engine errors; Windows completed the same marker-gated checks successfully.
+- Next: finish the requested CodeRabbit review, address any findings, then leave PR #18 ready for maintainer integration. Do not merge.

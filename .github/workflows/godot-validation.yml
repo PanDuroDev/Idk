@@ -29,30 +29,46 @@ jobs:
 
       - name: Import project and parse scripts
         run: |
-          ./Godot_v4.7.2-stable_linux.x86_64 --headless --path . --import --log-file godot-import.log
-          if grep -Eq 'SCRIPT ERROR:|(^|[[:space:]])ERROR:' godot-import.log; then
-            cat godot-import.log
+          set +e
+          ./Godot_v4.7.2-stable_linux.x86_64 --headless --path . --import --log-file godot-import.log > godot-import-console.log 2>&1
+          test_status=$?
+          set -e
+          cat godot-import-console.log
+          if [ -f godot-import.log ]; then cat godot-import.log; fi
+          if [ "$test_status" -ne 0 ]; then exit "$test_status"; fi
+          if grep -Eq 'SCRIPT ERROR:|(^|[[:space:]])ERROR:|Parse Error:|Failed to load script' godot-import-console.log godot-import.log; then
             exit 1
           fi
 
       - name: Launch project headlessly
         run: |
-          ./Godot_v4.7.2-stable_linux.x86_64 --headless --path . --quit-after 3 --log-file godot-launch.log
-          if grep -Eq 'SCRIPT ERROR:|(^|[[:space:]])ERROR:' godot-launch.log; then
-            cat godot-launch.log
+          set +e
+          ./Godot_v4.7.2-stable_linux.x86_64 --headless --path . --quit-after 3 --log-file godot-launch.log > godot-launch-console.log 2>&1
+          test_status=$?
+          set -e
+          cat godot-launch-console.log
+          if [ -f godot-launch.log ]; then cat godot-launch.log; fi
+          if [ "$test_status" -ne 0 ]; then exit "$test_status"; fi
+          if grep -Eq 'SCRIPT ERROR:|(^|[[:space:]])ERROR:|Parse Error:|Failed to load script' godot-launch-console.log godot-launch.log; then
             exit 1
           fi
 
       - name: Run gameplay smoke test
         run: |
-          ./Godot_v4.7.2-stable_linux.x86_64 --headless --path . --script res://tests/headless_smoke_test.gd --log-file godot-smoke.log
-          if ! grep -q 'WORLDBREAK_REPEAT_CYCLES_OK' godot-smoke.log; then
-            cat godot-smoke.log
-            echo "Repeated collapse/reset regression did not report its success marker."
-            exit 1
-          fi
-          if grep -Eq 'SCRIPT ERROR:|(^|[[:space:]])ERROR:|WORLDBREAK_SMOKE_TEST_FAILED' godot-smoke.log; then
-            cat godot-smoke.log
+          set +e
+          ./Godot_v4.7.2-stable_linux.x86_64 --headless --path . --script res://tests/headless_smoke_test.gd --log-file godot-smoke.log > godot-smoke-console.log 2>&1
+          test_status=$?
+          set -e
+          cat godot-smoke-console.log
+          if [ -f godot-smoke.log ]; then cat godot-smoke.log; fi
+          if [ "$test_status" -ne 0 ]; then exit "$test_status"; fi
+          for marker in WORLDBREAK_BUILDING_DEFINITIONS_OK WORLDBREAK_REPEAT_CYCLES_OK WORLDBREAK_SMOKE_TEST_OK; do
+            if ! grep -q "$marker" godot-smoke-console.log && ! grep -q "$marker" godot-smoke.log; then
+              echo "Gameplay smoke test did not report required marker: $marker"
+              exit 1
+            fi
+          done
+          if grep -Eq 'SCRIPT ERROR:|(^|[[:space:]])ERROR:|Parse Error:|Failed to load script|WORLDBREAK_SMOKE_TEST_FAILED' godot-smoke-console.log godot-smoke.log; then
             exit 1
           fi
 
@@ -94,10 +110,14 @@ jobs:
         shell: pwsh
         run: |
           $godot = ".\godot\Godot_v4.7.2-stable_win64.exe"
-          & $godot --headless --path . --import --log-file godot-import.log
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          if (Select-String -Path "godot-import.log" -Pattern "SCRIPT ERROR:|(^|\s)ERROR:" -Quiet) {
-            Get-Content "godot-import.log"
+          $engineOutput = & $godot --headless --path . --import --log-file godot-import.log 2>&1
+          $testExitCode = $LASTEXITCODE
+          $consoleLog = ($engineOutput | Out-String)
+          $engineLog = if (Test-Path "godot-import.log") { Get-Content "godot-import.log" -Raw } else { "" }
+          $combinedLog = $consoleLog + [Environment]::NewLine + $engineLog
+          Write-Output $combinedLog
+          if ($testExitCode -ne 0) { exit $testExitCode }
+          if ($combinedLog -match "SCRIPT ERROR:|(^|\s)ERROR:|Parse Error:|Failed to load script") {
             throw "Godot import reported script or engine errors."
           }
 
@@ -105,10 +125,14 @@ jobs:
         shell: pwsh
         run: |
           $godot = ".\godot\Godot_v4.7.2-stable_win64.exe"
-          & $godot --headless --path . --quit-after 3 --log-file godot-launch.log
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          if (Select-String -Path "godot-launch.log" -Pattern "SCRIPT ERROR:|(^|\s)ERROR:" -Quiet) {
-            Get-Content "godot-launch.log"
+          $engineOutput = & $godot --headless --path . --quit-after 3 --log-file godot-launch.log 2>&1
+          $testExitCode = $LASTEXITCODE
+          $consoleLog = ($engineOutput | Out-String)
+          $engineLog = if (Test-Path "godot-launch.log") { Get-Content "godot-launch.log" -Raw } else { "" }
+          $combinedLog = $consoleLog + [Environment]::NewLine + $engineLog
+          Write-Output $combinedLog
+          if ($testExitCode -ne 0) { exit $testExitCode }
+          if ($combinedLog -match "SCRIPT ERROR:|(^|\s)ERROR:|Parse Error:|Failed to load script") {
             throw "Headless launch reported script or engine errors."
           }
 
@@ -116,16 +140,20 @@ jobs:
         shell: pwsh
         run: |
           $godot = ".\godot\Godot_v4.7.2-stable_win64.exe"
-          & $godot --headless --path . --script res://tests/headless_smoke_test.gd --log-file godot-smoke.log
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $log = Get-Content "godot-smoke.log" -Raw
-          if ($log -notmatch "WORLDBREAK_REPEAT_CYCLES_OK") {
-            Write-Output $log
-            throw "Repeated collapse/reset regression did not report its success marker."
+          $engineOutput = & $godot --headless --path . --script res://tests/headless_smoke_test.gd --log-file godot-smoke.log 2>&1
+          $testExitCode = $LASTEXITCODE
+          $consoleLog = ($engineOutput | Out-String)
+          $engineLog = if (Test-Path "godot-smoke.log") { Get-Content "godot-smoke.log" -Raw } else { "" }
+          $combinedLog = $consoleLog + [Environment]::NewLine + $engineLog
+          Write-Output $combinedLog
+          if ($testExitCode -ne 0) { exit $testExitCode }
+          foreach ($marker in @("WORLDBREAK_BUILDING_DEFINITIONS_OK", "WORLDBREAK_REPEAT_CYCLES_OK", "WORLDBREAK_SMOKE_TEST_OK")) {
+            if ($combinedLog -notmatch [regex]::Escape($marker)) {
+              throw "Gameplay smoke test did not report required marker: $marker"
+            }
           }
-          if ($log -match "SCRIPT ERROR:|(^|\s)ERROR:|WORLDBREAK_SMOKE_TEST_FAILED") {
-            Write-Output $log
-            throw "Gameplay smoke test reported errors."
+          if ($combinedLog -match "SCRIPT ERROR:|(^|\s)ERROR:|Parse Error:|Failed to load script|WORLDBREAK_SMOKE_TEST_FAILED") {
+            throw "Gameplay smoke test reported script or engine errors."
           }
 
       

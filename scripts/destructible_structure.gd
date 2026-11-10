@@ -1,16 +1,11 @@
 extends Node3D
 
-const WIDTH: int = 7
-const HEIGHT: int = 5
-const DEPTH: int = 2
-const BLOCK_SIZE: Vector3 = Vector3(1.0, 1.0, 1.0)
-const SPACING: float = 1.04
-
 const SUPPORT_GRAPH_SCRIPT = preload("res://scripts/structural_support_graph.gd")
+const BUILDING_DEFINITION_VALIDATOR = preload("res://scripts/building_definition_validator.gd")
+const BuildingDefinitionScript = preload("res://scripts/building_definition.gd")
+const BuildingCellDefinitionScript = preload("res://scripts/building_cell_definition.gd")
 const DestructionMaterialProfileScript = preload("res://scripts/destruction_material_profile.gd")
-const FOUNDATION_PROFILE: DestructionMaterialProfileScript = preload("res://resources/materials/foundation_concrete.tres")
-const MASONRY_PROFILE: DestructionMaterialProfileScript = preload("res://resources/materials/masonry.tres")
-const LIGHTWEIGHT_PROFILE: DestructionMaterialProfileScript = preload("res://resources/materials/lightweight_panel.tres")
+const DEFAULT_BUILDING_DEFINITION: BuildingDefinitionScript = preload("res://resources/buildings/classic_70_piece.tres")
 
 var _fragments: Array[RigidBody3D] = []
 var _initial_transforms: Array[Transform3D] = []
@@ -27,8 +22,11 @@ var _initial_collision_layers: Array[int] = []
 var _initial_collision_masks: Array[int] = []
 var _initial_visibility: Array[bool] = []
 
+@export var building_definition: BuildingDefinitionScript = DEFAULT_BUILDING_DEFINITION
 @export_range(1, 256, 1) var max_active_loose_fragments: int = 70
 @export_range(0.0, 300.0, 1.0) var loose_debris_lifetime_seconds: float = 30.0
+
+var _build_validation_errors: Array[String] = []
 
 var _shared_mesh: BoxMesh
 var _shared_collision_shape: BoxShape3D
@@ -37,9 +35,21 @@ var _shared_materials: Dictionary = {}
 
 func _ready() -> void:
 	name = "DestructibleStructure"
+	_build_validation_errors = BUILDING_DEFINITION_VALIDATOR.validate_definition(building_definition)
+	if not _build_validation_errors.is_empty():
+		push_error("Invalid building definition '%s': %s" % [
+			String(building_definition.definition_id) if building_definition != null else "<null>",
+			"\n".join(_build_validation_errors)
+		])
+		set_physics_process(false)
+		return
 	_create_shared_resources()
 	_build_structure()
 	_refresh_support_state()
+
+
+func get_build_validation_errors() -> Array[String]:
+	return _build_validation_errors.duplicate()
 
 
 func _physics_process(delta: float) -> void:
@@ -49,66 +59,50 @@ func _physics_process(delta: float) -> void:
 
 func _create_shared_resources() -> void:
 	_shared_mesh = BoxMesh.new()
-	_shared_mesh.size = BLOCK_SIZE
+	_shared_mesh.size = building_definition.cell_size
 
 	_shared_collision_shape = BoxShape3D.new()
-	_shared_collision_shape.size = BLOCK_SIZE
+	_shared_collision_shape.size = building_definition.cell_size
 
-	for profile: DestructionMaterialProfileScript in [
-		FOUNDATION_PROFILE,
-		MASONRY_PROFILE,
-		LIGHTWEIGHT_PROFILE
-	]:
-		_shared_materials[profile.material_id] = profile.create_surface_material()
-
-
-func _get_profile_for_layer(layer: int) -> DestructionMaterialProfileScript:
-	if layer == 0:
-		return FOUNDATION_PROFILE
-	if layer == HEIGHT - 1:
-		return LIGHTWEIGHT_PROFILE
-	return MASONRY_PROFILE
+	for cell_definition: BuildingCellDefinitionScript in building_definition.cells:
+		var profile: DestructionMaterialProfileScript = building_definition.get_cell_material_profile(cell_definition)
+		if not _shared_materials.has(profile.material_id):
+			_shared_materials[profile.material_id] = profile.create_surface_material()
 
 
 func _build_structure() -> void:
-	for y in range(HEIGHT):
-		for x in range(WIDTH):
-			for z in range(DEPTH):
-				var cell := Vector3i(x, y, z)
-				var profile: DestructionMaterialProfileScript = _get_profile_for_layer(y)
-				var fragment := RigidBody3D.new()
-				fragment.name = "Fragment_%02d_%02d_%02d" % [x, y, z]
-				fragment.position = Vector3(
-					(float(x) - float(WIDTH - 1) * 0.5) * SPACING,
-					0.5 + float(y) * SPACING,
-					(float(z) - float(DEPTH - 1) * 0.5) * SPACING
-				)
-				fragment.mass = maxf(profile.density_multiplier, 0.1)
-				fragment.freeze = true
-				fragment.freeze_mode = RigidBody3D.FREEZE_MODE_STATIC
-				fragment.collision_layer = 1
-				fragment.collision_mask = 1
-				fragment.add_to_group("destructible")
-				fragment.add_to_group("blastable")
-				add_child(fragment)
+	for cell_definition: BuildingCellDefinitionScript in building_definition.cells:
+		var cell: Vector3i = cell_definition.coordinate
+		var profile: DestructionMaterialProfileScript = building_definition.get_cell_material_profile(cell_definition)
+		var fragment := RigidBody3D.new()
+		fragment.name = "Fragment_%02d_%02d_%02d" % [cell.x, cell.y, cell.z]
+		fragment.transform = building_definition.get_cell_local_transform(cell_definition)
+		fragment.mass = maxf(profile.density_multiplier, 0.1)
+		fragment.freeze = true
+		fragment.freeze_mode = RigidBody3D.FREEZE_MODE_STATIC
+		fragment.collision_layer = 1
+		fragment.collision_mask = 1
+		fragment.add_to_group("destructible")
+		fragment.add_to_group("blastable")
+		add_child(fragment)
 
-				var mesh_instance := MeshInstance3D.new()
-				mesh_instance.mesh = _shared_mesh
-				mesh_instance.material_override = _shared_materials[profile.material_id]
-				fragment.add_child(mesh_instance)
+		var mesh_instance := MeshInstance3D.new()
+		mesh_instance.mesh = _shared_mesh
+		mesh_instance.material_override = _shared_materials[profile.material_id]
+		fragment.add_child(mesh_instance)
 
-				var collision := CollisionShape3D.new()
-				collision.shape = _shared_collision_shape
-				fragment.add_child(collision)
+		var collision := CollisionShape3D.new()
+		collision.shape = _shared_collision_shape
+		fragment.add_child(collision)
 
-				_cells.append(cell)
-				_fragments.append(fragment)
-				_fragments_by_cell[cell] = fragment
-				_material_by_cell[cell] = profile
-				_initial_transforms.append(fragment.transform)
-				_initial_collision_layers.append(fragment.collision_layer)
-				_initial_collision_masks.append(fragment.collision_mask)
-				_initial_visibility.append(fragment.visible)
+		_cells.append(cell)
+		_fragments.append(fragment)
+		_fragments_by_cell[cell] = fragment
+		_material_by_cell[cell] = profile
+		_initial_transforms.append(fragment.transform)
+		_initial_collision_layers.append(fragment.collision_layer)
+		_initial_collision_masks.append(fragment.collision_mask)
+		_initial_visibility.append(fragment.visible)
 
 
 func apply_blast_damage(origin: Vector3, radius: float, damage_amount: float = 1.0) -> int:
@@ -255,6 +249,10 @@ func _enforce_active_fragment_budget() -> void:
 
 func get_fragment_count() -> int:
 	return _fragments.size()
+
+
+func get_building_definition_id() -> StringName:
+	return building_definition.definition_id if building_definition != null else &""
 
 
 func get_released_fragment_count() -> int:
