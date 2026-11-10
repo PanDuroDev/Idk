@@ -1,6 +1,9 @@
 class_name BuildingDefinition
 extends Resource
 
+const BuildingCellDefinitionScript = preload("res://scripts/building_cell_definition.gd")
+const DestructionMaterialProfileScript = preload("res://scripts/destruction_material_profile.gd")
+
 const CURRENT_SCHEMA_VERSION: int = 1
 
 @export var schema_version: int = CURRENT_SCHEMA_VERSION
