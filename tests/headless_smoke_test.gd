@@ -527,6 +527,36 @@ func _test_building_definition_assets() -> bool:
 		_fail("Building validator did not reject duplicate cell coordinates")
 		return false
 
+	malformed.cells[1].coordinate = Vector3i(2, 0, 0)
+	var out_of_bounds_errors: Array[String] = BUILDING_DEFINITION_VALIDATOR.validate_definition(malformed)
+	var found_bounds_error: bool = false
+	for error_text: String in out_of_bounds_errors:
+		if error_text.contains("outside the definition dimensions"):
+			found_bounds_error = true
+	if not found_bounds_error:
+		_fail("Building validator did not reject an out-of-bounds cell")
+		return false
+
+	malformed.cells[1].coordinate = Vector3i.ZERO
+	malformed.default_material_profile = null
+	var missing_material_errors: Array[String] = BUILDING_DEFINITION_VALIDATOR.validate_definition(malformed)
+	var found_missing_material_error: bool = false
+	for error_text: String in missing_material_errors:
+		if error_text.contains("no material profile"):
+			found_missing_material_error = true
+	if not found_missing_material_error:
+		_fail("Building validator did not reject cells without material assignment")
+		return false
+
+	var duplicate_profile: DestructionMaterialProfile = CLASSIC_BUILDING.default_material_profile.duplicate() as DestructionMaterialProfile
+	var duplicate_catalog_errors: Array[String] = BUILDING_DEFINITION_VALIDATOR.validate_material_catalog([
+		CLASSIC_BUILDING.default_material_profile,
+		duplicate_profile
+	])
+	if duplicate_catalog_errors.is_empty():
+		_fail("Material catalog validator accepted duplicate profile IDs")
+		return false
+
 	var invalid_profile := DestructionMaterialProfile.new()
 	invalid_profile.material_id = &"invalid_profile"
 	invalid_profile.display_name = "Invalid profile"
