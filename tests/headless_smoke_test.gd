@@ -354,8 +354,11 @@ func _run_smoke_test() -> void:
 	if int(structure.call("get_released_fragment_count")) <= 1:
 		_fail("The active-fragment budget test did not release multiple fragments")
 		return
-	if int(structure.call("get_active_loose_fragment_count")) > 1 or int(structure.call("get_sleeping_loose_fragment_count")) <= 0:
-		_fail("The configured active-fragment cap was not enforced")
+	var active_after_budget: int = int(structure.call("get_active_loose_fragment_count"))
+	var sleeping_after_budget: int = int(structure.call("get_sleeping_loose_fragment_count"))
+	var parked_after_budget: int = int(structure.call("get_budget_parked_fragment_count"))
+	if active_after_budget > 1 or sleeping_after_budget + parked_after_budget <= 0 or parked_after_budget <= 0:
+		_fail("The configured active-fragment cap was not enforced or parked/sleeping counts overlap")
 		return
 	structure.call("reset_structure")
 	structure.set("max_active_loose_fragments", 70)
