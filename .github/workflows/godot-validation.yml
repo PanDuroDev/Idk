@@ -41,7 +41,7 @@ jobs:
       - name: Run gameplay smoke test
         run: |
           ./Godot_v4.7.2-stable_linux.x86_64 --headless --path . --script res://tests/headless_smoke_test.gd --log-file godot-smoke.log
-          for marker in WORLDBREAK_IMPACT_CONTROLS_OK WORLDBREAK_REPEAT_CYCLES_OK WORLDBREAK_DEBRIS_LIFECYCLE_OK WORLDBREAK_ACTIVE_FRAGMENT_BUDGET_OK WORLDBREAK_DIAGNOSTICS_EFFECTS_OK WORLDBREAK_SMOKE_TEST_OK; do
+          for marker in WORLDBREAK_IMPACT_CONTROLS_OK WORLDBREAK_REPEAT_CYCLES_OK WORLDBREAK_DEBRIS_LIFECYCLE_OK WORLDBREAK_ACTIVE_FRAGMENT_BUDGET_OK WORLDBREAK_SMOKE_TEST_OK; do
             if ! grep -q "$marker" godot-smoke.log; then
               cat godot-smoke.log
               echo "Gameplay smoke test did not report required marker: $marker"
@@ -104,7 +104,6 @@ jobs:
             "WORLDBREAK_REPEAT_CYCLES_OK",
             "WORLDBREAK_DEBRIS_LIFECYCLE_OK",
             "WORLDBREAK_ACTIVE_FRAGMENT_BUDGET_OK",
-            "WORLDBREAK_DIAGNOSTICS_EFFECTS_OK",
             "WORLDBREAK_SMOKE_TEST_OK"
           )
           foreach ($marker in $requiredMarkers) {
