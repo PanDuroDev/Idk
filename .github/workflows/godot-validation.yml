@@ -69,6 +69,19 @@ jobs:
             exit 1
           fi
 
+      - name: Run terrain deformation test
+        run: |
+          ./Godot_v4.7.2-stable_linux.x86_64 --headless --path . --script res://tests/terrain/terrain_deformation_test.gd --log-file godot-deformation.log
+          if ! grep -q 'WORLDBREAK_TERRAIN_DEFORMATION_OK' godot-deformation.log; then
+            cat godot-deformation.log
+            echo "Terrain deformation test did not report its success marker."
+            exit 1
+          fi
+          if grep -Eq 'SCRIPT ERROR:|(^|[[:space:]])ERROR:' godot-deformation.log; then
+            cat godot-deformation.log
+            exit 1
+          fi
+
   windows-headless-validation:
     runs-on: windows-latest
     timeout-minutes: 10
@@ -126,6 +139,7 @@ jobs:
           if ($log -match "SCRIPT ERROR:|(^|\s)ERROR:|WORLDBREAK_SMOKE_TEST_FAILED") {
             Write-Output $log
             throw "Gameplay smoke test reported errors."
+          }
 
       
       - name: Run isolated terrain chunk test
@@ -142,4 +156,20 @@ jobs:
           if ($terrainLog -match "SCRIPT ERROR:|(^|\s)ERROR:") {
             Write-Output $terrainLog
             throw "Terrain chunk test reported errors."
+          }
+
+      - name: Run terrain deformation test
+        shell: pwsh
+        run: |
+          $godot = ".\\godot\\Godot_v4.7.2-stable_win64.exe"
+          & $godot --headless --path . --script res://tests/terrain/terrain_deformation_test.gd --log-file godot-deformation.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $deformationLog = Get-Content "godot-deformation.log" -Raw
+          if ($deformationLog -notmatch "WORLDBREAK_TERRAIN_DEFORMATION_OK") {
+            Write-Output $deformationLog
+            throw "Terrain deformation test did not report its success marker."
+          }
+          if ($deformationLog -match "SCRIPT ERROR:|(^|\\s)ERROR:") {
+            Write-Output $deformationLog
+            throw "Terrain deformation test reported errors."
           }
