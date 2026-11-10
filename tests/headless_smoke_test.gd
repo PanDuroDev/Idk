@@ -5,6 +5,9 @@ const SUPPORT_GRAPH_SCRIPT = preload("res://scripts/structural_support_graph.gd"
 const BLAST_SERVICE_SCRIPT = preload("res://scripts/blast_service.gd")
 const STRUCTURE_SCRIPT = preload("res://scripts/destructible_structure.gd")
 const BUILDING_DEFINITION_VALIDATOR = preload("res://scripts/building_definition_validator.gd")
+const BuildingDefinitionScript = preload("res://scripts/building_definition.gd")
+const BuildingCellDefinitionScript = preload("res://scripts/building_cell_definition.gd")
+const DestructionMaterialProfileScript = preload("res://scripts/destruction_material_profile.gd")
 const CLASSIC_BUILDING: BuildingDefinition = preload("res://resources/buildings/classic_70_piece.tres")
 const SPARSE_BUILDING: BuildingDefinition = preload("res://resources/buildings/sparse_pillar_beam_11.tres")
 
@@ -507,7 +510,7 @@ func _test_building_definition_assets() -> bool:
 		return false
 
 	var malformed := BuildingDefinition.new()
-	malformed.schema_version = BuildingDefinition.CURRENT_SCHEMA_VERSION
+	malformed.schema_version = BuildingDefinitionScript.CURRENT_SCHEMA_VERSION
 	malformed.definition_id = &"malformed_duplicate_test"
 	malformed.display_name = "Malformed duplicate test"
 	malformed.dimensions = Vector3i(2, 2, 2)
