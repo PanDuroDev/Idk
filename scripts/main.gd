@@ -225,6 +225,8 @@ func _spawn_blast_flash(position: Vector3) -> void:
 	add_child(effect)
 	effect.global_position = position
 	_active_effects.append(effect)
+	if DisplayServer.get_name() == "headless":
+		return
 
 	var dust_mesh := SphereMesh.new()
 	dust_mesh.radius = 0.07
@@ -292,7 +294,7 @@ func _build_debug_overlay() -> void:
 
 
 func _refresh_debug_overlay() -> void:
-	if not _debug_overlay_visible or not is_instance_valid(_debug_overlay_label):
+	if not _debug_overlay_visible or not is_instance_valid(_debug_overlay_label) or DisplayServer.get_name() == "headless":
 		return
 	var total: int = int(_structure.call("get_fragment_count")) if is_instance_valid(_structure) else 0
 	var broken: int = int(_structure.call("get_broken_fragment_count")) if is_instance_valid(_structure) else 0
