@@ -131,3 +131,10 @@ This is an append-only engineering journal. Each substantial session is recorded
 - Confirmed the official Godot 4.7.2 release provides the standard Windows x64 editor executable archive.
 - Scope: add Windows headless import/launch/gameplay-smoke validation and run CI on pushes to `main`, preserving the existing Linux checks.
 - Risks: Windows runner behavior and process exit-code propagation must be verified by an actual Actions run. This does not test interactive rendering, input feel, or target-PC performance.
+### During work
+- Replaced the retired feature-branch push trigger with push validation on `main`; pull requests targeting `main` remain validated.
+- Preserved the existing Linux headless validation job.
+- Added a Windows runner using the official Godot 4.7.2 Windows x64 archive, with editor import, headless launch, and the same gameplay smoke test.
+- Added explicit PowerShell exit-code propagation so a failing Godot process fails the corresponding Actions step.
+- Windows runner results are pending; no interactive graphics, input-feel, or target-PC performance claim is made.
+
