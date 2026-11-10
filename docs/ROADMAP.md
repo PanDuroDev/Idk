@@ -45,7 +45,7 @@
 - [x] Reusable environment, material, building, destruction, and terrain presets; world definitions reference the existing simulation-configuration JSON and terrain runtime instead of duplicating formats.
 
 ## Phase 5 - Simulation tools ([AI issue #9](https://github.com/PanDuroDev/Idk/issues/9), final integration phase)
-- [x] Expose blast, gravity, material, and environment controls through the unified Simulation Control panel (implementation on `ai/phase-5/simulation-tools`, integration pending).
-- [x] Add repeatable experiments and resettable scenarios with bounded run history, comparison, and JSON/CSV export (implementation on `ai/phase-5/simulation-tools`, integration pending).
+- [x] Expose blast, gravity, material, and environment controls through the unified Simulation Control panel ([PR #23](https://github.com/PanDuroDev/Idk/pull/23), integration pending).
+- [x] Add repeatable experiments and resettable scenarios with bounded run history, comparison, and JSON/CSV export ([PR #23](https://github.com/PanDuroDev/Idk/pull/23), integration pending).
 - [ ] Profile before considering native extensions.
 - [ ] Complete manual Windows panel/export/comparison validation and record target-PC telemetry.

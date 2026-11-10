@@ -96,7 +96,7 @@ Five dedicated implementation issues are open:
 - Phase 2: [#6 - Reusable structures and material authoring](https://github.com/PanDuroDev/Idk/issues/6) - merged via PRs #18, #19, and #20.
 - Phase 3: [#7 - Chunked terrain deformation](https://github.com/PanDuroDev/Idk/issues/7) - merged via PRs #10, #12, #13, #15, and #21.
 - Phase 4: [#8 - Multiple worlds](https://github.com/PanDuroDev/Idk/issues/8) - merged via [PR #22](https://github.com/PanDuroDev/Idk/pull/22) as `a61fe2e`.
-- Phase 5: [#9 - Simulation tools](https://github.com/PanDuroDev/Idk/issues/9) - implementation in progress on `ai/phase-5/simulation-tools`; unified panel, scenarios, history/export, material selection, and pause/resume are implemented with a dedicated headless regression.
+- Phase 5: [#9 - Simulation tools](https://github.com/PanDuroDev/Idk/issues/9) - implementation in [PR #23](https://github.com/PanDuroDev/Idk/pull/23) on `ai/phase-5/simulation-tools`; unified panel, scenarios, history/export, material selection, and pause/resume are implemented with a dedicated headless regression.
 
 Each issue contains its own AI prompt, PR breakdown, acceptance criteria, and common engineering rules. Agents may implement and open PRs proactively without asking between ordinary subtasks, but they must not merge. One integration maintainer reviews and merges PRs in dependency order. See [AI_PHASE_ASSIGNMENTS.md](AI_PHASE_ASSIGNMENTS.md).
 
@@ -125,7 +125,7 @@ Each issue contains its own AI prompt, PR breakdown, acceptance criteria, and co
 - `ExperimentScenario` (schema version 1), `ScenarioCatalog`, and three samples (`foundation_strike`, `terrain_crater`, `sparse_beam_shear`) provide repeatable setup through the existing world/structure/terrain paths.
 - `ExperimentHistory` keeps a bounded 50-run history, compares the latest two runs, records impact/world/building/material metadata, and exports versioned JSON or CSV through a temporary-file verify/rename path.
 - Material selection applies an existing catalog profile through the Phase 2 per-cell override path; `default` restores the building definition's materials. Pause uses `SceneTree.paused` while the UI canvas remains processable, without overwriting `Engine.time_scale`.
-- `tests/phase5/simulation_tools_test.gd` reports `WORLDBREAK_SIMULATION_TOOLS_OK`. The local Windows full regression passed (smoke, configuration persistence, all terrain markers, world loading, and simulation tools); Linux + Windows CI is pending until the PR is validated.
+- `tests/phase5/simulation_tools_test.gd` reports `WORLDBREAK_SIMULATION_TOOLS_OK`. The local Windows full regression passed (smoke, configuration persistence, all terrain markers, world loading, and simulation tools); Linux + Windows CI is pending on [PR #23](https://github.com/PanDuroDev/Idk/pull/23).
 - Limitations: scenarios provide deterministic setup, not bit-identical cross-platform physics; material selection is catalog-preset based, not a free-form material editor; headless tests do not prove interactive button ergonomics, visual quality, or target-PC frame rate.
 
 ## Required update protocol
