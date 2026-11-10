@@ -106,3 +106,8 @@ Runtime terrain deformation is a separate subsystem. The planned direction is ch
 - Godot 4.7 Joint3D: https://docs.godotengine.org/en/4.7/classes/class_joint3d.html
 - Godot 4.7 physics-space access: https://docs.godotengine.org/en/4.7/tutorials/physics/ray-casting.html
 - Godot 4.7 performance: https://docs.godotengine.org/en/4.7/tutorials/performance/
+
+
+### Diagnostics count semantics
+
+Natural sleeping debris excludes budget-parked frozen bodies. Parked bodies are reported separately, so the sleeping and parked counts are disjoint; retired bodies are excluded from both. Released count includes both active and parked non-retired fragments.
