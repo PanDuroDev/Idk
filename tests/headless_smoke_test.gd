@@ -94,6 +94,36 @@ func _run_smoke_test() -> void:
 	if StringName(alternate_structure.call("get_cell_material_id", Vector3i(2, 3, 1))) != &"lightweight_panel":
 		_fail("Sparse per-cell material override was not applied by the builder")
 		return
+
+	var sparse_profile: DestructionMaterialProfileScript = SPARSE_BUILDING.get_cell_material_profile(SPARSE_BUILDING.cells[0])
+	for sparse_cell: BuildingCellDefinitionScript in SPARSE_BUILDING.cells:
+		if sparse_cell.coordinate == Vector3i(2, 3, 1):
+			sparse_profile = SPARSE_BUILDING.get_cell_material_profile(sparse_cell)
+			break
+	if not is_equal_approx(custom_fragment.mass, sparse_profile.density_multiplier):
+		_fail("Sparse per-cell material density was not applied to fragment mass")
+		return
+	var custom_mesh: MeshInstance3D = custom_fragment.get_node_or_null("MeshInstance3D") as MeshInstance3D
+	var custom_visual: StandardMaterial3D = custom_mesh.material_override as StandardMaterial3D if custom_mesh != null else null
+	if custom_visual == null or not custom_visual.albedo_color.is_equal_approx(sparse_profile.surface_color):
+		_fail("Sparse per-cell material color was not applied to fragment visuals")
+		return
+	if not is_equal_approx(float(alternate_structure.call("get_cell_integrity", Vector3i(2, 3, 1))), sparse_profile.integrity):
+		_fail("Sparse per-cell material integrity was not applied to damage thresholds")
+		return
+	var override_breaks: int = int(alternate_structure.call(
+		"apply_blast_damage",
+		custom_fragment.global_position,
+		0.1,
+		sparse_profile.integrity * sparse_profile.blast_resistance
+	))
+	if override_breaks != 1 or float(alternate_structure.call("get_cell_damage_ratio", Vector3i(2, 3, 1))) < 0.999:
+		_fail("Sparse per-cell material resistance/integrity did not control its damage threshold")
+		return
+	alternate_structure.call("reset_structure")
+	if not bool(alternate_structure.call("is_reset_to_initial_state")):
+		_fail("Sparse structure reset after material override damage failed")
+		return
 	var sparse_left_anchor: RigidBody3D = alternate_structure.call("get_fragment_for_cell", Vector3i(0, 0, 1))
 	var sparse_right_anchor: RigidBody3D = alternate_structure.call("get_fragment_for_cell", Vector3i(4, 0, 1))
 	alternate_structure.call("apply_blast_damage", sparse_left_anchor.global_position, 0.1, 10.0)
@@ -455,6 +485,25 @@ func _test_building_definition_assets() -> bool:
 			_fail("Classic building definition contains duplicate coordinate %s" % cell.coordinate)
 			return false
 		classic_coordinates[cell.coordinate] = true
+
+		var expected_center := Vector3(
+			(float(cell.coordinate.x) - 3.0) * 1.04,
+			0.5 + float(cell.coordinate.y) * 1.04,
+			(float(cell.coordinate.z) - 0.5) * 1.04
+		)
+		var actual_center: Vector3 = CLASSIC_BUILDING.get_cell_local_transform(cell).origin
+		if actual_center.distance_to(expected_center) > 0.001:
+			_fail("Classic cell %s changed its legacy center" % cell.coordinate)
+			return false
+
+		var expected_material_id: StringName = &"masonry"
+		if cell.coordinate.y == 0:
+			expected_material_id = &"foundation_concrete"
+		elif cell.coordinate.y == 4:
+			expected_material_id = &"lightweight_panel"
+		if CLASSIC_BUILDING.get_cell_material_profile(cell).material_id != expected_material_id:
+			_fail("Classic cell %s changed its legacy material layer" % cell.coordinate)
+			return false
 	if classic_coordinates.size() != 70:
 		_fail("Classic building coordinates are not unique")
 		return false
