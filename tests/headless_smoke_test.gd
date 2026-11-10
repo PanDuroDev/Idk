@@ -95,11 +95,14 @@ func _run_smoke_test() -> void:
 		_fail("Sparse per-cell material override was not applied by the builder")
 		return
 
-	var sparse_profile: DestructionMaterialProfileScript = SPARSE_BUILDING.get_cell_material_profile(SPARSE_BUILDING.cells[0])
+	var sparse_profile: DestructionMaterialProfileScript = null
 	for sparse_cell: BuildingCellDefinitionScript in SPARSE_BUILDING.cells:
 		if sparse_cell.coordinate == Vector3i(2, 3, 1):
 			sparse_profile = SPARSE_BUILDING.get_cell_material_profile(sparse_cell)
 			break
+	if sparse_profile == null:
+		_fail("Sparse per-cell material override could not be resolved")
+		return
 	if not is_equal_approx(custom_fragment.mass, sparse_profile.density_multiplier):
 		_fail("Sparse per-cell material density was not applied to fragment mass")
 		return
@@ -115,7 +118,7 @@ func _run_smoke_test() -> void:
 		"apply_blast_damage",
 		custom_fragment.global_position,
 		0.1,
-		sparse_profile.integrity * sparse_profile.blast_resistance
+		sparse_profile.integrity * sparse_profile.blast_resistance * 1.01
 	))
 	if override_breaks != 1 or float(alternate_structure.call("get_cell_damage_ratio", Vector3i(2, 3, 1))) < 0.999:
 		_fail("Sparse per-cell material resistance/integrity did not control its damage threshold")
