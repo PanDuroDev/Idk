@@ -8,6 +8,7 @@ const CURRENT_SCHEMA_VERSION: int = 1
 const MAX_RUNS: int = 50
 const CSV_COLUMNS: Array[String] = [
 	"run_index", "scenario_id", "world_id", "target_kind", "building_definition_id",
+	"material_override_id", "material_profile_ids",
 	"impact_x", "impact_y", "impact_z", "blast_radius", "blast_damage",
 	"blast_impulse", "blast_upward_bias", "gravity", "time_scale",
 	"broken", "released", "terrain_edits", "elapsed_usec", "fps_sample"
@@ -72,28 +73,35 @@ func to_json_text() -> String:
 
 
 func to_csv_text() -> String:
-	var lines: Array[String] = [",".join(CSV_COLUMNS)]
+	var header := ""
+	for index in range(CSV_COLUMNS.size()):
+		if index > 0:
+			header += ","
+		header += CSV_COLUMNS[index]
+	var lines: Array[String] = [header]
 	for run: Dictionary in _runs:
 		var impact: Dictionary = run.get("impact", {})
 		var position: Variant = impact.get("position", [0.0, 0.0, 0.0])
 		var cells: Array[String] = [
-			String(run.get("run_index", 0)),
+			str(run.get("run_index", 0)),
 			_csv(run.get("scenario_id", "")),
 			_csv(run.get("world_id", "")),
 			_csv(run.get("target_kind", "")),
 			_csv(run.get("building_definition_id", "")),
-			String(position[0]), String(position[1]), String(position[2]),
-			String(impact.get("radius", 0.0)),
-			String(impact.get("damage", 0.0)),
-			String(impact.get("impulse", 0.0)),
-			String(impact.get("upward_bias", 0.0)),
-			String(run.get("gravity", 0.0)),
-			String(run.get("time_scale", 1.0)),
-			String(run.get("broken", 0)),
-			String(run.get("released", 0)),
-			String(run.get("terrain_edits", 0)),
-			String(run.get("elapsed_usec", 0)),
-			String(run.get("fps_sample", 0.0))
+			_csv(run.get("material_override_id", "")),
+			_csv(_material_ids(run.get("material_profile_ids", []))),
+			str(position[0]), str(position[1]), str(position[2]),
+			str(impact.get("radius", 0.0)),
+			str(impact.get("damage", 0.0)),
+			str(impact.get("impulse", 0.0)),
+			str(impact.get("upward_bias", 0.0)),
+			str(run.get("gravity", 0.0)),
+			str(run.get("time_scale", 1.0)),
+			str(run.get("broken", 0)),
+			str(run.get("released", 0)),
+			str(run.get("terrain_edits", 0)),
+			str(run.get("elapsed_usec", 0)),
+			str(run.get("fps_sample", 0.0))
 		]
 		lines.append(",".join(cells))
 	return "\n".join(lines) + "\n"
@@ -147,8 +155,17 @@ static func _write_text(path: String, payload: String) -> Dictionary:
 	return {"ok": true, "errors": errors}
 
 
+static func _material_ids(value: Variant) -> String:
+	if not value is Array:
+		return ""
+	var parts: PackedStringArray = []
+	for item in value:
+		parts.append(str(item))
+	return ";".join(parts)
+
+
 static func _csv(value: Variant) -> String:
-	var text: String = String(value)
+	var text: String = str(value)
 	if text.contains(",") or text.contains("\"") or text.contains("\n"):
 		return "\"" + text.replace("\"", "\"\"") + "\""
 	return text

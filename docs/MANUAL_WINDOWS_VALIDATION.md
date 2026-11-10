@@ -23,10 +23,10 @@ Verify that the HUD counters change after an impact and return to zero after res
 
 ## 3. Runtime impact controls
 
-- Use the on-screen Impact Settings panel to adjust blast radius, damage, and physical impulse independently.
+- Use the on-screen Simulation Control panel to adjust blast radius, damage, physical impulse, gravity, and time scale independently.
 - Confirm each value changes in the panel and affects subsequent impacts without changing the other settings.
-- Press **Reset impact defaults** and confirm the values return to radius 4.5, damage 4.0, and impulse 22.0.
-- Verify values cannot move outside radius 0.5-12.0, damage 0.1-10.0, and impulse 1.0-100.0.
+- Load a scenario and confirm its impact/gravity/time-scale values are applied; **Reset world** restores structure/terrain/player state without inventing new impact defaults.
+- Verify values cannot move outside radius 0.5-12.0, damage 0.1-10.0, impulse 1.0-100.0, gravity 0.0-50.0, and time scale 0.05-10.0.
 
 ## 4. Compare the three material thresholds
 
@@ -104,6 +104,17 @@ Use the HUD FPS counter and Windows Task Manager while the game is running. Reco
 
 Do not treat a single FPS reading as a benchmark. Record the resolution, graphics settings, and whether the measurement was taken during idle, active collapse, or after settling.
 
-## 9. Report the result
+## 9. Simulation tools and experiments
+
+- Confirm the Simulation Control panel is visible and readable at the target resolution.
+- Select each world preset and confirm the environment, structure, terrain, and spawn change without errors.
+- Select each scenario, press **Run scenario**, and confirm the status label reports broken/loose/terrain counts and elapsed time.
+- Run the same scenario twice and confirm the comparison line appears; repeat after **Reset world** and check the initial state is restored.
+- Select a material preset, confirm the structure tint/mass behavior changes, then select `default` and confirm the original materials return.
+- Press **P** or the Pause button during debris motion; confirm physics stops while the panel remains usable, then resume.
+- Export JSON and CSV after several runs. Open both files and confirm they contain run indexes, scenario/world/building/material IDs, impact settings, counts, and timing fields. Treat elapsed time and FPS as non-deterministic observations, not reproducibility guarantees.
+- Confirm unsupported export extensions are rejected and failed writes do not replace an existing export file.
+
+## 10. Report the result
 
 Record the Godot version, Windows version, whether any errors appeared, the three material hit counts, the number of successful collapse/reset cycles, and the performance table above. Keep screenshots or a short recording of any failure. Do not mark interactive validation complete until these observations have been reviewed.

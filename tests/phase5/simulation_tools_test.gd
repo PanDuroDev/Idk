@@ -46,6 +46,17 @@ func _run() -> void:
 	if main.call("get_scenario_ids").size() != 3:
 		_fail("Runtime scenario catalog is not exposed")
 		return
+	if main.call("get_material_profile_ids").size() != 3:
+		_fail("Runtime material catalog is not exposed")
+		return
+	main.call("set_simulation_paused", true)
+	if not bool(main.call("is_simulation_paused")):
+		_fail("Simulation pause did not take effect")
+		return
+	main.call("set_simulation_paused", false)
+	if bool(main.call("is_simulation_paused")):
+		_fail("Simulation resume did not take effect")
+		return
 
 	var load_errors: Array = main.call("load_scenario", &"foundation_strike")
 	if not load_errors.is_empty():
@@ -71,6 +82,32 @@ func _run() -> void:
 		_fail("Scenario reload after control clamping failed")
 		return
 
+	var material_ids: Array = main.call("get_material_profile_ids")
+	var test_material: StringName = material_ids[0]
+	var material_errors: Array = main.call("select_material_profile", test_material)
+	if not material_errors.is_empty():
+		_fail("Material selection failed: %s" % "\n".join(material_errors))
+		return
+	if main.call("get_active_material_override_id") != test_material:
+		_fail("Material selection did not record the active override")
+		return
+	var structure_for_material: Node = main.get_node_or_null("DestructibleStructure")
+	if structure_for_material == null:
+		_fail("Material selection lost the resident structure")
+		return
+	var definition_for_material = structure_for_material.call("get_building_definition")
+	if definition_for_material == null or definition_for_material.cells.is_empty():
+		_fail("Material selection lost the building definition")
+		return
+	var material_cell: Vector3i = definition_for_material.cells[0].coordinate
+	if String(structure_for_material.call("get_cell_material_id", material_cell)) != String(test_material):
+		_fail("Material selection did not apply the profile to structure cells")
+		return
+	material_errors = main.call("select_material_profile", &"")
+	if not material_errors.is_empty() or main.call("get_active_material_override_id") != &"":
+		_fail("Material selection could not restore definition defaults")
+		return
+
 	var first: Dictionary = main.call("run_scenario", &"foundation_strike")
 	if not first["ok"]:
 		_fail("Foundation run failed: %s" % "\n".join(first["errors"]))
@@ -81,6 +118,9 @@ func _run() -> void:
 		return
 	if String(first_run["world_id"]) != "classic_yard" or String(first_run["building_definition_id"]) != "classic_70_piece":
 		_fail("Run record is missing its world or building metadata")
+		return
+	if not (first_run.get("material_profile_ids") is Array) or (first_run["material_profile_ids"] as Array).is_empty():
+		_fail("Run record is missing material metadata")
 		return
 	if int(main.call("get_experiment_history").get_run_count()) != 1:
 		_fail("Run was not recorded in history")
@@ -153,8 +193,8 @@ func _run() -> void:
 	if csv_lines.size() != 4 or not String(csv_lines[0]).begins_with("run_index,scenario_id,world_id"):
 		_fail("CSV export did not contain a header and one row per run")
 		return
-	if String(csv_lines[0]).contains("impact") == false or not String(csv_lines[3]).contains("terrain_crater"):
-		_fail("CSV export is missing impact or scenario fields")
+	if not String(csv_lines[0]).contains("impact") or not String(csv_lines[0]).contains("material_profile_ids") or not String(csv_lines[3]).contains("terrain_crater"):
+		_fail("CSV export is missing impact, material, or scenario fields")
 		return
 
 	var bad_export: Dictionary = main.call("export_experiment_history", "user://phase5_runs.txt")
@@ -170,6 +210,16 @@ func _run() -> void:
 		return
 	if int(history.get_last_run()["run_index"]) != 50:
 		_fail("Bounded history did not renumber run indexes")
+		return
+
+	var escaping_history := ExperimentHistory.new()
+	escaping_history.add_run({
+		"scenario_id": "comma,\"quote\"\nline",
+		"material_profile_ids": ["a;b", "c,d"]
+	})
+	var escaping_csv: String = escaping_history.to_csv_text()
+	if not escaping_csv.contains("\"comma,\"\"quote\"\"\nline\"") or not escaping_csv.contains("\"a;b;c,d\""):
+		_fail("CSV export did not escape embedded commas, quotes, or newlines")
 		return
 
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(JSON_PATH))

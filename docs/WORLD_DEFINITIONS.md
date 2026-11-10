@@ -37,7 +37,7 @@ The residency bound is one world. Loading is synchronous; there is no background
 
 ## Known gaps
 
-- No interactive world selector yet; selection is a runtime API used by tests and available to the Phase 5 panel.
+- Interactive world selection is provided by the Phase 5 Simulation Control panel; the runtime API remains available to tests.
 - No world streaming or distance-based chunk residency.
 - No save/load of world-local deformation or prop state.
 - Headless tests verify state transitions and resource wiring, not visual quality or target-PC frame rate.

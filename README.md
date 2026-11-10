@@ -14,6 +14,8 @@ WORLDBREAK is a 3D physics and destruction sandbox in active prototyping. The lo
 - Two reusable building-definition Resources: the classic 70-piece layout and a sparse 11-cell pillar-and-beam sample.
 - Versioned JSON simulation configurations that resolve building and material IDs through trusted catalogs, with transactional save/load and live application.
 - Two data-driven world presets (`Classic Yard`, `Sparse Quarry`) that reuse those building, material, configuration, terrain, and environment systems, with runtime load, unload, reset, and a one-resident-world bound.
+- A unified Simulation Control panel for world, scenario, and material selection; blast/gravity/time-scale controls; pause/resume/reset; and a bounded 50-run experiment history with JSON/CSV export.
+- Three versioned experiment scenarios (`Foundation Strike`, `Terrain Crater`, `Sparse Beam Shear`) with repeatable setup, run comparison, and result metadata.
 - Optional destruction/physics diagnostics overlay toggled with F3.
 
 The support graph is a deterministic topology approximation. The material profiles are tunable prototype values, not calibrated material data. There is no arbitrary mesh fracture. Terrain deformation is limited to the resident prototype patch described in `docs/TERRAIN_ARCHITECTURE.md`.
@@ -35,9 +37,11 @@ The support graph is a deterministic topology approximation. The material profil
 | Mouse | Look |
 | Left mouse button or F | Trigger radial impact |
 | R | Reset structure |
+| P | Pause/resume simulation |
+| F3 | Toggle destruction/physics diagnostics |
 | Escape | Release/capture mouse |
 
-The in-game Impact Settings panel adjusts blast radius, damage, and physical impulse. Each value has bounded +/- controls; Reset impact defaults restores the prototype values. Controls are defined through Godot InputMap and can be remapped in Project Settings.
+The in-game Simulation Control panel adjusts blast radius, damage, physical impulse, gravity, and time scale; selects world, scenario, and material presets; runs and resets scenarios; pauses/resumes physics; and exports the bounded run history as JSON or CSV. Material selection applies an existing catalog profile to the resident building through the Phase 2 override path; `default` restores the building definition's materials. Pause stops scene-tree physics without overwriting the experiment time scale. Movement and impact inputs are defined through Godot InputMap and can be remapped in Project Settings.
 
 The current prototype retains all 70 original structure nodes for reset. Released fragments use a 30-second default lifetime and a 70-awake-fragment budget; excess bodies are parked until an impact wakes them. Impact dust is capped at eight concurrent bursts (six motes each) with a 0.55-second lifetime.
 
@@ -55,7 +59,7 @@ The current prototype retains all 70 original structure nodes for reset. Release
 - Configurations reference building and material IDs from `BuildingDefinitionCatalog` and `MaterialProfileCatalog`; they never load arbitrary resource paths.
 
 ## Validation
-The workflow runs on both Linux and Windows for pull requests to `main` and pushes to `main`.
+The workflow runs on both Linux and Windows for pull requests to any branch and pushes to `main`, `ai/phase-3/**`, `ai/phase-4/**`, and `ai/phase-5/**`.
 
 GitHub Actions imports and launches the project headlessly, then tests:
 - Support graph connectivity and alternate support paths.
@@ -69,6 +73,7 @@ GitHub Actions imports and launches the project headlessly, then tests:
 - Reset clearing damage and restoring fragment/graph state.
 - Configuration catalog validation, documented defaults, unknown-field warnings, unsupported/malformed/corrupt rejection, save/load round-trips, building-definition round-trips, and live apply/reset behavior.
 - Every save is re-read and validated before the destination file is replaced.
+- Scenario catalog validation, scenario load/repeat/reset, run comparison, terrain-only carving, material selection, pause/resume, JSON/CSV export metadata and escaping, unsupported-extension rejection, and the 50-run history bound.
 
 Manual visual and interaction testing on the target Windows PC is still required.
 

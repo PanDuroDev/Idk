@@ -603,3 +603,26 @@ This is an append-only engineering journal. Each substantial session is recorded
 - Limits: synchronous loading, one resident world, no interactive selector yet, no world streamer, and no persistence of terrain/prop state across switches.
 - Linux + Windows CI passed on the Phase 4 branch in Actions run #42907322740.
 - PR #22 merged to `main` as `a61fe2e`; a combined `main` regression pass will run with the Phase 5 work.
+
+## 2026-11-11 - Phase 5 simulation tools continuation
+
+### Before work
+- Resumed the OpenCode session "Completing WORLDBREAK phases 2-5", which stopped at a provider free-usage limit while repairing CSV export.
+- Started from `main` at `00f92fd`. The prior session had committed a Phase 4 docs follow-up directly to `main`; that rule deviation is inherited and disclosed, not repeated here.
+- Preserved the uncommitted Phase 5 work as WIP commit `b11db1e` on `ai/phase-5/simulation-tools` and pushed the branch before continuing.
+- Scope: finish CSV export, add the missing material/pause controls from issue #9, record material metadata, extend CI/docs, run the full regression, and open a reviewable PR.
+
+### During work
+- Fixed `ExperimentHistory.to_csv_text` by building the header explicitly and using `str()` for Variant-to-string conversion; added material columns and CSV escaping coverage.
+- Added Simulation Control material preset selection through the existing Phase 2 per-cell override path, with `default` restoring building-definition materials.
+- Added pause/resume through `SceneTree.paused` while the UI canvas remains processable, plus the P shortcut; run/reset reuse the existing physics-tick paths.
+- Run records now include material override/profile IDs; JSON/CSV exports carry the same metadata.
+- Extended `tests/phase5/simulation_tools_test.gd` for material catalog/selection/default restore, pause/resume, material metadata, and CSV comma/quote/newline escaping.
+- Added Linux and Windows CI steps requiring `WORLDBREAK_SIMULATION_TOOLS_OK`, plus the `ai/phase-5/**` push trigger.
+- Updated README, project status, roadmap, technical direction, world definitions, configuration persistence, and the manual Windows checklist.
+
+### After work
+- Local Windows full regression passed: `WORLDBREAK_SMOKE_TEST_OK` (including material authoring/preview, building definitions, repeat cycles), `WORLDBREAK_CONFIGURATION_PERSISTENCE_OK`, `WORLDBREAK_TERRAIN_CHUNK_MESH_OK`, `WORLDBREAK_TERRAIN_DEFORMATION_OK`, `WORLDBREAK_TERRAIN_COLLISION_OK`, `WORLDBREAK_TERRAIN_BUDGETS_OK`, `WORLDBREAK_TERRAIN_MESH_QUEUE_OK`, `WORLDBREAK_TERRAIN_WORLD_OK`, `WORLDBREAK_TERRAIN_INTEGRATION_OK`, `WORLDBREAK_WORLD_LOADING_OK`, and `WORLDBREAK_SIMULATION_TOOLS_OK`.
+- Final logs contained no `SCRIPT ERROR:`, `ERROR:`, `Parse Error:`, or `Failed to load script` matches.
+- Limits: deterministic scenario setup is not bit-identical cross-platform physics; headless tests do not prove interactive panel ergonomics, visual quality, or target-PC frame rate. Manual Windows panel/export/comparison validation remains outstanding.
+- Next: open the Phase 5 PR against `main`, verify Linux + Windows CI markers, complete integration review/merge, then perform manual target-PC validation and close issue #9.

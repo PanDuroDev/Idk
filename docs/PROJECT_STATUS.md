@@ -1,7 +1,7 @@
 # WORLDBREAK Project Status
 
-**Last updated:** 2026-11-10  
-**Current branch:** `main`  
+**Last updated:** 2026-11-11  
+**Current branch:** `ai/phase-5/simulation-tools`  
 **PR #2:** [Merged](https://github.com/PanDuroDev/Idk/pull/2) into `main`  
 **Merge commit (PR #2):** `0911466d40115e835815d4072c2f075843369027`  
 **PR #3:** [Merged](https://github.com/PanDuroDev/Idk/pull/3) into `main`  
@@ -60,7 +60,7 @@ Verified:
 ## Current limitations
 
 - Material profile values are editable prototype values, not measured real-world material constants.
-- Profiles are assigned by layer in the test structure; there is no in-game material editor yet.
+- Profiles are assigned by layer in the test structure; the Phase 5 panel can apply catalog material presets, but there is no free-form in-game material editor yet.
 - Damage uses fragment-center distance and simple falloff.
 - Support graph remains a topological approximation, not a stress solver or physical joint network.
 - No arbitrary mesh fracture, terrain chunk streaming, or debris pooling.
@@ -96,7 +96,7 @@ Five dedicated implementation issues are open:
 - Phase 2: [#6 - Reusable structures and material authoring](https://github.com/PanDuroDev/Idk/issues/6) - merged via PRs #18, #19, and #20.
 - Phase 3: [#7 - Chunked terrain deformation](https://github.com/PanDuroDev/Idk/issues/7) - merged via PRs #10, #12, #13, #15, and #21.
 - Phase 4: [#8 - Multiple worlds](https://github.com/PanDuroDev/Idk/issues/8) - merged via [PR #22](https://github.com/PanDuroDev/Idk/pull/22) as `a61fe2e`.
-- Phase 5: [#9 - Simulation tools](https://github.com/PanDuroDev/Idk/issues/9) - runtime work after Phases 1, 2, and 4.
+- Phase 5: [#9 - Simulation tools](https://github.com/PanDuroDev/Idk/issues/9) - implementation in progress on `ai/phase-5/simulation-tools`; unified panel, scenarios, history/export, material selection, and pause/resume are implemented with a dedicated headless regression.
 
 Each issue contains its own AI prompt, PR breakdown, acceptance criteria, and common engineering rules. Agents may implement and open PRs proactively without asking between ordinary subtasks, but they must not merge. One integration maintainer reviews and merges PRs in dependency order. See [AI_PHASE_ASSIGNMENTS.md](AI_PHASE_ASSIGNMENTS.md).
 
@@ -116,8 +116,17 @@ Each issue contains its own AI prompt, PR breakdown, acceptance criteria, and co
 - `WorldCatalog` references both sample worlds. `WorldDefinitionValidator` resolves and validates the referenced configuration through the existing catalogs before the active scene is touched.
 - `main.gd` loads one resident world at a time, reuses the existing structure/configuration/terrain paths, applies environment and spawn presets, supports reset, and releases structure, terrain, and active state on unload. A failed load leaves the current world unchanged.
 - Samples: `Classic Yard` (70-piece building, default terrain profile) and `Sparse Quarry` (11-cell building, low-end terrain profile, warmer environment, heavier gravity, altered spawn).
-- Dedicated local Windows regression `WORLDBREAK_WORLD_LOADING_OK` covers catalog validation, initial load, switching, invalid-ID rejection, resident bounds, unload, reload, reset, and malformed-resource validation. Linux + Windows CI passed in [Actions run #42907322740](https://github.com/PanDuroDev/Idk/actions/runs/42907322740); review and merge are pending.
-- Limitations: loading is synchronous and there is no world streamer, interactive world selector, terrain-edit persistence, or cross-world budget beyond one resident world.
+- Dedicated local Windows regression `WORLDBREAK_WORLD_LOADING_OK` covers catalog validation, initial load, switching, invalid-ID rejection, resident bounds, unload, reload, reset, and malformed-resource validation. Linux + Windows CI passed in [Actions run #42907322740](https://github.com/PanDuroDev/Idk/actions/runs/42907322740); PR #22 merged to `main` as `a61fe2e`.
+- Limitations: loading is synchronous and there is no world streamer, terrain-edit persistence, or cross-world budget beyond one resident world. Interactive world selection is provided by the Phase 5 Simulation Control panel.
+
+## Phase 5 simulation tools
+
+- The Simulation Control panel reuses Phase 1 impact controls, Phase 2 material/configuration APIs, and Phase 4 world presets. It adds world/scenario/material selection, gravity/time-scale controls, pause/resume, run/reset, and JSON/CSV export.
+- `ExperimentScenario` (schema version 1), `ScenarioCatalog`, and three samples (`foundation_strike`, `terrain_crater`, `sparse_beam_shear`) provide repeatable setup through the existing world/structure/terrain paths.
+- `ExperimentHistory` keeps a bounded 50-run history, compares the latest two runs, records impact/world/building/material metadata, and exports versioned JSON or CSV through a temporary-file verify/rename path.
+- Material selection applies an existing catalog profile through the Phase 2 per-cell override path; `default` restores the building definition's materials. Pause uses `SceneTree.paused` while the UI canvas remains processable, without overwriting `Engine.time_scale`.
+- `tests/phase5/simulation_tools_test.gd` reports `WORLDBREAK_SIMULATION_TOOLS_OK`. The local Windows full regression passed (smoke, configuration persistence, all terrain markers, world loading, and simulation tools); Linux + Windows CI is pending until the PR is validated.
+- Limitations: scenarios provide deterministic setup, not bit-identical cross-platform physics; material selection is catalog-preset based, not a free-form material editor; headless tests do not prove interactive button ergonomics, visual quality, or target-PC frame rate.
 
 ## Required update protocol
 

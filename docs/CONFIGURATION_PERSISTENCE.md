@@ -86,5 +86,5 @@ Gravity is applied as a rigid-body `gravity_scale` relative to the 9.8 project b
 ## Limitations
 
 - Runtime selection/file picker UI is not part of this PR.
-- The configuration format does not yet include world IDs or experiment/scenario metadata; those arrive with Phases 4 and 5.
+- The configuration format does not itself store world IDs or experiment/scenario metadata; Phase 4 world definitions reference configurations, and Phase 5 experiment history records world/building/material/scenario metadata separately.
 - Headless tests do not prove inspector ergonomics or visual correctness.

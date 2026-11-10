@@ -50,7 +50,7 @@ Current profiles:
 
 The current test structure assigns profiles by layer: the base uses foundation concrete, the middle uses masonry, and the top uses lightweight panels. Profile Resources are loaded once and reused; their visual materials are shared between fragments. The density multiplier changes each fragment's rigid-body mass. The smoke test checks repeated-hit thresholds for masonry and concrete, plus a one-hit break for the lightweight panel.
 
-These values are editable prototype tuning, not measured real-world material constants. The material assignment is currently layer-based, not an in-game material editor.
+These values are editable prototype tuning, not measured real-world material constants. The test structure assigns profiles by layer; the Phase 5 Simulation Control panel can apply a catalog preset to the whole resident building through the existing per-cell override path, but there is no free-form in-game material editor.
 
 ### Measured prototype counts
 
@@ -104,6 +104,14 @@ Runtime terrain deformation is a separate subsystem. The Phase 3 prototype uses 
 ## World definitions
 
 `WorldDefinition` (schema version 1) is a native Resource that adds metadata, a trusted `res://` simulation-configuration JSON path, player spawn, environment/sun settings, and a terrain preset. `WorldCatalog` groups presets, and `WorldDefinitionValidator` resolves the configuration and validates all fields before runtime mutation. The runtime keeps at most one world resident: loading applies the existing configuration path, then the environment and terrain presets; unloading releases the structure, terrain, player/active state, and restores defaults. Failed loads are rejected without changing the active world. World definitions do not introduce a second building, material, terrain, or configuration format. See docs/WORLD_DEFINITIONS.md.
+
+## Simulation tools
+
+Phase 5 adds a unified Simulation Control panel without duplicating the Phase 1/2/4 settings systems. World and scenario selection reuse `WorldCatalog` and the existing configuration/structure/terrain paths. Material selection resolves a `MaterialProfileCatalog` ID and applies it through the existing per-cell override path; `default` restores the building definition's materials. Gravity uses per-body `gravity_scale`, and time scale uses `Engine.time_scale`.
+
+Pause/resume sets `SceneTree.paused` while the UI canvas uses `PROCESS_MODE_ALWAYS`, so physics stops without overwriting the experiment time scale and the panel remains usable. Run/reset reuse the existing physics-tick reset path. `ExperimentScenario` Resources (schema version 1) define a world, target kind, impact anchor, blast settings, gravity, and time scale; `ScenarioCatalog` validates them before loading.
+
+`ExperimentHistory` is bounded to 50 runs, renumbers indexes on overflow, compares the latest two runs, and records impact/world/building/material metadata plus elapsed microseconds and an FPS sample. JSON/CSV exports write a temporary file, re-read it, and replace the destination only after verification. Scenarios provide deterministic setup, not bit-identical cross-platform physics; elapsed time and FPS samples are observational fields. Headless tests verify state/export logic, not interactive panel ergonomics or target-PC performance.
 
 ## Research references
 - Godot 4.7 RigidBody3D: https://docs.godotengine.org/en/4.7/classes/class_rigidbody3d.html
