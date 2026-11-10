@@ -87,7 +87,8 @@ Issue [#5](https://github.com/PanDuroDev/Idk/issues/5) remains open. Its impleme
 - [PR #18](https://github.com/PanDuroDev/Idk/pull/18) implements reusable building definitions on `ai/phase-2/building-definitions`: versioned Resource types, validation, the classic 70-cell preset, an 11-cell sparse sample, and data-driven fragment generation.
 - Godot 4.7.2 CI passed on Linux and Windows in [Actions run #42895893291](https://github.com/PanDuroDev/Idk/actions/runs/42895893291), including all-cell legacy position/material checks, sparse generation, per-cell material mass/visual/damage behavior, repeated collapse/reset, and the terrain-prototype regression. The Windows gate checks captured console output as well as engine log files.
 - PR #18 remains open for integration review; it is not merged and does not complete Phase 2.
-- Material authoring workflow and simulation configuration save/load remain separate follow-up PRs.
+- [PR #19](https://github.com/PanDuroDev/Idk/pull/19) adds a native material profile catalog, safe duplicate/add helpers, an EditorScript catalog validator, and an isolated preview scene. It is stacked on PR #18 and awaits Linux/Windows validation.
+- Simulation configuration save/load remains the final required implementation PR for Phase 2.
 - Optional breakable-joint feasibility remains deferred until profiling provides evidence.
 
 ## AI phase delegation
