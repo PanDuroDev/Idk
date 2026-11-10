@@ -80,7 +80,15 @@ Repeat the collapse/reset cycle five times and note any change in behavior.
 - Press **R** after some debris has expired. All 70 original blocks, transforms, collision, and support state must return.
 - Repeat collapse, expiry, and reset at least five times. Record observations; do not infer a performance improvement without measurements.
 
-## 7. Performance observations
+## 7. Effects and diagnostics
+
+- Trigger individual and repeated impacts. Confirm a restrained dust/debris burst appears at the impact point and fades within about half a second.
+- Trigger more than eight impacts in quick succession. Confirm effect count remains capped and older bursts are discarded without errors.
+- Confirm the regular HUD remains unchanged by default.
+- Press **F3** to show diagnostics and again to hide them. Check intact/broken/supported/loose/awake/sleeping/retired counts, configured budgets, impact settings, FPS, physics object count, and collision pairs.
+- Confirm the overlay remains opt-in after resetting the structure.
+
+## 8. Performance observations
 
 Use the HUD FPS counter and Windows Task Manager while the game is running. Record:
 
@@ -96,6 +104,6 @@ Use the HUD FPS counter and Windows Task Manager while the game is running. Reco
 
 Do not treat a single FPS reading as a benchmark. Record the resolution, graphics settings, and whether the measurement was taken during idle, active collapse, or after settling.
 
-## 8. Report the result
+## 9. Report the result
 
 Record the Godot version, Windows version, whether any errors appeared, the three material hit counts, the number of successful collapse/reset cycles, and the performance table above. Keep screenshots or a short recording of any failure. Do not mark interactive validation complete until these observations have been reviewed.
