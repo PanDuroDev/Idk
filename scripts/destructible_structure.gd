@@ -21,6 +21,14 @@ var _damage_by_cell: Dictionary = {}
 var _broken_cells: Dictionary = {}
 var _supported_cells: Dictionary = {}
 var _unsupported_cells: Dictionary = {}
+var _loose_age_by_fragment: Dictionary = {}
+var _retired_fragment_ids: Dictionary = {}
+var _initial_collision_layers: Array[int] = []
+var _initial_collision_masks: Array[int] = []
+var _initial_visibility: Array[bool] = []
+
+@export_range(1, 256, 1) var max_active_loose_fragments: int = 70
+@export_range(0.0, 300.0, 1.0) var loose_debris_lifetime_seconds: float = 30.0
 
 var _shared_mesh: BoxMesh
 var _shared_collision_shape: BoxShape3D
@@ -32,6 +40,11 @@ func _ready() -> void:
 	_create_shared_resources()
 	_build_structure()
 	_refresh_support_state()
+
+
+func _physics_process(delta: float) -> void:
+	_update_loose_debris(delta)
+	_enforce_active_fragment_budget()
 
 
 func _create_shared_resources() -> void:
@@ -93,6 +106,9 @@ func _build_structure() -> void:
 				_fragments_by_cell[cell] = fragment
 				_material_by_cell[cell] = profile
 				_initial_transforms.append(fragment.transform)
+				_initial_collision_layers.append(fragment.collision_layer)
+				_initial_collision_masks.append(fragment.collision_mask)
+				_initial_visibility.append(fragment.visible)
 
 
 func apply_blast_damage(origin: Vector3, radius: float, damage_amount: float = 1.0) -> int:
@@ -124,7 +140,6 @@ func apply_blast_damage(origin: Vector3, radius: float, damage_amount: float = 1
 			continue
 
 		_broken_cells[cell] = true
-		fragment.freeze = false
 		newly_broken += 1
 
 	if newly_broken > 0:
@@ -171,13 +186,69 @@ func _refresh_support_state() -> void:
 	_unsupported_cells.clear()
 
 	for cell: Vector3i in _cells:
-		if _broken_cells.has(cell) or _supported_cells.has(cell):
+		var fragment: RigidBody3D = _fragments_by_cell[cell] as RigidBody3D
+		if _broken_cells.has(cell):
+			_release_fragment(fragment)
+			continue
+		if _supported_cells.has(cell):
 			continue
 
 		_unsupported_cells[cell] = true
-		var fragment: RigidBody3D = _fragments_by_cell[cell] as RigidBody3D
-		if fragment.freeze:
-			fragment.freeze = false
+		_release_fragment(fragment)
+
+
+func _release_fragment(fragment: RigidBody3D) -> void:
+	if not is_instance_valid(fragment):
+		return
+	var fragment_id: int = fragment.get_instance_id()
+	if _retired_fragment_ids.has(fragment_id):
+		return
+	if not _loose_age_by_fragment.has(fragment_id):
+		_loose_age_by_fragment[fragment_id] = 0.0
+		fragment.add_to_group("loose_debris")
+	fragment.freeze = false
+	fragment.sleeping = false
+
+
+func _update_loose_debris(delta: float) -> void:
+	for fragment: RigidBody3D in _fragments:
+		if not is_instance_valid(fragment):
+			continue
+		var fragment_id: int = fragment.get_instance_id()
+		if not _loose_age_by_fragment.has(fragment_id) or _retired_fragment_ids.has(fragment_id):
+			continue
+		var age: float = float(_loose_age_by_fragment[fragment_id]) + delta
+		_loose_age_by_fragment[fragment_id] = age
+		if loose_debris_lifetime_seconds > 0.0 and age >= loose_debris_lifetime_seconds:
+			_retire_fragment(fragment, fragment_id)
+
+
+func _retire_fragment(fragment: RigidBody3D, fragment_id: int) -> void:
+	# Retire only released fragments. Keep the original node and transform data so reset is lossless.
+	_retired_fragment_ids[fragment_id] = true
+	fragment.freeze = true
+	fragment.linear_velocity = Vector3.ZERO
+	fragment.angular_velocity = Vector3.ZERO
+	fragment.sleeping = true
+	fragment.visible = false
+	fragment.collision_layer = 0
+	fragment.collision_mask = 0
+	fragment.remove_from_group("blastable")
+	fragment.remove_from_group("loose_debris")
+
+
+func _enforce_active_fragment_budget() -> void:
+	var active_count: int = 0
+	for fragment: RigidBody3D in _fragments:
+		if not is_instance_valid(fragment):
+			continue
+		var fragment_id: int = fragment.get_instance_id()
+		if not _loose_age_by_fragment.has(fragment_id) or _retired_fragment_ids.has(fragment_id) or fragment.freeze or fragment.sleeping:
+			continue
+		active_count += 1
+		if active_count > max_active_loose_fragments:
+			# Deterministic fallback for future structures larger than the configured budget.
+			fragment.sleeping = true
 
 
 func get_fragment_count() -> int:
@@ -196,6 +267,36 @@ func get_broken_fragment_count() -> int:
 	return _broken_cells.size()
 
 
+func get_active_loose_fragment_count() -> int:
+	var count: int = 0
+	for fragment: RigidBody3D in _fragments:
+		if not is_instance_valid(fragment):
+			continue
+		var fragment_id: int = fragment.get_instance_id()
+		if _loose_age_by_fragment.has(fragment_id) and not _retired_fragment_ids.has(fragment_id) and not fragment.freeze and not fragment.sleeping:
+			count += 1
+	return count
+
+
+func get_sleeping_loose_fragment_count() -> int:
+	var count: int = 0
+	for fragment: RigidBody3D in _fragments:
+		if not is_instance_valid(fragment):
+			continue
+		var fragment_id: int = fragment.get_instance_id()
+		if _loose_age_by_fragment.has(fragment_id) and not _retired_fragment_ids.has(fragment_id) and fragment.sleeping:
+			count += 1
+	return count
+
+
+func get_retired_fragment_count() -> int:
+	return _retired_fragment_ids.size()
+
+
+func get_fragment_for_cell(cell: Vector3i) -> RigidBody3D:
+	return _fragments_by_cell.get(cell) as RigidBody3D
+
+
 func get_supported_fragment_count() -> int:
 	return _supported_cells.size()
 
@@ -208,12 +309,19 @@ func reset_structure() -> void:
 	_damage_by_cell.clear()
 	_broken_cells.clear()
 	_unsupported_cells.clear()
+	_loose_age_by_fragment.clear()
+	_retired_fragment_ids.clear()
 
 	for index in range(_fragments.size()):
 		var fragment: RigidBody3D = _fragments[index]
 		if not is_instance_valid(fragment):
 			continue
 		fragment.freeze = true
+		fragment.visible = _initial_visibility[index]
+		fragment.collision_layer = _initial_collision_layers[index]
+		fragment.collision_mask = _initial_collision_masks[index]
+		fragment.remove_from_group("loose_debris")
+		fragment.add_to_group("blastable")
 		fragment.transform = _initial_transforms[index]
 		fragment.linear_velocity = Vector3.ZERO
 		fragment.angular_velocity = Vector3.ZERO
