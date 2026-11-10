@@ -12,6 +12,7 @@ var _initial_transforms: Array[Transform3D] = []
 var _cells: Array[Vector3i] = []
 var _fragments_by_cell: Dictionary = {}
 var _material_by_cell: Dictionary = {}
+var _material_overrides_by_cell: Dictionary = {}
 var _damage_by_cell: Dictionary = {}
 var _broken_cells: Dictionary = {}
 var _supported_cells: Dictionary = {}
@@ -52,6 +53,74 @@ func get_build_validation_errors() -> Array[String]:
 	return _build_validation_errors.duplicate()
 
 
+func configure_definition(
+	new_definition: BuildingDefinitionScript,
+	material_overrides: Dictionary = {}
+) -> Array[String]:
+	## Validate the complete candidate before removing any existing fragment.
+	if new_definition == null:
+		var null_errors: Array[String] = ["Building definition is null."]
+		return null_errors
+	var errors: Array[String] = BUILDING_DEFINITION_VALIDATOR.validate_definition(new_definition)
+	for cell_variant: Variant in material_overrides.keys():
+		if not cell_variant is Vector3i:
+			errors.append("Material override keys must be Vector3i cells.")
+			continue
+		var profile: Variant = material_overrides[cell_variant]
+		if not profile is DestructionMaterialProfileScript:
+			errors.append("Material override for cell %s is not a DestructionMaterialProfile." % cell_variant)
+			continue
+		for profile_error: String in BUILDING_DEFINITION_VALIDATOR.validate_material_profile(profile):
+			errors.append("Material override for cell %s: %s" % [cell_variant, profile_error])
+	if not errors.is_empty():
+		return errors
+
+	_release_existing_fragments()
+	_material_overrides_by_cell = material_overrides.duplicate()
+	building_definition = new_definition
+	_build_validation_errors.clear()
+	_create_shared_resources()
+	_build_structure()
+	_refresh_support_state()
+	return _build_validation_errors.duplicate()
+
+
+func get_building_definition() -> BuildingDefinitionScript:
+	return building_definition
+
+
+func get_material_override_count() -> int:
+	return _material_overrides_by_cell.size()
+
+
+func _release_existing_fragments() -> void:
+	for fragment: RigidBody3D in _fragments:
+		if is_instance_valid(fragment):
+			remove_child(fragment)
+			fragment.free()
+	_fragments.clear()
+	_initial_transforms.clear()
+	_cells.clear()
+	_fragments_by_cell.clear()
+	_material_by_cell.clear()
+	_damage_by_cell.clear()
+	_broken_cells.clear()
+	_supported_cells.clear()
+	_unsupported_cells.clear()
+	_loose_age_by_fragment.clear()
+	_retired_fragment_ids.clear()
+	_initial_collision_layers.clear()
+	_initial_collision_masks.clear()
+	_initial_visibility.clear()
+	_shared_materials.clear()
+
+
+func _get_cell_profile(cell_definition: BuildingCellDefinitionScript) -> DestructionMaterialProfileScript:
+	if _material_overrides_by_cell.has(cell_definition.coordinate):
+		return _material_overrides_by_cell[cell_definition.coordinate] as DestructionMaterialProfileScript
+	return building_definition.get_cell_material_profile(cell_definition)
+
+
 func _physics_process(delta: float) -> void:
 	_update_loose_debris(delta)
 	_enforce_active_fragment_budget()
@@ -64,8 +133,9 @@ func _create_shared_resources() -> void:
 	_shared_collision_shape = BoxShape3D.new()
 	_shared_collision_shape.size = building_definition.cell_size
 
+	_shared_materials.clear()
 	for cell_definition: BuildingCellDefinitionScript in building_definition.cells:
-		var profile: DestructionMaterialProfileScript = building_definition.get_cell_material_profile(cell_definition)
+		var profile: DestructionMaterialProfileScript = _get_cell_profile(cell_definition)
 		if not _shared_materials.has(profile.material_id):
 			_shared_materials[profile.material_id] = profile.create_surface_material()
 
@@ -73,7 +143,7 @@ func _create_shared_resources() -> void:
 func _build_structure() -> void:
 	for cell_definition: BuildingCellDefinitionScript in building_definition.cells:
 		var cell: Vector3i = cell_definition.coordinate
-		var profile: DestructionMaterialProfileScript = building_definition.get_cell_material_profile(cell_definition)
+		var profile: DestructionMaterialProfileScript = _get_cell_profile(cell_definition)
 		var fragment := RigidBody3D.new()
 		fragment.name = "Fragment_%02d_%02d_%02d" % [cell.x, cell.y, cell.z]
 		fragment.transform = building_definition.get_cell_local_transform(cell_definition)

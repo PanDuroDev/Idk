@@ -2,6 +2,8 @@
 .godot/
 .import/
 .export/
+*.uid
+*.log
 
 # Exported builds
 /build/

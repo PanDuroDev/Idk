@@ -11,6 +11,7 @@ WORLDBREAK is a 3D physics and destruction sandbox in active prototyping. The lo
 - Radial impacts that break damaged cells and release sections that lose all support paths.
 - Six movable physics props, bounded loose-debris lifetime/sleeping, reset-safe cleanup, lightweight dust bursts, and runtime HUD.
 - Two reusable building-definition Resources: the classic 70-piece layout and a sparse 11-cell pillar-and-beam sample.
+- Versioned JSON simulation configurations that resolve building and material IDs through trusted catalogs, with transactional save/load and live application.
 - Optional destruction/physics diagnostics overlay toggled with F3.
 
 The support graph is a deterministic topology approximation. The material profiles are tunable prototype values, not calibrated material data. There is no arbitrary mesh fracture or destructible terrain yet.
@@ -47,6 +48,8 @@ The current prototype retains all 70 original structure nodes for reset. Release
 - Blast damage and physical impulse strength are independent settings.
 - Physics queries and rigid-body mutations run in the physics tick.
 - Generated fragments share mesh, collision, and material resources.
+- `SimulationConfigurationCodec` reads and writes versioned JSON; unknown fields warn, malformed or unsupported data rejects the whole file, and failed loads leave the running simulation untouched.
+- Configurations reference building and material IDs from `BuildingDefinitionCatalog` and `MaterialProfileCatalog`; they never load arbitrary resource paths.
 
 ## Validation
 The workflow runs on both Linux and Windows for pull requests to `main` and pushes to `main`.
@@ -61,6 +64,8 @@ GitHub Actions imports and launches the project headlessly, then tests:
 - Repeated weak hits crossing the masonry and concrete thresholds.
 - A single weak hit crossing the lightweight panel threshold.
 - Reset clearing damage and restoring fragment/graph state.
+- Configuration catalog validation, documented defaults, unknown-field warnings, unsupported/malformed/corrupt rejection, save/load round-trips, building-definition round-trips, and live apply/reset behavior.
+- Every save is re-read and validated before the destination file is replaced.
 
 Manual visual and interaction testing on the target Windows PC is still required.
 
@@ -68,6 +73,7 @@ Manual visual and interaction testing on the target Windows PC is still required
 - [Project status](docs/PROJECT_STATUS.md)
 - [Building definition authoring](docs/BUILDING_DEFINITIONS.md)
 - [Material profile authoring](docs/MATERIAL_AUTHORING.md)
+- [Simulation configuration persistence](docs/CONFIGURATION_PERSISTENCE.md)
 - [Work log](docs/WORK_LOG.md)
 - [Manual Windows validation checklist](docs/MANUAL_WINDOWS_VALIDATION.md)
 - [Technical direction](docs/TECHNICAL_DIRECTION.md)

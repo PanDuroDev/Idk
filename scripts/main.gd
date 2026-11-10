@@ -3,11 +3,16 @@ extends Node3D
 const PLAYER_SCRIPT = preload("res://scripts/player_controller.gd")
 const STRUCTURE_SCRIPT = preload("res://scripts/destructible_structure.gd")
 const BLAST_SERVICE_SCRIPT = preload("res://scripts/blast_service.gd")
+const BUILDING_DEFINITION_CATALOG = preload("res://resources/buildings/building_definition_catalog.tres")
+const MATERIAL_PROFILE_CATALOG = preload("res://resources/materials/material_profile_catalog.tres")
+const SIMULATION_CONFIGURATION_CODEC = preload("res://scripts/simulation_configuration_codec.gd")
+const SimulationConfigurationScript = preload("res://scripts/simulation_configuration.gd")
 
 const BLAST_DISTANCE: float = 70.0
 const MAX_PENDING_BLASTS: int = 4
 const MAX_ACTIVE_EFFECTS: int = 8
 const EFFECT_LIFETIME: float = 0.55
+const DEFAULT_GRAVITY: float = 9.8
 
 @export_range(0.5, 12.0, 0.25) var blast_radius: float = 4.5
 @export_range(1.0, 100.0, 1.0) var blast_impulse: float = 22.0
@@ -31,6 +36,8 @@ var _debug_overlay_label: Label
 var _debug_overlay_visible: bool = false
 var _active_effects: Array[Node3D] = []
 var _headless_effect_burst_count: int = 0
+var _active_simulation_configuration: SimulationConfigurationScript
+var _simulation_gravity: float = DEFAULT_GRAVITY
 
 const DEFAULT_BLAST_RADIUS: float = 4.5
 const DEFAULT_BLAST_DAMAGE: float = 4.0
@@ -116,6 +123,112 @@ func request_structure_reset() -> void:
 	_reset_requested = true
 
 
+func get_building_definition_catalog() -> Resource:
+	return BUILDING_DEFINITION_CATALOG
+
+
+func get_material_profile_catalog() -> Resource:
+	return MATERIAL_PROFILE_CATALOG
+
+
+func get_active_simulation_configuration() -> SimulationConfigurationScript:
+	return _active_simulation_configuration
+
+
+func apply_simulation_configuration(configuration: SimulationConfigurationScript) -> Array[String]:
+	var errors: Array[String] = []
+	if configuration == null:
+		errors.append("Simulation configuration is null.")
+		return errors
+	if not is_instance_valid(_structure):
+		errors.append("Destructible structure is not available.")
+		return errors
+	var validation: Dictionary = SIMULATION_CONFIGURATION_CODEC.validate_configuration(
+		configuration,
+		BUILDING_DEFINITION_CATALOG,
+		MATERIAL_PROFILE_CATALOG
+	)
+	if not validation["ok"]:
+		errors.assign(validation["errors"])
+		return errors
+
+	var definition = BUILDING_DEFINITION_CATALOG.get_definition_by_id(configuration.building_definition_id)
+	if definition == null:
+		errors.append("Unknown building definition ID '%s'." % String(configuration.building_definition_id))
+		return errors
+	var material_overrides: Dictionary = {}
+	for override in configuration.material_overrides:
+		var profile = MATERIAL_PROFILE_CATALOG.get_profile_by_id(override.material_id)
+		if profile == null:
+			errors.append("Unknown material profile ID '%s'." % String(override.material_id))
+			return errors
+		material_overrides[override.cell] = profile
+	if not errors.is_empty():
+		return errors
+
+	var rebuild_errors: Array = _structure.call("configure_definition", definition, material_overrides)
+	if not rebuild_errors.is_empty():
+		errors.assign(rebuild_errors)
+		return errors
+
+	_structure.transform = configuration.building_transform
+	blast_radius = configuration.blast_radius
+	blast_damage = configuration.blast_damage
+	blast_impulse = configuration.blast_impulse
+	blast_upward_bias = configuration.blast_upward_bias
+	set_simulation_gravity(configuration.gravity)
+	Engine.time_scale = configuration.time_scale
+	_active_simulation_configuration = configuration
+	_reset_requested = false
+	_last_broken_count = 0
+	_last_affected_count = 0
+	_refresh_impact_controls()
+	return errors
+
+
+func set_simulation_gravity(value: float) -> void:
+	_simulation_gravity = clampf(value, 0.0, 50.0)
+	var gravity_scale: float = _simulation_gravity / DEFAULT_GRAVITY
+	for node in get_tree().get_nodes_in_group("blastable"):
+		var body := node as RigidBody3D
+		if body != null:
+			body.gravity_scale = gravity_scale
+
+
+func get_simulation_gravity() -> float:
+	return _simulation_gravity
+
+
+func save_simulation_configuration(path: String) -> Dictionary:
+	if _active_simulation_configuration == null:
+		var missing: Array[String] = ["No active simulation configuration to save."]
+		var no_warnings: Array[String] = []
+		return {"ok": false, "errors": missing, "warnings": no_warnings}
+	return SIMULATION_CONFIGURATION_CODEC.save_to_file(
+		_active_simulation_configuration,
+		path,
+		BUILDING_DEFINITION_CATALOG,
+		MATERIAL_PROFILE_CATALOG
+	)
+
+
+func load_simulation_configuration(path: String) -> Dictionary:
+	var result: Dictionary = SIMULATION_CONFIGURATION_CODEC.load_from_file(
+		path,
+		BUILDING_DEFINITION_CATALOG,
+		MATERIAL_PROFILE_CATALOG
+	)
+	result["applied"] = false
+	var apply_errors: Array[String] = []
+	result["apply_errors"] = apply_errors
+	if not result["ok"]:
+		return result
+	apply_errors = apply_simulation_configuration(result["configuration"])
+	result["apply_errors"] = apply_errors
+	result["applied"] = apply_errors.is_empty()
+	return result
+
+
 func _process_blast(ray_origin: Vector3, ray_direction: Vector3) -> void:
 	var ray_end: Vector3 = ray_origin + ray_direction * BLAST_DISTANCE
 	var ray_query := PhysicsRayQueryParameters3D.create(ray_origin, ray_end, 1)
@@ -198,6 +311,7 @@ func _spawn_physics_props() -> void:
 		prop.name = "PhysicsProp_%02d" % index
 		prop.position = Vector3(-5.0 + float(index) * 1.8, 1.2, -3.0)
 		prop.mass = 1.5
+		prop.gravity_scale = _simulation_gravity / DEFAULT_GRAVITY
 		prop.collision_layer = 1
 		prop.collision_mask = 1
 		prop.add_to_group("blastable")
