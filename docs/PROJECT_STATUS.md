@@ -81,9 +81,14 @@ Verified:
 ## Phase 1 progress
 
 - PR 1: [#11 runtime impact controls](https://github.com/PanDuroDev/Idk/pull/11), Linux and Windows headless validation passed with required smoke markers.
-- PR 2: [#16 debris lifecycle](https://github.com/PanDuroDev/Idk/pull/16), stacked on PR #11. CI cannot run until the dependency is merged because the current workflow only triggers for PRs targeting main.
-- PR 3 implementation branch: ai/phase-1/effects-and-diagnostics, stacked on PR #16. Adds eight-burst bounded dust effects and an F3 opt-in diagnostics overlay; tests and docs are added. Cross-platform CI is pending dependency integration.
+- PR 2: [#16 debris lifecycle](https://github.com/PanDuroDev/Idk/pull/16), stacked on PR #11. The workflow now validates stacked pull requests targeting any branch; current cross-platform runs are queued.
+- PR 3 implementation branch: ai/phase-1/effects-and-diagnostics, stacked on PR #16. Adds eight-burst bounded dust effects and an F3 opt-in diagnostics overlay; tests and docs are added. Cross-platform CI is queued for this branch.
 - No interactive rendering or target-PC performance results are claimed from headless CI.
+
+## Phase 1 validation update
+
+- CI pull-request trigger was broadened from main-only to all target branches so stacked Phase 1 PRs receive the same Linux and Windows gates.
+- Structural budget baseline is 70 original fragments, 70 loose fragments after full release, six physics props, and zero loose fragments at startup. The implementation keeps the active cap at 70 by default and allows a lower configured cap; no FPS/CPU/GPU benchmark has been measured.
 
 ## Exact next step
 
