@@ -13,6 +13,7 @@ WORLDBREAK is a 3D physics and destruction sandbox in active prototyping. The lo
 - Six movable physics props, bounded loose-debris lifetime/sleeping, reset-safe cleanup, lightweight dust bursts, and runtime HUD.
 - Two reusable building-definition Resources: the classic 70-piece layout and a sparse 11-cell pillar-and-beam sample.
 - Versioned JSON simulation configurations that resolve building and material IDs through trusted catalogs, with transactional save/load and live application.
+- Two data-driven world presets (`Classic Yard`, `Sparse Quarry`) that reuse those building, material, configuration, terrain, and environment systems, with runtime load, unload, reset, and a one-resident-world bound.
 - Optional destruction/physics diagnostics overlay toggled with F3.
 
 The support graph is a deterministic topology approximation. The material profiles are tunable prototype values, not calibrated material data. There is no arbitrary mesh fracture. Terrain deformation is limited to the resident prototype patch described in `docs/TERRAIN_ARCHITECTURE.md`.
@@ -76,6 +77,7 @@ Manual visual and interaction testing on the target Windows PC is still required
 - [Building definition authoring](docs/BUILDING_DEFINITIONS.md)
 - [Material profile authoring](docs/MATERIAL_AUTHORING.md)
 - [Simulation configuration persistence](docs/CONFIGURATION_PERSISTENCE.md)
+- [World definitions and loading](docs/WORLD_DEFINITIONS.md)
 - [Work log](docs/WORK_LOG.md)
 - [Manual Windows validation checklist](docs/MANUAL_WINDOWS_VALIDATION.md)
 - [Technical direction](docs/TECHNICAL_DIRECTION.md)

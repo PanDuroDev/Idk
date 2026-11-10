@@ -63,7 +63,7 @@ Verified:
 - Profiles are assigned by layer in the test structure; there is no in-game material editor yet.
 - Damage uses fragment-center distance and simple falloff.
 - Support graph remains a topological approximation, not a stress solver or physical joint network.
-- No arbitrary mesh fracture, bending, crack propagation, terrain deformation, world streaming, or debris pooling.
+- No arbitrary mesh fracture, terrain chunk streaming, or debris pooling.
 - The user reported that the manual Windows gameplay/visual/control validation passed on 2026-11-10. Exact FPS/CPU/GPU telemetry values were not supplied, so no numerical performance baseline is claimed.
 
 ## Phase 1 progress
@@ -84,32 +84,40 @@ Issue [#5](https://github.com/PanDuroDev/Idk/issues/5) remains open. Its impleme
 ## Phase 2 progress
 
 - [PR #14](https://github.com/PanDuroDev/Idk/pull/14) merged the architecture and schema proposal only.
-- [PR #18](https://github.com/PanDuroDev/Idk/pull/18) implements reusable building definitions on `ai/phase-2/building-definitions`: versioned Resource types, validation, the classic 70-cell preset, an 11-cell sparse sample, and data-driven fragment generation.
-- Godot 4.7.2 CI passed on Linux and Windows in [Actions run #42895893291](https://github.com/PanDuroDev/Idk/actions/runs/42895893291), including all-cell legacy position/material checks, sparse generation, per-cell material mass/visual/damage behavior, repeated collapse/reset, and the terrain-prototype regression. The Windows gate checks captured console output as well as engine log files.
-- PR #18 remains open for integration review; it is not merged and does not complete Phase 2.
-- [PR #19](https://github.com/PanDuroDev/Idk/pull/19) adds a native material profile catalog, safe duplicate/add helpers, an EditorScript catalog validator, and an isolated preview scene. It is stacked on PR #18; Godot 4.7.2 CI passed on Linux and Windows in [Actions run #42897122527](https://github.com/PanDuroDev/Idk/actions/runs/42897122527). Manual EditorScript invocation and visual preview quality remain manual checks.
-- PR #20 adds versioned JSON simulation configuration persistence, trusted building/material catalog resolution, transactional save/load, live apply/reset, two sample configurations, and a dedicated cross-platform regression. It is stacked on PR #19. Local Windows validation passed; Linux/Windows CI evidence is recorded on the PR.
+- [PR #18](https://github.com/PanDuroDev/Idk/pull/18) implemented reusable building definitions: versioned Resource types, validation, the classic 70-cell preset, an 11-cell sparse sample, and data-driven fragment generation. Merged to `main` as `422b923` after Linux + Windows CI passed.
+- [PR #19](https://github.com/PanDuroDev/Idk/pull/19) added a native material profile catalog, safe duplicate/add helpers, an EditorScript catalog validator, and an isolated preview scene. Merged to `main` as `f61c731`.
+- [PR #20](https://github.com/PanDuroDev/Idk/pull/20) added versioned JSON simulation configuration persistence, trusted building/material catalog resolution, transactional save/load, live apply/reset, two sample configurations, and a dedicated cross-platform regression. Merged to `main` as `7096dd3`.
 - Optional breakable-joint feasibility remains deferred until profiling provides evidence.
 
 ## AI phase delegation
 
 Five dedicated implementation issues are open:
 - Phase 1: [#5 - Destruction vertical slice](https://github.com/PanDuroDev/Idk/issues/5) - implementation PRs #11, #16, and #17 are merged; full acceptance verification remains open.
-- Phase 2: [#6 - Reusable structures and material authoring](https://github.com/PanDuroDev/Idk/issues/6) - architecture PR #14 is merged; implementation PR #18 is open with Linux/Windows CI passed.
-- Phase 3: [#7 - Chunked terrain deformation](https://github.com/PanDuroDev/Idk/issues/7) - design and isolated prototype may begin early; integration waits for Phases 1-2.
-- Phase 4: [#8 - Multiple worlds](https://github.com/PanDuroDev/Idk/issues/8) - runtime work after Phase 2-3 contracts stabilize.
+- Phase 2: [#6 - Reusable structures and material authoring](https://github.com/PanDuroDev/Idk/issues/6) - merged via PRs #18, #19, and #20.
+- Phase 3: [#7 - Chunked terrain deformation](https://github.com/PanDuroDev/Idk/issues/7) - merged via PRs #10, #12, #13, #15, and #21.
+- Phase 4: [#8 - Multiple worlds](https://github.com/PanDuroDev/Idk/issues/8) - versioned world definitions, catalog, two sample worlds, bounded load/unload/reset, and regression coverage are implemented on `ai/phase-4/world-definitions`; Linux + Windows CI passed, review and merge pending.
 - Phase 5: [#9 - Simulation tools](https://github.com/PanDuroDev/Idk/issues/9) - runtime work after Phases 1, 2, and 4.
 
 Each issue contains its own AI prompt, PR breakdown, acceptance criteria, and common engineering rules. Agents may implement and open PRs proactively without asking between ordinary subtasks, but they must not merge. One integration maintainer reviews and merges PRs in dependency order. See [AI_PHASE_ASSIGNMENTS.md](AI_PHASE_ASSIGNMENTS.md).
 
 ## Phase 3 isolated terrain prototype
 
-- [PR #10](https://github.com/PanDuroDev/Idk/pull/10) adds the chunk density model, duplicated global border samples, deterministic six-tetrahedra mesher, outward normals, and shared-face seam regression. Latest Linux + Windows validation passed at head `b8bddb669a1e5f74783c97d839eba6fc3d48df27` in [Actions #42881185909](https://github.com/PanDuroDev/Idk/actions/runs/42881185909). Ready for review; unmerged.
-- [PR #12](https://github.com/PanDuroDev/Idk/pull/12) adds the deterministic world-space sphere edit journal, affected-chunk AABB query, shared-border density recomputation, and reset. Latest Linux + Windows validation passed at head `e4654fb3a89a70b25d9f1336814cd5e14770e39d` in [Actions #42881183665](https://github.com/PanDuroDev/Idk/actions/runs/42881183665). Ready for review; stacked on PR #10.
-- [PR #13](https://github.com/PanDuroDev/Idk/pull/13) adds a bounded, coalescing static collision rebuild queue with deferred collider replacement. Latest Linux + Windows validation passed at head `5f4b9e6d7f57ffcbfc0522eeb3cb31b4b745e1c3` in [Actions #42881197338](https://github.com/PanDuroDev/Idk/actions/runs/42881197338). Ready for review; stacked on PR #12.
-- [PR #15](https://github.com/PanDuroDev/Idk/pull/15) adds validated budgets, an 8-cell low-end profile, a bounded mesh rebuild queue, and repeatable 8³/16³ CPU and payload profiling. Latest Linux + Windows validation passed at head `4139ae29b8314fcf3bd20a5ced5534d29d9d721f` in [Actions #42881197589](https://github.com/PanDuroDev/Idk/actions/runs/42881197589). Ready for review; stacked on PR #13.
-- Before the integration branch, the terrain components were isolated prototypes with no chunk streamer or end-to-end edit-to-mesh-to-collision coordinator. Phase 1 PR #11 and Phase 2 runtime work had not both merged/stabilized, so gameplay integration was deferred. PRs #10, #12, #13, and #15 remain unmerged.
-- The Phase 3 gameplay-integration branch on top of PR #15 adds `TerrainWorld`: a bounded 2x2 resident chunk patch with `TerrainChunkData`, synchronous initial meshes/colliders, localized blast carving, bounded mesh and collision rebuild queues, and reset. The gameplay scene now calls the coordinator from its existing blast path. Local Windows validation passed `WORLDBREAK_TERRAIN_WORLD_OK` and `WORLDBREAK_TERRAIN_INTEGRATION_OK`; Linux + Windows CI is pending on the new branch head. This is not a chunk streamer and is not a performance or visual-quality claim. Review and merge remain open.
+- [PR #10](https://github.com/PanDuroDev/Idk/pull/10) added the chunk density model, duplicated global border samples, deterministic six-tetrahedra mesher, outward normals, and shared-face seam regression. Merged to `main` as `b89198d` after Linux + Windows validation passed.
+- [PR #12](https://github.com/PanDuroDev/Idk/pull/12) added the deterministic world-space sphere edit journal, affected-chunk AABB query, shared-border density recomputation, and reset. Merged to `main` as `5e3a43c`.
+- [PR #13](https://github.com/PanDuroDev/Idk/pull/13) added the coalescing static collision rebuild queue, one-rebuild-per-physics-frame budget, deferred collider replacement, and stale-shape removal. Merged to `main` as `b8a90b8`.
+- [PR #15](https://github.com/PanDuroDev/Idk/pull/15) added validated budgets, an 8-cell low-end profile, a bounded mesh rebuild queue, and repeatable 8³/16³ CPU and payload profiling. Merged to `main` as `15467f0` after merging `main` and resolving an append-only Work Log conflict.
+- [PR #21](https://github.com/PanDuroDev/Idk/pull/21) added `TerrainWorld`: a bounded 2x2 resident chunk patch with synchronous initial meshes/colliders, localized blast carving, bounded mesh and collision rebuild queues, terrain reset, and gameplay integration. Merged to `main` as `cb2a9bf` after Linux + Windows CI passed.
+- Local Windows validation on the merged tree passed `WORLDBREAK_TERRAIN_CHUNK_MESH_OK`, `WORLDBREAK_TERRAIN_DEFORMATION_OK`, `WORLDBREAK_TERRAIN_COLLISION_OK`, `WORLDBREAK_TERRAIN_BUDGETS_OK`, `WORLDBREAK_TERRAIN_MESH_QUEUE_OK`, `WORLDBREAK_TERRAIN_WORLD_OK`, and `WORLDBREAK_TERRAIN_INTEGRATION_OK`, plus the gameplay smoke suite.
+- This is a fixed resident patch, not a chunk streamer, and the tests do not establish visual quality or target-PC frame rate.
+
+## Phase 4 world loading
+
+- `WorldDefinition` is a versioned native Resource (schema version 1) with metadata, a `res://` JSON simulation-configuration path, player spawn, environment/sun preset, and terrain preset. It does not duplicate building, material, or terrain formats.
+- `WorldCatalog` references both sample worlds. `WorldDefinitionValidator` resolves and validates the referenced configuration through the existing catalogs before the active scene is touched.
+- `main.gd` loads one resident world at a time, reuses the existing structure/configuration/terrain paths, applies environment and spawn presets, supports reset, and releases structure, terrain, and active state on unload. A failed load leaves the current world unchanged.
+- Samples: `Classic Yard` (70-piece building, default terrain profile) and `Sparse Quarry` (11-cell building, low-end terrain profile, warmer environment, heavier gravity, altered spawn).
+- Dedicated local Windows regression `WORLDBREAK_WORLD_LOADING_OK` covers catalog validation, initial load, switching, invalid-ID rejection, resident bounds, unload, reload, reset, and malformed-resource validation. Linux + Windows CI passed in [Actions run #42907322740](https://github.com/PanDuroDev/Idk/actions/runs/42907322740); review and merge are pending.
+- Limitations: loading is synchronous and there is no world streamer, interactive world selector, terrain-edit persistence, or cross-world budget beyond one resident world.
 
 ## Required update protocol
 

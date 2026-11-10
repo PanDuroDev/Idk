@@ -578,6 +578,28 @@ This is an append-only engineering journal. Each substantial session is recorded
 - Merged `main` into the terrain integration branch next; this resolves documentation and shared `main.gd` conflicts while preserving both the Phase 2 configuration API and the Phase 3 terrain hooks.
 
 ### After work
-- All Phase 2 and Phase 3 implementation PRs are merged; the terrain integration PR remains the final Phase 3 review unit.
+- All Phase 2 and Phase 3 implementation PRs, including terrain integration #21, are merged. `main` is at `cb2a9bf`.
 - No force-push was used. Branch histories were preserved with merge commits.
-- A combined `main` regression pass remains to be run after the final integration merge.
+- A combined `main` regression pass was run locally after the final merge: all terrain markers, `WORLDBREAK_CONFIGURATION_PERSISTENCE_OK`, and the gameplay smoke suite passed.
+
+## 2026-11-10 - Phase 4 world definitions and bounded loading
+
+### Before work
+- Started from merged `main` at `cb2a9bf` after the Phase 2 and Phase 3 stacks.
+- Read the existing simulation-configuration codec, catalogs, terrain runtime, main scene, and CI workflow.
+- Scope: versioned world Resources, a catalog with at least two samples, runtime selection/loading/unloading/reset, bounded residency, validation, regression coverage, and documentation. Reuse building/material/configuration/terrain formats; do not add a streamer or claim streaming.
+
+### During work
+- Added `WorldDefinition` schema version 1 with identity, a trusted `res://` configuration JSON path, spawn, environment/sun, and terrain presentation fields.
+- Added `WorldCatalog`, `WorldDefinitionValidator`, and two samples: `classic_yard` and `sparse_quarry`.
+- Connected `main.gd`: one resident world, transactional load, environment/terrain/spawn application, explicit unload, reset through the existing reset path, and guarded operations when no structure is resident.
+- Removed the startup duplicate terrain/structure build; the default `classic_yard` world now builds them through the same configuration path.
+- Added `tests/phase4/world_loading_test.gd` covering catalog validation, initial load, switch, invalid-ID rejection, single-node residency, unload, reload, damage/reset, and malformed-resource validation.
+- Updated the gameplay smoke fixture to move loose props out of the blast ray; settled props could intercept a horizontal foundation-row blast and make the test timing-sensitive.
+- Added Linux and Windows CI steps for the new marker and a Phase 4 branch push trigger.
+
+### After work
+- Local Windows import and launch are clean. `WORLDBREAK_WORLD_LOADING_OK` passed, as did the full gameplay smoke suite, configuration persistence, and all terrain tests.
+- Limits: synchronous loading, one resident world, no interactive selector yet, no world streamer, and no persistence of terrain/prop state across switches.
+- Linux + Windows CI passed on the Phase 4 branch in Actions run #42907322740.
+- Next: merge the Phase 4 PR, then build the Phase 5 unified simulation panel on the merged world API.

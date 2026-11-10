@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="WorldCatalog" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/world_catalog.gd" id="1_catalog"]
+[ext_resource type="Resource" path="res://resources/worlds/classic_yard.tres" id="2_classic"]
+[ext_resource type="Resource" path="res://resources/worlds/sparse_quarry.tres" id="3_sparse"]
+[ext_resource type="Script" path="res://scripts/world_definition.gd" id="4_definition"]
+
+[resource]
+script = ExtResource("1_catalog")
+worlds = Array[ExtResource("4_definition")]([ExtResource("2_classic"), ExtResource("3_sparse")])
