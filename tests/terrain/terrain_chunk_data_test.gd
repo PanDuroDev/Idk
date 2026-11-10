@@ -19,9 +19,15 @@ func _run() -> void:
 	var mesh: ArrayMesh = Mesher.build_mesh(left)
 	assert(mesh != null)
 	assert(mesh.get_surface_count() == 1)
-	var vertices: PackedVector3Array = mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
+	var arrays := mesh.surface_get_arrays(0)
+	var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
 	assert(vertices.size() > 0)
-	for vertex in vertices:
+	assert(normals.size() == vertices.size())
+	for index in range(vertices.size()):
+		var vertex := vertices[index]
+		var normal := normals[index]
 		assert(is_finite(vertex.x) and is_finite(vertex.y) and is_finite(vertex.z))
+		assert(normal.x > 0.9, "Planar surface normals must face toward the empty (+X) side")
 	print("WORLDBREAK_TERRAIN_CHUNK_MESH_OK: samples=125; shared_border=passed; vertices=%d" % vertices.size())
 	quit(0)
