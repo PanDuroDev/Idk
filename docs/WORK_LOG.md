@@ -489,3 +489,60 @@ This is an append-only engineering journal. Each substantial session is recorded
 - Linux/Windows CI will be recorded on PR #20 after push. Interactive UI, file-picker ergonomics, and visual correctness remain manual checks.
 - Phase 2 implementation is now complete pending integration review and merge of #18, #19, and #20.
 
+## 2026-11-10 - Phase 3 terrain prototype
+
+### Before work
+- Starting main commit: `70da82274da67faf034afb9d98932f4fe1db03f4`.
+- Read README, Project Status, Roadmap, Technical Direction, Work Log, and inspected the existing gameplay scripts, main scene, headless tests, and Linux/Windows workflow.
+- Phase 1 runtime work and Phase 2 planning are active in separate branches/PRs. Their runtime contracts are not merged, so terrain work is restricted to `terrain/`, `tests/terrain/`, terrain documentation, and CI validation. No active gameplay files may be modified.
+- Evaluated heightfields, block voxels, density voxels with Marching Cubes, and density voxels with Marching Tetrahedra. Chose a density field with deterministic tetrahedral meshing for a compact prototype, with the higher triangle count explicitly recorded as a trade-off.
+- Main risks: chunk seam consistency, tetrahedron winding, collision cooking cost, physics-safe replacement, and CPU/memory budgets on the GTX 1660 SUPER / 16 GB target system.
+
+### During work
+- PR #10 adds the chunk data model, duplicated border samples/global sample coordinates, deterministic six-tetrahedra mesher, architecture decision, and isolated headless test. Linux and Windows passed on Actions run [#42877484374](https://github.com/PanDuroDev/Idk/actions/runs/42877484374) at commit `ea6d19f8963162363ce90f6da2f320f9893de6b1`. An earlier Windows failure was traced to a missing PowerShell brace in the workflow; it was corrected and the fresh run passed.
+- PR #12 adds a deterministic world-space sphere edit journal, affected-chunk AABB query, shared-border density reevaluation, and reset coverage. It is stacked on PR #10.
+- PR #13 adds a coalescing static collision rebuild queue, a default one-rebuild-per-physics-frame budget, deferred collider replacement, and stale-shape removal tests. It is stacked on PR #12.
+- PR #15 implementation adds configurable budgets, an 8-cell low-end profile, queue limits, invalid-limit tests, and a repeatable CPU mesh-build/payload-size profiling harness. Timings and payload sizes are reported by CI; they are not represented as target-PC benchmarks.
+- Added phase-branch push triggers so each stacked branch can run the full Linux and Windows suite independently, rather than waiting for retargeting to main.
+- Updated terrain architecture, technical direction, roadmap, and project status. No files in the active gameplay scene, BlastService, destructible structure, player controller, or material profiles were changed.
+
+### After work
+- PRs #10, #12, and #13 are open and unmerged. PR #15 is being prepared as the fourth narrow review unit.
+- PR #10 has accepted Linux and Windows headless validation. The branch trigger-only follow-up and the stacked PR #12/#13/#15 full suites are pending their current runs; do not treat them as passed until job logs and success markers are inspected.
+- Headless tests cover data dimensions, border coordinate equality, mesh generation, localized edit bounds, shared-border density equality, reset, collider queue coalescing/removal, budgets, and low-end profile validity.
+- Still unverified: interactive visual seam inspection, collision agreement under high-speed rigid bodies, target-PC FPS/CPU/GPU telemetry, and actual terrain performance on the GTX 1660 SUPER. The profiling harness measures deterministic workloads on CI hosts and reports estimated payload bytes only.
+- Gameplay integration is intentionally deferred: Phase 1 and Phase 2 runtime interfaces have not both merged and stabilized. The terrain subsystem remains isolated.
+- Next: inspect all four branch CI runs and logs, fix any failures, then leave the PR stack ready for integration review. The integration maintainer owns all merges and later gameplay integration.
+
+
+## 2026-11-10 - Phase 3 terrain validation repair and completion pass
+
+### Before work
+- Resumed from the four open Phase 3 PR branches: #10 head `50443e467c8898e0b57d7c5246b6297cc6e868e3`, #12 head `43f601a980f476e0cdc1241275877a057c7f8248`, #13 head `3d1c239b3b50151c8905ba4b331b152e435789bf`, and #15 head `8a79acd02a43cb0ec22f221103891ad0e141588d`.
+- Latest Linux CI had failed on the isolated chunk test while Windows passed. The log reported a GDScript indentation parse error at line 38.
+- Scope: repair the actual CI blockers across all stacked branches, rerun full platform validation, and synchronize the living project documents. No PR merges or gameplay integration are authorized in this phase.
+
+### During work
+- Corrected the nested fail-fast `return` indentation in `tests/terrain/terrain_chunk_data_test.gd` on all four Phase 3 branches.
+- The next Linux run exposed a second runtime API error: `SurfaceTool.add_normal()` does not exist in Godot 4.x. Replaced it with `SurfaceTool.set_normal()` before each `add_vertex()`, matching the Godot 4.x API reference.
+- Preserved the existing clockwise triangle winding contract and explicit per-vertex outward normals.
+- Final code heads: PR #10 `b8bddb669a1e5f74783c97d839eba6fc3d48df27`; PR #12 `e4654fb3a89a70b25d9f1336814cd5e14770e39`; PR #13 `5f4b9e6d7f57ffcbfc0522eeb3cb31b4b745e1c3`; PR #15 `4139ae29b8314fcf3bd20a5ced5534d29d9d721f`.
+- Updated the terrain architecture limitations to distinguish the implemented edit journal and queues from the still-missing world streamer and end-to-end terrain coordinator.
+- Updated Roadmap and Project Status to reflect implemented scope and verified CI rather than stale planned/pending notes.
+
+### After work
+- PR #10 Linux + Windows validation passed: [Actions #42881185909](https://github.com/PanDuroDev/Idk/actions/runs/42881185909). Import, launch, gameplay smoke, and isolated chunk/mesher/seam test all passed.
+- PR #12 Linux + Windows validation passed: [Actions #42881183665](https://github.com/PanDuroDev/Idk/actions/runs/42881183665). Deformation, affected-chunk query, shared-border density, and reset tests passed.
+- PR #13 Linux + Windows validation passed: [Actions #42881197338](https://github.com/PanDuroDev/Idk/actions/runs/42881197338). Collision request coalescing, deferred replacement, and stale-shape removal tests passed.
+- PR #15 Linux + Windows validation passed: [Actions #42881197589](https://github.com/PanDuroDev/Idk/actions/runs/42881197589). All prior tests plus budget validation, low-end fallback, mesh queue coalescing/overflow, and the 8³/16³ profiling harness passed.
+- The profile records CI execution times and memory/vertex payload estimates only; they are not target-PC performance measurements.
+- PR #10 remains open and ready for review. PRs #12, #13, and #15 remain open drafts in a stacked dependency chain. None were merged, and no commit was made to `main`.
+- Gameplay integration with BlastService and the active scene remains deferred until Phase 1 and Phase 2 runtime interfaces are merged and stable.
+- Still unverified: interactive visual seam quality, visual mesh/collider agreement, high-speed body tunneling behavior, and actual target-PC FPS/CPU/GPU measurements.
+- Current milestone: the isolated Phase 3 prototype is implemented and passes the complete automated Linux/Windows coverage; it is ready for integration review, not gameplay integration.
+- Next: review and merge the Phase 3 PR stack in dependency order after Phase 1/2 readiness, then add a separate integration adapter and interactive terrain preview.
+
+
+### Review readiness follow-up
+- After confirming that all four branch-head CI runs passed and all four PRs reported a clean mergeability state, marked PRs #12, #13, and #15 ready for review. PR #10 was already ready.
+- All four PRs are now open and ready for review in dependency order. This changes review state only; no PR was merged and `main` remains unchanged.

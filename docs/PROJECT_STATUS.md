@@ -102,6 +102,14 @@ Five dedicated implementation issues are open:
 
 Each issue contains its own AI prompt, PR breakdown, acceptance criteria, and common engineering rules. Agents may implement and open PRs proactively without asking between ordinary subtasks, but they must not merge. One integration maintainer reviews and merges PRs in dependency order. See [AI_PHASE_ASSIGNMENTS.md](AI_PHASE_ASSIGNMENTS.md).
 
+## Phase 3 isolated terrain prototype
+
+- [PR #10](https://github.com/PanDuroDev/Idk/pull/10) adds the chunk density model, duplicated global border samples, deterministic six-tetrahedra mesher, outward normals, and shared-face seam regression. Latest Linux + Windows validation passed at head `b8bddb669a1e5f74783c97d839eba6fc3d48df27` in [Actions #42881185909](https://github.com/PanDuroDev/Idk/actions/runs/42881185909). Ready for review; unmerged.
+- [PR #12](https://github.com/PanDuroDev/Idk/pull/12) adds the deterministic world-space sphere edit journal, affected-chunk AABB query, shared-border density recomputation, and reset. Latest Linux + Windows validation passed at head `e4654fb3a89a70b25d9f1336814cd5e14770e39d` in [Actions #42881183665](https://github.com/PanDuroDev/Idk/actions/runs/42881183665). Ready for review; stacked on PR #10.
+- [PR #13](https://github.com/PanDuroDev/Idk/pull/13) adds a bounded, coalescing static collision rebuild queue with deferred collider replacement. Latest Linux + Windows validation passed at head `5f4b9e6d7f57ffcbfc0522eeb3cb31b4b745e1c3` in [Actions #42881197338](https://github.com/PanDuroDev/Idk/actions/runs/42881197338). Ready for review; stacked on PR #12.
+- [PR #15](https://github.com/PanDuroDev/Idk/pull/15) adds validated budgets, an 8-cell low-end profile, a bounded mesh rebuild queue, and repeatable 8³/16³ CPU and payload profiling. Latest Linux + Windows validation passed at head `4139ae29b8314fcf3bd20a5ced5534d29d9d721f` in [Actions #42881197589](https://github.com/PanDuroDev/Idk/actions/runs/42881197589). Ready for review; stacked on PR #13.
+- These are isolated prototypes and are not yet a full terrain runtime: there is no chunk streamer or end-to-end edit-to-mesh-to-collision coordinator. No terrain code is connected to the active gameplay scene. Phase 1 PR #11 and Phase 2 runtime work have not both merged/stabilized, so gameplay integration remains deferred. All terrain PRs are unmerged.
+
 ## Required update protocol
 
 Every substantial session updates this file and `WORK_LOG.md` at three points:

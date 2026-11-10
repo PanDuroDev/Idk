@@ -99,7 +99,7 @@ Godot `Joint3D` can constrain pairs of physics bodies. Optional breakable links 
 - Avoid PhysicsServer3D or native extensions until profiling shows a real bottleneck.
 
 ## Terrain and worlds
-Runtime terrain deformation is a separate subsystem. The planned direction is chunked mesh/voxel terrain with localized mesh and collision updates. World definitions should be data-driven.
+Runtime terrain deformation is a separate subsystem. The Phase 3 prototype uses chunked scalar density fields with a fixed tetrahedral isosurface mesher, duplicated global border samples, a deterministic world-space edit journal, and a bounded static-collider replacement queue. Heightfields are insufficient for caves/overhangs; Marching Tetrahedra is a compact spike with a higher triangle-count trade-off versus Marching Cubes. See docs/TERRAIN_ARCHITECTURE.md for the current API, limits, and known gaps. The terrain subsystem is not connected to the gameplay scene until Phase 1 and Phase 2 runtime contracts are merged and stable. World definitions should be data-driven.
 
 ## Research references
 - Godot 4.7 RigidBody3D: https://docs.godotengine.org/en/4.7/classes/class_rigidbody3d.html

@@ -32,11 +32,12 @@
 - [x] Add material authoring validation, duplicate workflow, and preview ([PR #19](https://github.com/PanDuroDev/Idk/pull/19), open for review and stacked on PR #18; Linux/Windows CI passed).
 - [x] Add versioned save/load for test configurations. ([PR #20](https://github.com/PanDuroDev/Idk/pull/20), open for review and stacked on PR #19; local Windows validation passed)
 
-## Phase 3 - Terrain deformation ([AI issue #7](https://github.com/PanDuroDev/Idk/issues/7), design may run in parallel; implementation after Phases 1-2)
-- [ ] Prototype chunked terrain.
-- [ ] Deform only affected chunks.
-- [ ] Rebuild collision selectively and safely.
-- [ ] Add low-end hardware budgets and fallback behavior.
+## Phase 3 - Terrain deformation ([AI issue #7](https://github.com/PanDuroDev/Idk/issues/7), design may run in parallel; gameplay integration after Phases 1-2)
+- [x] PR #10: isolated chunk data, deterministic tetrahedral mesher, and architecture decision (Linux + Windows CI passed; review open).
+- [x] PR #12: localized sphere edits, affected-chunk query, shared-border density equality, and journal reset (Linux + Windows CI passed; stacked PR ready for review).
+- [x] PR #13: coalesced static collision replacement with a bounded physics-safe queue (Linux + Windows CI passed; stacked draft PR).
+- [x] PR #15: budgets, low-end fallback, bounded mesh queue, and repeatable CPU/memory-payload profiling (Linux + Windows CI passed; stacked draft PR).
+- [ ] Integrate terrain with BlastService and the active gameplay scene only after Phase 1 and Phase 2 have merged and their interfaces are stable.
 
 ## Phase 4 - Multiple worlds ([AI issue #8](https://github.com/PanDuroDev/Idk/issues/8), after Phase 2-3 contracts stabilize)
 - [ ] Data-driven world configurations.

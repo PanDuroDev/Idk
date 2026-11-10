@@ -41,18 +41,23 @@ Density edits and mesh-array generation are CPU-side operations. Do not create o
 - Collision only for chunks in the active interaction radius; distant chunks remain render-only.
 - Low-end fallback: 8 cells per axis, larger cell size, and collision only around the active test area.
 
-These are starting guardrails, not validated performance numbers. PR 4 must replace or justify them using repeatable measurements.
+The default values are implemented in TerrainBudgetConfig and are enforced at edit acceptance, resident-chunk checks, the mesh queue, and the collision queue. The low-end profile reduces resolution to 8 cells per axis, resident chunks to 8, dirty chunks per edit to 4, edit radius to 6 world units, pending collision work to 2, and density memory to 4 MiB. The profile test records elapsed CPU mesh-build time, sample count, density payload bytes, vertex count, and estimated vertex payload bytes at 8³ and 16³ resolutions. Payload estimates exclude allocator, ArrayMesh, physics-cooking, and engine overhead; elapsed times from CI are not target-PC benchmarks.
+
+These values are conservative starting limits, not validated GTX 1660 SUPER performance guarantees. Target-PC profiling and interactive visual checks remain required before gameplay integration.
 
 ## Current limitations
 
-- No gameplay integration or BlastService adapter; Phase 1/2 contracts are not stable.
-- No persistent global density/edit ledger yet; duplicated border values are only guaranteed when the same values are supplied to both chunks.
-- No deformation queue, collision body, save/reset, material mapping, or profiling harness yet.
-- Headless tests cannot establish visual seam quality or target-PC performance.
+- No gameplay integration or BlastService adapter; Phase 1/2 runtime contracts are not stable.
+- The world-space sphere edit journal is in-memory only. It has no disk persistence, versioning, or undo history; callers must rebuild every affected chunk from the same deterministic base field and ordered journal.
+- There is no end-to-end terrain coordinator yet. The edit journal, mesh rebuild queue, and collision rebuild queue are separate components; callers still own orchestration and chunk lifetime.
+- There is no terrain chunk streaming/residency manager, material mapping, or runtime chunk-scene factory. Budget helpers expose and validate limits but do not implement a full world streamer.
+- Automated tests verify numeric shared-face vertex agreement, but visual seam inspection, collider/mesh visual comparison, and high-speed rigid-body tunneling checks remain manual.
+- CI profiling reports deterministic workload timings and estimated payload sizes only. It does not establish target-PC FPS/CPU/GPU performance.
 
 ## References
 
 - Godot 4.7 ConcavePolygonShape3D: https://docs.godotengine.org/en/4.7/classes/class_concavepolygonshape3d.html
 - Godot 4.7 Shape3D: https://docs.godotengine.org/en/4.7/classes/class_shape3d.html
 - Godot 4.7 CSGShape3D: https://docs.godotengine.org/en/4.7/classes/class_csgshape3d.html
+- Godot 4.7 SurfaceTool and clockwise front-face winding: https://docs.godotengine.org/en/4.7/classes/class_surfacetool.html
 - Voxel Tools performance notes: https://voxel-tools.readthedocs.io/en/latest/performance/
