@@ -81,6 +81,15 @@ func _run_smoke_test() -> void:
 		_fail("Foundation density multiplier should exceed masonry")
 		return
 
+	var initial_fragment_positions: Dictionary = {}
+	for fragment_node in structure.get_children():
+		var fragment := fragment_node as RigidBody3D
+		if fragment != null:
+			initial_fragment_positions[fragment.get_instance_id()] = fragment.global_position
+	if initial_fragment_positions.size() != 70:
+		_fail("Could not capture the initial transform of all 70 fragments")
+		return
+
 	main.set("blast_radius", 4.5)
 	main.set("blast_damage", 10.0)
 	main.call("request_blast", Vector3(0.0, 0.5, 6.0), Vector3(0.0, 0.0, -1.0))
@@ -104,6 +113,44 @@ func _run_smoke_test() -> void:
 	if released_after_blast != 70:
 		_fail("Expected all 70 fragments to be released after support loss, got %d" % released_after_blast)
 		return
+
+	# Let the real physics server simulate the collapse before resetting the scene.
+	const COLLAPSE_SIMULATION_FRAMES: int = 120
+	for frame_index in range(COLLAPSE_SIMULATION_FRAMES):
+		await physics_frame
+
+	var simulated_fragment_count: int = 0
+	var moved_fragment_count: int = 0
+	for fragment_node in structure.get_children():
+		var fragment := fragment_node as RigidBody3D
+		if fragment == null:
+			continue
+
+		simulated_fragment_count += 1
+		var start_position: Vector3 = initial_fragment_positions[fragment.get_instance_id()]
+		if not fragment.global_position.is_finite():
+			_fail("Fragment position became non-finite after collapse: %s" % fragment.name)
+			return
+		if not fragment.linear_velocity.is_finite() or not fragment.angular_velocity.is_finite():
+			_fail("Fragment velocity became non-finite after collapse: %s" % fragment.name)
+			return
+		if fragment.global_position.y < -0.1:
+			_fail("Fragment passed through the ground during collapse: %s" % fragment.name)
+			return
+		if fragment.global_position.distance_to(start_position) > 0.05:
+			moved_fragment_count += 1
+
+	if simulated_fragment_count != 70:
+		_fail("Expected 70 fragments to remain in the physics simulation, got %d" % simulated_fragment_count)
+		return
+	if moved_fragment_count == 0:
+		_fail("The collapse simulation did not move any fragments")
+		return
+
+	print(
+		"WORLDBREAK_PHYSICS_COLLAPSE_OK: frames=%d; fragments=%d; moved=%d; ground_containment=passed"
+		% [COLLAPSE_SIMULATION_FRAMES, simulated_fragment_count, moved_fragment_count]
+	)
 
 	main.call("request_structure_reset")
 	await physics_frame
