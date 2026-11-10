@@ -2,11 +2,10 @@ name: Godot validation
 
 on:
   push:
-    branches:
-      - feature/worldbreak-godot-foundation
   pull_request:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   headless-validation:
@@ -28,5 +27,5 @@ jobs:
       - name: Launch project headlessly
         run: ./Godot_v4.7.2-stable_linux.x86_64 --headless --path . --quit-after 3
 
-      - name: Run gameplay smoke test
+      - name: Run gameplay and physics smoke tests
         run: ./Godot_v4.7.2-stable_linux.x86_64 --headless --path . --script res://tests/headless_smoke_test.gd
