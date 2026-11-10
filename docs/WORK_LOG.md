@@ -308,3 +308,23 @@ This is an append-only engineering journal. Each substantial session is recorded
 - No pooling was added; the fixed 70-node scene does not justify pooling.
 - Target-PC settling and performance measurements remain manual and unrecorded.
 - Next: open PR 2 against PR 1's branch, inspect Linux/Windows logs, and proceed to effects/diagnostics.
+
+
+## 2026-11-10 - Phase 1 PR 3: lightweight effects and diagnostics
+
+### Before work
+- Started from Phase 1 PR 2 head 90fea6c4daf1f8b5e327bc663d650f97bc10a1a5, stacked after PR #11 and PR #16.
+- Existing blast feedback used a transient OmniLight. The new effect must be bounded, short-lived, and compatible with the Compatibility renderer.
+- Risk: headless CI can verify allocation bounds and overlay state, but cannot validate visual quality, readability, or target-PC frame cost.
+
+### During work
+- Replaced the transient light with six small mesh-based dust/debris motes per impact, a 0.55-second fade, and a hard cap of eight simultaneous bursts. The oldest burst is evicted at capacity.
+- Added an F3-toggleable diagnostics panel, hidden by default. It reports structural state, awake/sleeping/retired debris, configured budgets, debris lifetime, impact settings, FPS, physics tick rate, active physics objects, and collision pairs.
+- Added headless assertions for default-hidden/toggle behavior and the eight-burst cap.
+- Updated README, technical direction, manual validation, project status, roadmap, and work log.
+- Cross-platform CI is not yet available for this stacked PR until its dependency chain reaches main.
+
+### After work
+- Implementation is committed on ai/phase-1/effects-and-diagnostics.
+- Visual effect quality, F3 usability, and target-PC performance remain manual checks.
+- Next: open PR 3 against PR 2's branch; after PR 1 merges, retarget/run CI in dependency order and repair any failures before declaring implementation complete.
