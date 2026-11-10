@@ -55,9 +55,27 @@ func _run() -> void:
 		var world_vertex: Vector3 = vertex + right_origin
 		if is_equal_approx(world_vertex.x, 4.0):
 			right_edge.append(world_vertex)
-	assert(left_edge.size() > 0 and left_edge.size() == right_edge.size())
+	if left_edge.is_empty() or right_edge.is_empty():
+		_fail("Chunk seam produced no shared-face vertices: left=%d right=%d" % [left_edge.size(), right_edge.size()])
+		return
 	for vertex in left_edge:
-		assert(right_edge.has(vertex), "Adjacent chunk meshes must share identical boundary vertices")
+		if not _contains_approx(right_edge, vertex):
+			_fail("Right chunk is missing shared-face vertex %s" % str(vertex))
+			return
+	for vertex in right_edge:
+		if not _contains_approx(left_edge, vertex):
+			_fail("Left chunk is missing shared-face vertex %s" % str(vertex))
+			return
 
 	print("WORLDBREAK_TERRAIN_CHUNK_MESH_OK: samples=125; mesh_seam=passed; vertices=%d" % vertices.size())
 	quit(0)
+
+func _contains_approx(vertices: Array[Vector3], target: Vector3) -> bool:
+	for candidate in vertices:
+		if candidate.distance_squared_to(target) <= 0.00000001:
+			return true
+	return false
+
+func _fail(message: String) -> void:
+	push_error(message)
+	quit(1)
