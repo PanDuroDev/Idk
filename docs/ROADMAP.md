@@ -17,7 +17,7 @@
 - [ ] Validate collision stability and resets in interactive play.
 - [x] Add in-game impact radius/damage/impulse controls ([PR #11](https://github.com/PanDuroDev/Idk/pull/11); Linux/Windows CI passed; awaiting integration review).
 - [x] Add fragment lifetime, sleeping, and active-fragment budgets ([PR #16](https://github.com/PanDuroDev/Idk/pull/16); Linux/Windows CI passed; awaiting integration review).
-- [x] Add low-cost dust/debris effects ([PR #17](https://github.com/PanDuroDev/Idk/pull/17); latest cross-platform CI pending).
+- [x] Add low-cost dust/debris effects ([PR #17](https://github.com/PanDuroDev/Idk/pull/17); Linux and Windows CI passed; awaiting integration review).
 - [x] Add opt-in destruction/physics diagnostics overlay ([PR #17](https://github.com/PanDuroDev/Idk/pull/17); latest cross-platform CI pending).
 
 ## Phase 2 - Structural authoring and reusable configurations ([AI issue #6](https://github.com/PanDuroDev/Idk/issues/6), after Phase 1 runtime interfaces stabilize)
