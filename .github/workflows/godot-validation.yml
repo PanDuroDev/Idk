@@ -62,24 +62,24 @@ jobs:
               [string[]]$RequiredMarkers = @()
             )
 
-            $output = & $godot @Arguments --log-file $LogPath 2>&1
-            $exitCode = $LASTEXITCODE
-            $output | ForEach-Object { Write-Output $_ }
+            $argumentsWithLog = @($Arguments) + @("--log-file", $LogPath)
+            $process = Start-Process -FilePath $godot -ArgumentList $argumentsWithLog -NoNewWindow -PassThru -Wait
+            $exitCode = $process.ExitCode
 
             if ($exitCode -ne 0) {
-              throw "Godot failed for $LogPath with exit code $exitCode."
+              throw "Godot failed for ${LogPath} with exit code $exitCode."
             }
             if (-not (Test-Path $LogPath)) {
               throw "Godot did not create the expected log file: $LogPath"
             }
 
             $logText = Get-Content -Path $LogPath -Raw
-            $combinedOutput = ($output -join "`n") + "`n" + $logText
-            if ($combinedOutput -match "SCRIPT ERROR:|Parse Error:|Compile Error:|ERROR:|WORLDBREAK_SMOKE_TEST_FAILED") {
-              throw "Godot emitted an error while running $LogPath."
+            Write-Output $logText
+            if ($logText -match "SCRIPT ERROR:|Parse Error:|Compile Error:|ERROR:|WORLDBREAK_SMOKE_TEST_FAILED") {
+              throw "Godot emitted an error while running ${LogPath}."
             }
             foreach ($marker in $RequiredMarkers) {
-              if ($combinedOutput -notmatch [regex]::Escape($marker)) {
+              if ($logText -notmatch [regex]::Escape($marker)) {
                 throw "Expected Godot success marker was missing from ${LogPath}: $marker"
               }
             }
