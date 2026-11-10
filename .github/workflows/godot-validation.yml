@@ -126,6 +126,7 @@ jobs:
           if ($log -match "SCRIPT ERROR:|(^|\s)ERROR:|WORLDBREAK_SMOKE_TEST_FAILED") {
             Write-Output $log
             throw "Gameplay smoke test reported errors."
+          }
 
       
       - name: Run isolated terrain chunk test
