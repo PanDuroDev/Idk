@@ -272,8 +272,8 @@ func _run_smoke_test() -> void:
 			if fragment.global_position.distance_to(initial_position) > 0.05:
 				cycle_moved_count += 1
 	
-		if cycle_fragment_count != 70 or cycle_moved_count == 0:
-			_fail("Collapse cycle %d did not simulate all 70 fragments" % (cycle_index + 1))
+		if cycle_fragment_count != 70 or cycle_moved_count != 70:
+			_fail("Collapse cycle %d did not move all 70 fragments" % (cycle_index + 1))
 			return
 	
 		main.call("request_structure_reset")
