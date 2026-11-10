@@ -81,6 +81,14 @@ Five dedicated implementation issues are open:
 
 Each issue contains its own AI prompt, PR breakdown, acceptance criteria, and common engineering rules. Agents may implement and open PRs proactively without asking between ordinary subtasks, but they must not merge. One integration maintainer reviews and merges PRs in dependency order. See [AI_PHASE_ASSIGNMENTS.md](AI_PHASE_ASSIGNMENTS.md).
 
+## Phase 3 terrain work in progress
+
+- [PR #10](https://github.com/PanDuroDev/Idk/pull/10) introduces the isolated chunk density model and tetrahedral mesher. Its Linux and Windows jobs passed at commit `ea6d19f8963162363ce90f6da2f320f9893de6b1` in Actions run [#42877484374](https://github.com/PanDuroDev/Idk/actions/runs/42877484374). The later branch push-trigger-only update is being revalidated.
+- [PR #12](https://github.com/PanDuroDev/Idk/pull/12) adds localized density edits and chunk-bound intersection. It is stacked on PR #10.
+- [PR #13](https://github.com/PanDuroDev/Idk/pull/13) adds a bounded per-chunk static collision queue. It is stacked on PR #12.
+- PR #15 is planned for budgets, low-end fallback, and repeatable profiling.
+- No terrain code is connected to the active gameplay scene. Phase 1 PR #11 and Phase 2 planning PR #14 are still open, so the integration dependency is not satisfied. All terrain PRs remain unmerged for the integration maintainer.
+
 ## Required update protocol
 
 Every substantial session updates this file and `WORK_LOG.md` at three points:
