@@ -61,7 +61,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		toggle_debug_overlay()
 		get_viewport().set_input_as_handled()
 		return
-	if event.is_action_pressed("reset_structure")
+	if event.is_action_pressed("reset_structure"):
 		request_structure_reset()
 		get_viewport().set_input_as_handled()
 
