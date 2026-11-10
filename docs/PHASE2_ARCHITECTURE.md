@@ -1,8 +1,8 @@
 # Phase 2 Architecture Proposal
 
-**Status:** Design-only proposal; runtime implementation is blocked until Phase 1 is merged and its interfaces are stable.  
+**Status:** Design-only proposal; Phase 2 runtime implementation remains gated on full Phase 1 acceptance verification and inspection of its merged interfaces, not merely the presence of merged PRs.  
 **Baseline reviewed:** `main` at `70da82274da67faf034afb9d98932f4fe1db03f4`.  
-**Phase 1 observation:** `ai/phase-1/runtime-impact-controls` is ahead of main with an unmerged runtime-controls change. Issue #5 remains open and no Phase 1 PR is currently open. This proposal does not depend on that branch and does not modify runtime code.
+**Phase 1 update (2026-11-10):** PRs [#11](https://github.com/PanDuroDev/Idk/pull/11), [#16](https://github.com/PanDuroDev/Idk/pull/16), and [#17](https://github.com/PanDuroDev/Idk/pull/17) are now merged. Issue #5 remains open for full-scope verification; interactive effect/overlay validation and target-PC performance measurements are not established by headless CI. This proposal remains documentation-only.
 
 ## Goals and non-goals
 
@@ -18,7 +18,7 @@ This proposal is not a stress solver, arbitrary mesh fracture system, runtime bu
 - `DestructionMaterialProfile` is already a custom Godot `Resource` with `material_id`, `display_name`, `integrity`, `blast_resistance`, `density_multiplier`, and `surface_color`. Its exported ranges and `create_surface_material()` provide a good native authoring foundation.
 - Three shared material assets exist under `resources/materials/`. Current assignment is foundation concrete on the bottom layer, masonry in the middle, and lightweight panels on the top layer.
 - `BlastService` owns radial physical impulse queries. Damage is applied separately by the structure, which is important to preserve.
-- `main.gd` owns environment/player setup, impact requests, impact settings, HUD, and structure reset. The Phase 1 branch currently adds runtime impact controls in this file; Phase 2 must not edit it while Phase 1 is active.
+- `main.gd` owns environment/player setup, impact requests, impact settings, HUD, and structure reset. Phase 1 runtime controls were integrated through PR #11, debris lifecycle/budgets through PR #16, and effects/diagnostics through PR #17. Phase 2 must inspect the resulting merged API and preserve those ownership boundaries.
 - Existing headless coverage lives in `tests/headless_smoke_test.gd`; the Linux and Windows workflow imports the project, launches headlessly, scans logs, and requires explicit smoke-test markers.
 
 ## Proposed resource model
@@ -76,7 +76,7 @@ Assign the existing concrete profile to y=0, lightweight panel to y=4, and mason
 
 Add at least one materially different sparse/compact sample layout (for example a 3 x 3 x 3 pillar-and-beam arrangement) to prove that generation is not tied to the original dimensions. Keep test expectations derived from the selected definition rather than hard-coded 70-piece assumptions except in the backward-compatibility test.
 
-## Runtime integration boundary (after Phase 1 merge only)
+## Runtime integration boundary (after Phase 1 acceptance verification)
 
 The future builder should consume a validated definition and create the fragment set from its occupied cells. It should populate the same cell-indexed collections currently used by damage and support logic, and preserve:
 - one stable cell-to-fragment mapping;
@@ -152,7 +152,7 @@ The example is illustrative; field names and ranges must be finalized against th
 
 ## Test plan
 
-Add pure validation and round-trip tests before integrating with live physics. Extend the existing smoke test only after Phase 1 is merged.
+Add pure validation and round-trip tests before integrating with live physics. Extend the existing smoke test only after Phase 1's full acceptance scope is verified and its merged interfaces are reviewed.
 
 Required cases:
 - 70-piece preset has 70 unique in-bounds cells and retains the existing material-by-layer mapping and computed centers.
@@ -173,8 +173,8 @@ Only then compare a small controlled joint prototype against the topology graph.
 
 ## Proposed PR sequence
 
-1. **PR 1 - Reusable building definitions:** Resource types, validator, two sample definitions, builder integration, generation/damage/reset tests. Blocked until Phase 1 merge.
-2. **PR 2 - Material authoring:** validation, native Resource/Inspector workflow, duplicate/preview tooling, documentation, material compatibility tests. May be implemented after Phase 1 if it remains isolated from Phase 1-owned files.
+1. **PR 1 - Reusable building definitions:** Resource types, validator, two sample definitions, builder integration, generation/damage/reset tests. Blocked until Phase 1's full acceptance scope is verified and the merged lifecycle/control interfaces are reviewed.
+2. **PR 2 - Material authoring:** validation, native Resource/Inspector workflow, duplicate/preview tooling, documentation, material compatibility tests. Keep it isolated from Phase 1-owned files and do not use it to imply that Phase 1 acceptance is complete.
 3. **PR 3 - Configuration persistence:** versioned JSON model, catalog resolution, transactional load/apply, safe save, samples, round-trip/error tests. Depends on stable building and Phase 1 impact/environment interfaces.
 4. **Optional PR 4 - Joint feasibility decision:** profiling-backed prototype or evidence-based no-go recommendation.
 
@@ -182,4 +182,4 @@ Each implementation PR will use its own `ai/phase-2/<short-scope>` branch and ta
 
 ## Current gate
 
-**No runtime implementation is authorized yet.** Phase 1 issue #5 remains open. Its branch currently contains runtime impact-control changes, but those changes are unmerged and have not yet established the debris lifecycle/budget contract required by Phase 2. This document is architecture planning only.
+**No Phase 2 runtime implementation is authorized yet.** Phase 1 PRs #11, #16, and #17 have merged, but issue #5 remains open pending verification of the complete Phase 1 scope. Headless CI does not establish interactive effect/overlay quality or target-PC FPS/CPU/GPU measurements. Before Phase 2 runtime work, inspect the final merged control, debris cleanup/budget, reset, and diagnostics interfaces and confirm they satisfy the Phase 1 acceptance criteria. This document is architecture planning only.
