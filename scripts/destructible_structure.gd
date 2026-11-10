@@ -5,7 +5,7 @@ const BUILDING_DEFINITION_VALIDATOR = preload("res://scripts/building_definition
 const BuildingDefinitionScript = preload("res://scripts/building_definition.gd")
 const BuildingCellDefinitionScript = preload("res://scripts/building_cell_definition.gd")
 const DestructionMaterialProfileScript = preload("res://scripts/destruction_material_profile.gd")
-const DEFAULT_BUILDING_DEFINITION: BuildingDefinition = preload("res://resources/buildings/classic_70_piece.tres")
+const DEFAULT_BUILDING_DEFINITION: BuildingDefinitionScript = preload("res://resources/buildings/classic_70_piece.tres")
 
 var _fragments: Array[RigidBody3D] = []
 var _initial_transforms: Array[Transform3D] = []
@@ -22,7 +22,7 @@ var _initial_collision_layers: Array[int] = []
 var _initial_collision_masks: Array[int] = []
 var _initial_visibility: Array[bool] = []
 
-@export var building_definition: BuildingDefinition = DEFAULT_BUILDING_DEFINITION
+@export var building_definition: BuildingDefinitionScript = DEFAULT_BUILDING_DEFINITION
 @export_range(1, 256, 1) var max_active_loose_fragments: int = 70
 @export_range(0.0, 300.0, 1.0) var loose_debris_lifetime_seconds: float = 30.0
 
@@ -64,16 +64,16 @@ func _create_shared_resources() -> void:
 	_shared_collision_shape = BoxShape3D.new()
 	_shared_collision_shape.size = building_definition.cell_size
 
-	for cell_definition: BuildingCellDefinition in building_definition.cells:
-		var profile: DestructionMaterialProfile = building_definition.get_cell_material_profile(cell_definition)
+	for cell_definition: BuildingCellDefinitionScript in building_definition.cells:
+		var profile: DestructionMaterialProfileScript = building_definition.get_cell_material_profile(cell_definition)
 		if not _shared_materials.has(profile.material_id):
 			_shared_materials[profile.material_id] = profile.create_surface_material()
 
 
 func _build_structure() -> void:
-	for cell_definition: BuildingCellDefinition in building_definition.cells:
+	for cell_definition: BuildingCellDefinitionScript in building_definition.cells:
 		var cell: Vector3i = cell_definition.coordinate
-		var profile: DestructionMaterialProfile = building_definition.get_cell_material_profile(cell_definition)
+		var profile: DestructionMaterialProfileScript = building_definition.get_cell_material_profile(cell_definition)
 		var fragment := RigidBody3D.new()
 		fragment.name = "Fragment_%02d_%02d_%02d" % [cell.x, cell.y, cell.z]
 		fragment.transform = building_definition.get_cell_local_transform(cell_definition)
@@ -117,7 +117,7 @@ func apply_blast_damage(origin: Vector3, radius: float, damage_amount: float = 1
 			continue
 
 		var fragment: RigidBody3D = _fragments_by_cell[cell] as RigidBody3D
-		var profile: DestructionMaterialProfile = _material_by_cell[cell] as DestructionMaterialProfile
+		var profile: DestructionMaterialProfileScript = _material_by_cell[cell] as DestructionMaterialProfileScript
 		var distance: float = fragment.global_position.distance_to(origin)
 		if distance >= safe_radius:
 			continue
@@ -151,27 +151,27 @@ func get_cell_damage_ratio(cell: Vector3i) -> float:
 
 
 func get_cell_material_id(cell: Vector3i) -> StringName:
-	var profile: DestructionMaterialProfile = _material_by_cell.get(cell) as DestructionMaterialProfile
+	var profile: DestructionMaterialProfileScript = _material_by_cell.get(cell) as DestructionMaterialProfileScript
 	return profile.material_id if profile != null else &""
 
 
 func get_cell_material_name(cell: Vector3i) -> String:
-	var profile: DestructionMaterialProfile = _material_by_cell.get(cell) as DestructionMaterialProfile
+	var profile: DestructionMaterialProfileScript = _material_by_cell.get(cell) as DestructionMaterialProfileScript
 	return profile.display_name if profile != null else ""
 
 
 func get_cell_integrity(cell: Vector3i) -> float:
-	var profile: DestructionMaterialProfile = _material_by_cell.get(cell) as DestructionMaterialProfile
+	var profile: DestructionMaterialProfileScript = _material_by_cell.get(cell) as DestructionMaterialProfileScript
 	return maxf(profile.integrity, 0.1) if profile != null else 0.1
 
 
 func get_cell_blast_resistance(cell: Vector3i) -> float:
-	var profile: DestructionMaterialProfile = _material_by_cell.get(cell) as DestructionMaterialProfile
+	var profile: DestructionMaterialProfileScript = _material_by_cell.get(cell) as DestructionMaterialProfileScript
 	return maxf(profile.blast_resistance, 0.1) if profile != null else 0.1
 
 
 func get_cell_density_multiplier(cell: Vector3i) -> float:
-	var profile: DestructionMaterialProfile = _material_by_cell.get(cell) as DestructionMaterialProfile
+	var profile: DestructionMaterialProfileScript = _material_by_cell.get(cell) as DestructionMaterialProfileScript
 	return maxf(profile.density_multiplier, 0.1) if profile != null else 0.1
 
 
