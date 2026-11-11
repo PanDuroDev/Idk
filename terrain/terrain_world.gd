@@ -12,11 +12,10 @@ const CollisionQueue = preload("res://terrain/terrain_collision_queue.gd")
 const BudgetConfig = preload("res://terrain/terrain_budget_config.gd")
 
 const CHUNK_LAYER: int = 0
-const CHUNK_MIN: int = -1
-const CHUNK_MAX: int = 1
 
 @export var use_low_end_fallback: bool = false
 @export var surface_color: Color = Color(0.26, 0.31, 0.25)
+@export_range(1, 8, 1) var chunk_radius: int = 1
 
 var _budget: TerrainBudgetConfig
 var _cells: Vector3i
@@ -53,8 +52,8 @@ func _ready() -> void:
 	_budget.configure_collision_queue(_collision_queue)
 	add_child(_collision_queue)
 
-	for z in range(CHUNK_MIN, CHUNK_MAX):
-		for x in range(CHUNK_MIN, CHUNK_MAX):
+	for z in range(-chunk_radius, chunk_radius):
+		for x in range(-chunk_radius, chunk_radius):
 			_create_chunk(Vector3i(x, CHUNK_LAYER, z))
 
 

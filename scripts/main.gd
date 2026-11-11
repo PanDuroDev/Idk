@@ -70,6 +70,13 @@ var _time_scale_value_label: Label
 var _material_option: OptionButton
 var _pause_button: Button
 var _material_override_id: StringName = &""
+var _camera_option: OptionButton
+var _orbit_camera: Camera3D
+var _overview_camera: Camera3D
+var _camera_mode: StringName = &"first_person"
+var _orbit_angle: float = 0.0
+
+const CAMERA_MODES: Array[StringName] = [&"first_person", &"orbit", &"overview"]
 
 const DEFAULT_BLAST_RADIUS: float = 4.5
 const DEFAULT_BLAST_DAMAGE: float = 4.0
@@ -87,6 +94,7 @@ func _ready() -> void:
 	_player.position = Vector3(0.0, 0.1, 6.0)
 	add_child(_player)
 	_player.blast_requested.connect(request_blast)
+	_build_cameras()
 
 	_build_hud()
 	_build_simulation_panel()
@@ -103,6 +111,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F3:
 		toggle_debug_overlay()
+		get_viewport().set_input_as_handled()
+		return
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_C:
+		cycle_camera_mode()
 		get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed("reset_structure"):
@@ -127,6 +139,7 @@ func _physics_process(_delta: float) -> void:
 
 
 func _process(delta: float) -> void:
+	_update_orbit_camera(delta)
 	_hud_refresh_timer += delta
 	if _hud_refresh_timer < 0.25 or not is_instance_valid(_hud_label):
 		return
@@ -284,6 +297,71 @@ func get_simulation_time_scale() -> float:
 	return Engine.time_scale
 
 
+func get_camera_modes() -> Array[StringName]:
+	return CAMERA_MODES.duplicate()
+
+
+func get_camera_mode() -> StringName:
+	return _camera_mode
+
+
+func set_camera_mode(mode: StringName) -> bool:
+	if not CAMERA_MODES.has(mode):
+		return false
+	_camera_mode = mode
+	_apply_camera_mode()
+	_refresh_simulation_controls()
+	return true
+
+
+func cycle_camera_mode() -> StringName:
+	set_camera_mode(CAMERA_MODES[(CAMERA_MODES.find(_camera_mode) + 1) % CAMERA_MODES.size()])
+	return _camera_mode
+
+
+func _apply_camera_mode() -> void:
+	if is_instance_valid(_player):
+		var player_camera: Camera3D = _player.call("get_camera")
+		if is_instance_valid(player_camera):
+			player_camera.current = _camera_mode == &"first_person"
+	var anchor: Vector3 = _get_camera_anchor()
+	if is_instance_valid(_orbit_camera):
+		_orbit_camera.position = anchor + Vector3(cos(_orbit_angle) * 22.0, 12.0, sin(_orbit_angle) * 22.0)
+		_orbit_camera.look_at(anchor + Vector3(0.0, 2.0, 0.0))
+		_orbit_camera.current = _camera_mode == &"orbit"
+	if is_instance_valid(_overview_camera):
+		_overview_camera.position = anchor + Vector3(0.0, 42.0, 0.1)
+		_overview_camera.look_at(anchor)
+		_overview_camera.current = _camera_mode == &"overview"
+
+
+func _build_cameras() -> void:
+	_orbit_camera = Camera3D.new()
+	_orbit_camera.name = "OrbitCamera"
+	_orbit_camera.fov = 62.0
+	add_child(_orbit_camera)
+	_overview_camera = Camera3D.new()
+	_overview_camera.name = "OverviewCamera"
+	_overview_camera.fov = 55.0
+	add_child(_overview_camera)
+	_apply_camera_mode()
+
+
+func _update_orbit_camera(delta: float) -> void:
+	if _camera_mode != &"orbit" or not is_instance_valid(_orbit_camera):
+		return
+	_orbit_angle += delta * 0.25
+	var anchor: Vector3 = _get_camera_anchor()
+	_orbit_camera.position = anchor + Vector3(cos(_orbit_angle) * 22.0, 12.0, sin(_orbit_angle) * 22.0)
+	_orbit_camera.look_at(anchor + Vector3(0.0, 2.0, 0.0))
+
+
+func _get_camera_anchor() -> Vector3:
+	if is_instance_valid(_structure):
+		return _structure.global_position
+	return Vector3(0.0, 1.0, -12.0)
+
+
 func load_scenario(scenario_id: StringName) -> Array[String]:
 	var errors: Array[String] = []
 	var scenario: ExperimentScenarioScript = SCENARIO_CATALOG.get_scenario_by_id(scenario_id)
@@ -331,6 +409,7 @@ func run_scenario_settled(scenario_id: StringName, settle_frames: int = 120) -> 
 	var scenario: ExperimentScenarioScript = prepared["scenario"]
 	var impact: Vector3 = prepared["impact"]
 	var snapshot: Dictionary = _capture_fragment_positions()
+	await _launch_rocket(impact, scenario.blast_radius)
 	var started_usec: int = Time.get_ticks_usec()
 	var metrics: Dictionary = _apply_scenario_impact(scenario, impact)
 	var frames: int = clampi(settle_frames, 1, 600)
@@ -761,6 +840,8 @@ func _build_environment() -> void:
 
 
 func _build_ground() -> void:
+	# Low safety floor under the carveable terrain so debris that leaves the
+	# resident patch still lands instead of falling forever.
 	var ground := StaticBody3D.new()
 	ground.name = "Ground"
 	ground.collision_layer = 1
@@ -771,16 +852,16 @@ func _build_ground() -> void:
 	var shape := BoxShape3D.new()
 	shape.size = Vector3(100.0, 1.0, 100.0)
 	collision.shape = shape
-	collision.position.y = -0.5
+	collision.position.y = -6.5
 	ground.add_child(collision)
 
 	var mesh_instance := MeshInstance3D.new()
 	var mesh := BoxMesh.new()
 	mesh.size = shape.size
 	mesh_instance.mesh = mesh
-	mesh_instance.position.y = -0.5
+	mesh_instance.position.y = -6.5
 	var material := StandardMaterial3D.new()
-	material.albedo_color = Color(0.12, 0.14, 0.17)
+	material.albedo_color = Color(0.07, 0.08, 0.1)
 	material.roughness = 0.95
 	mesh.material = material
 	ground.add_child(mesh_instance)
@@ -794,10 +875,11 @@ func _build_terrain(world: WorldDefinitionScript = null) -> void:
 	_terrain.name = "TerrainWorld"
 	if world != null:
 		_terrain.position = world.terrain_position
+		_terrain.set("chunk_radius", world.terrain_chunk_radius)
 		_terrain.set("surface_color", world.terrain_surface_color)
 		_terrain.set("use_low_end_fallback", world.terrain_low_end_fallback)
 	else:
-		_terrain.position = Vector3(18.0, 0.06, -30.0)
+		_terrain.position = Vector3(0.0, -1.05, 0.0)
 	add_child(_terrain)
 
 
@@ -886,6 +968,83 @@ func _spawn_physics_props() -> void:
 		prop.add_child(collision)
 
 
+func _launch_rocket(impact: Vector3, radius: float) -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	var rocket := _build_rocket(radius)
+	add_child(rocket)
+	rocket.global_position = impact + Vector3(0.0, 12.0, 20.0)
+	rocket.look_at(impact)
+	var flight: Tween = create_tween()
+	flight.tween_property(rocket, "global_position", impact, 0.7).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	await flight.finished
+	if is_instance_valid(rocket):
+		rocket.queue_free()
+
+
+func _build_rocket(radius: float) -> Node3D:
+	var rocket := Node3D.new()
+	rocket.name = "Rocket"
+	rocket.scale = Vector3.ONE * clampf(radius / 4.5, 0.7, 1.6)
+	var pivot := Node3D.new()
+	pivot.rotation_degrees.x = -90.0
+	rocket.add_child(pivot)
+
+	var metal := StandardMaterial3D.new()
+	metal.albedo_color = Color(0.62, 0.66, 0.7)
+	metal.roughness = 0.35
+	metal.metallic = 0.6
+	var accent := StandardMaterial3D.new()
+	accent.albedo_color = Color(0.75, 0.2, 0.12)
+	accent.roughness = 0.55
+
+	var body := MeshInstance3D.new()
+	var body_mesh := CylinderMesh.new()
+	body_mesh.top_radius = 0.16
+	body_mesh.bottom_radius = 0.18
+	body_mesh.height = 1.5
+	body.mesh = body_mesh
+	body.material_override = metal
+	pivot.add_child(body)
+
+	var nose := MeshInstance3D.new()
+	var nose_mesh := CylinderMesh.new()
+	nose_mesh.top_radius = 0.0
+	nose_mesh.bottom_radius = 0.16
+	nose_mesh.height = 0.5
+	nose.mesh = nose_mesh
+	nose.material_override = accent
+	nose.position.y = 1.0
+	pivot.add_child(nose)
+
+	for index in range(3):
+		var fin := MeshInstance3D.new()
+		var fin_mesh := BoxMesh.new()
+		fin_mesh.size = Vector3(0.05, 0.42, 0.3)
+		fin.mesh = fin_mesh
+		fin.material_override = accent
+		fin.rotation.y = TAU * float(index) / 3.0
+		fin.position = Vector3(cos(TAU * float(index) / 3.0) * 0.2, -0.62, sin(TAU * float(index) / 3.0) * 0.2)
+		pivot.add_child(fin)
+
+	var flame := MeshInstance3D.new()
+	var flame_mesh := SphereMesh.new()
+	flame_mesh.radius = 0.16
+	flame_mesh.height = 0.32
+	flame.mesh = flame_mesh
+	var flame_material := StandardMaterial3D.new()
+	flame_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	flame_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	flame_material.albedo_color = Color(1.0, 0.7, 0.25, 0.85)
+	flame_material.emission_enabled = true
+	flame_material.emission = Color(1.0, 0.55, 0.15)
+	flame_material.emission_energy_multiplier = 3.0
+	flame.material_override = flame_material
+	flame.position.y = -0.82
+	pivot.add_child(flame)
+	return rocket
+
+
 func _spawn_blast_flash(position: Vector3) -> void:
 	if DisplayServer.get_name() == "headless":
 		_headless_effect_burst_count = mini(_headless_effect_burst_count + 1, MAX_ACTIVE_EFFECTS)
@@ -899,10 +1058,47 @@ func _spawn_blast_flash(position: Vector3) -> void:
 			oldest.queue_free()
 
 	var effect := Node3D.new()
-	effect.name = "BlastDustEffect"
+	effect.name = "BlastEffect"
 	add_child(effect)
 	effect.global_position = position
 	_active_effects.append(effect)
+
+	# Hot core flash.
+	var flash_material := StandardMaterial3D.new()
+	flash_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	flash_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	flash_material.albedo_color = Color(1.0, 0.62, 0.2, 0.9)
+	flash_material.emission_enabled = true
+	flash_material.emission = Color(1.0, 0.5, 0.12)
+	flash_material.emission_energy_multiplier = 4.0
+	var flash := MeshInstance3D.new()
+	var sphere_mesh := SphereMesh.new()
+	sphere_mesh.radius = 1.0
+	sphere_mesh.height = 2.0
+	flash.mesh = sphere_mesh
+	flash.material_override = flash_material
+	flash.scale = Vector3.ONE * 0.25
+	effect.add_child(flash)
+
+	# Expanding ground shockwave ring.
+	var shock_material := StandardMaterial3D.new()
+	shock_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	shock_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	shock_material.albedo_color = Color(0.95, 0.86, 0.7, 0.75)
+	shock_material.emission_enabled = true
+	shock_material.emission = Color(1.0, 0.72, 0.35)
+	shock_material.emission_energy_multiplier = 2.0
+	var shock := MeshInstance3D.new()
+	var torus := TorusMesh.new()
+	torus.inner_radius = 0.85
+	torus.outer_radius = 1.0
+	shock.mesh = torus
+	shock.material_override = shock_material
+	shock.rotation_degrees.x = 90.0
+	shock.position.y = 0.05
+	shock.scale = Vector3.ONE * 0.4
+	effect.add_child(shock)
+
 	var dust_mesh := SphereMesh.new()
 	dust_mesh.radius = 0.07
 	dust_mesh.height = 0.14
@@ -918,6 +1114,10 @@ func _spawn_blast_flash(position: Vector3) -> void:
 		Vector3(0.7, 0.2, -0.8), Vector3(-0.8, 0.25, -0.5)
 	]
 	var tween := create_tween().set_parallel(true)
+	tween.tween_property(flash, "scale", Vector3.ONE * blast_radius * 0.6, EFFECT_LIFETIME * 1.4).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(flash_material, "albedo_color", Color(1.0, 0.62, 0.2, 0.0), EFFECT_LIFETIME)
+	tween.tween_property(shock, "scale", Vector3.ONE * blast_radius * 1.6, EFFECT_LIFETIME).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(shock_material, "albedo_color", Color(0.95, 0.86, 0.7, 0.0), EFFECT_LIFETIME)
 	for index in range(directions.size()):
 		var dust := MeshInstance3D.new()
 		dust.mesh = dust_mesh
@@ -1058,6 +1258,7 @@ func _build_simulation_panel() -> void:
 	var material_ids: Array[StringName] = [&"default"]
 	material_ids.append_array(get_material_profile_ids())
 	_material_option = _add_option_row(layout, "Material", material_ids, _on_material_selected)
+	_camera_option = _add_option_row(layout, "Camera", CAMERA_MODES, _on_camera_selected)
 
 	_add_impact_control_row(layout, "Blast radius", &"blast_radius", 0.25)
 	_add_impact_control_row(layout, "Damage", &"blast_damage", 0.25)
@@ -1199,6 +1400,11 @@ func _on_material_selected(index: int) -> void:
 	_refresh_simulation_controls()
 
 
+func _on_camera_selected(index: int) -> void:
+	if set_camera_mode(_camera_option.get_item_metadata(index)):
+		_set_status("Camera: %s (C cycles)" % String(_camera_mode))
+
+
 func _run_selected_scenario() -> void:
 	if not is_instance_valid(_scenario_option) or _scenario_option.selected < 0:
 		return
@@ -1233,6 +1439,7 @@ func _refresh_simulation_controls() -> void:
 		_material_option,
 		_material_override_id if _material_override_id != &"" else &"default"
 	)
+	_select_option(_camera_option, _camera_mode)
 
 
 func _select_option(option: OptionButton, option_id: StringName) -> void:

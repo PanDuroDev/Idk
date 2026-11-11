@@ -85,3 +85,7 @@ func _request_blast() -> void:
 	var ray_origin: Vector3 = _camera.global_position
 	var ray_direction: Vector3 = -_camera.global_transform.basis.z.normalized()
 	blast_requested.emit(ray_origin, ray_direction)
+
+
+func get_camera() -> Camera3D:
+	return _camera

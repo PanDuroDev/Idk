@@ -163,7 +163,7 @@ func _check_world(main: Node, world_id: StringName, building_id: StringName, fra
 		_fail("World '%s' did not apply building '%s'" % [String(world_id), String(building_id)])
 		return false
 	var terrain: Node = main.get_node_or_null("TerrainWorld")
-	if terrain == null or terrain.get_resident_chunk_count() != 4:
+	if terrain == null or terrain.get_resident_chunk_count() != 16:
 		_fail("World '%s' did not build its resident terrain patch" % String(world_id))
 		return false
 	if not is_equal_approx(float(main.call("get_simulation_gravity")), gravity):

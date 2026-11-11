@@ -106,7 +106,7 @@ Each issue contains its own AI prompt, PR breakdown, acceptance criteria, and co
 - [PR #12](https://github.com/PanDuroDev/Idk/pull/12) added the deterministic world-space sphere edit journal, affected-chunk AABB query, shared-border density recomputation, and reset. Merged to `main` as `5e3a43c`.
 - [PR #13](https://github.com/PanDuroDev/Idk/pull/13) added the coalescing static collision rebuild queue, one-rebuild-per-physics-frame budget, deferred collider replacement, and stale-shape removal. Merged to `main` as `b8a90b8`.
 - [PR #15](https://github.com/PanDuroDev/Idk/pull/15) added validated budgets, an 8-cell low-end profile, a bounded mesh rebuild queue, and repeatable 8³/16³ CPU and payload profiling. Merged to `main` as `15467f0` after merging `main` and resolving an append-only Work Log conflict.
-- [PR #21](https://github.com/PanDuroDev/Idk/pull/21) added `TerrainWorld`: a bounded 2x2 resident chunk patch with synchronous initial meshes/colliders, localized blast carving, bounded mesh and collision rebuild queues, terrain reset, and gameplay integration. Merged to `main` as `cb2a9bf` after Linux + Windows CI passed.
+- [PR #21](https://github.com/PanDuroDev/Idk/pull/21) added `TerrainWorld`: a bounded resident chunk patch with synchronous initial meshes/colliders, localized blast carving, bounded mesh and collision rebuild queues, terrain reset, and gameplay integration. Merged to `main` as `cb2a9bf` after Linux + Windows CI passed. The patch is now centered on the arena with a configurable radius (4x4 chunks in the shipped worlds) so the whole ground is carveable.
 - Local Windows validation on the merged tree passed `WORLDBREAK_TERRAIN_CHUNK_MESH_OK`, `WORLDBREAK_TERRAIN_DEFORMATION_OK`, `WORLDBREAK_TERRAIN_COLLISION_OK`, `WORLDBREAK_TERRAIN_BUDGETS_OK`, `WORLDBREAK_TERRAIN_MESH_QUEUE_OK`, `WORLDBREAK_TERRAIN_WORLD_OK`, and `WORLDBREAK_TERRAIN_INTEGRATION_OK`, plus the gameplay smoke suite.
 - This is a fixed resident patch, not a chunk streamer, and the tests do not establish visual quality or target-PC frame rate.
 
@@ -128,6 +128,12 @@ Each issue contains its own AI prompt, PR breakdown, acceptance criteria, and co
 - Material selection applies an existing catalog profile through the Phase 2 per-cell override path; `default` restores the building definition's materials. Pause uses `SceneTree.paused` while the UI canvas remains processable, without overwriting `Engine.time_scale`.
 - `tests/phase5/simulation_tools_test.gd` reports `WORLDBREAK_SIMULATION_TOOLS_OK`. Local Windows validation passed the full regression (smoke, configuration persistence, all terrain markers, world loading, and simulation tools). [PR #23](https://github.com/PanDuroDev/Idk/pull/23) merged as `94c71b4` after Linux + Windows CI passed; the settled-run follow-up merged as `09c5602` via [PR #24](https://github.com/PanDuroDev/Idk/pull/24) after Linux + Windows CI passed.
 - Limitations: scenarios provide deterministic setup, not bit-identical cross-platform physics; settled counts and timing are observational; material selection is catalog-preset based, not a free-form material editor; headless tests do not prove interactive button ergonomics, visual quality, or target-PC frame rate.
+
+## Presentation pass
+
+- [PR #26](https://github.com/PanDuroDev/Idk/pull/26) adds a blast core flash plus ground shockwave ring to the existing dust bursts, a rocket that flies into the impact point before settled scenario runs, first-person/orbit/overview camera modes (panel row or C), and centers a radius-configurable terrain patch under the arena so the whole play area is carveable.
+- The previous flat ground box is now a far safety floor at y=-6; debris may legitimately settle in craters below y=0.
+- Limits: effects are mesh-and-tween based with the existing eight-burst cap, the rocket is visual-only (no trajectory physics), and the terrain remains a bounded resident patch without streaming.
 
 ## Required update protocol
 
