@@ -58,6 +58,21 @@ func _run() -> void:
 		_fail("Simulation resume did not take effect")
 		return
 
+	var modes: Array = main.call("get_camera_modes")
+	if modes.size() < 2 or String(main.call("get_camera_mode")) != "first_person":
+		_fail("Camera modes were not exposed with a first-person default")
+		return
+	var cycled: StringName = main.call("cycle_camera_mode")
+	if String(cycled) == "first_person" or String(main.call("get_camera_mode")) != String(cycled):
+		_fail("Camera cycling did not switch the active mode")
+		return
+	if not bool(main.call("set_camera_mode", &"first_person")) or String(main.call("get_camera_mode")) != "first_person":
+		_fail("Camera mode selection did not restore first person")
+		return
+	if bool(main.call("set_camera_mode", &"missing_mode")):
+		_fail("Camera mode selection accepted an unknown mode")
+		return
+
 	var load_errors: Array = main.call("load_scenario", &"foundation_strike")
 	if not load_errors.is_empty():
 		_fail("Foundation scenario load failed: %s" % "\n".join(load_errors))

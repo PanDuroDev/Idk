@@ -15,7 +15,7 @@ func _run() -> void:
 	if terrain == null or structure == null:
 		_fail("Gameplay scene did not create both the terrain patch and destructible structure")
 		return
-	if terrain.get_resident_chunk_count() != 4:
+	if terrain.get_resident_chunk_count() != 16:
 		_fail("Integrated terrain patch did not build its bounded resident chunks")
 		return
 	if not terrain.is_reset_to_initial_state():
@@ -42,8 +42,11 @@ func _run() -> void:
 		if affected.is_empty() or affected.size() > int(terrain.get_budget().max_dirty_chunks_per_edit):
 			_fail("Terrain blast cycle %d exceeded the dirty-chunk budget" % (cycle + 1))
 			return
-		var top_data = terrain.get_chunk_data(Vector3i(0, 0, 0))
-		if top_data == null or not (top_data.get_density(Vector3i(2, 1, 0)) < 0.0):
+		var extent: float = float(terrain.get_chunk_cell_size()) * float(terrain.get_budget().chunk_resolution)
+		var chunk_coord := Vector3i(floori(20.0 / extent), 0, floori(-30.0 / extent))
+		var local_cell := Vector3i(floori(20.0 - extent * chunk_coord.x), 1, floori(-30.0 - extent * chunk_coord.z))
+		var top_data = terrain.get_chunk_data(chunk_coord)
+		if top_data == null or not (top_data.get_density(local_cell) < 0.0):
 			_fail("Terrain blast cycle %d did not deform the impact chunk" % (cycle + 1))
 			return
 		if terrain.get_mesh_queue().total_rebuilds <= mesh_rebuilds_before:
@@ -70,7 +73,7 @@ func _run() -> void:
 			_fail("Reset did not restore the structure after blast cycle %d" % (cycle + 1))
 			return
 
-	print("WORLDBREAK_TERRAIN_INTEGRATION_OK: blasts=3; chunks=4; localized_rebuilds=passed; reset=passed")
+	print("WORLDBREAK_TERRAIN_INTEGRATION_OK: blasts=3; chunks=16; localized_rebuilds=passed; reset=passed")
 	quit(0)
 
 func _fail(message: String) -> void:

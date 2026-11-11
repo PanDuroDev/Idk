@@ -253,8 +253,10 @@ func _run_smoke_test() -> void:
 		if not fragment.linear_velocity.is_finite() or not fragment.angular_velocity.is_finite():
 			_fail("Fragment velocity became non-finite after collapse: %s" % fragment.name)
 			return
-		if fragment.global_position.y < -0.1:
-			_fail("Fragment passed through the ground during collapse: %s" % fragment.name)
+		# Blasts now carve the resident ground, so debris may settle inside a crater.
+		# Containment means staying above the solid safety floor, not above y = 0.
+		if fragment.global_position.y < -5.9:
+			_fail("Fragment fell through the world floor during collapse: %s" % fragment.name)
 			return
 		if fragment.global_position.distance_to(start_position) > 0.05:
 			moved_fragment_count += 1
@@ -384,8 +386,8 @@ func _run_smoke_test() -> void:
 			if not fragment.linear_velocity.is_finite() or not fragment.angular_velocity.is_finite():
 				_fail("Collapse cycle %d produced a non-finite velocity for %s" % [cycle_index + 1, fragment.name])
 				return
-			if fragment.global_position.y < -0.1:
-				_fail("Collapse cycle %d let %s pass through the ground" % [cycle_index + 1, fragment.name])
+			if fragment.global_position.y < -5.9:
+				_fail("Collapse cycle %d dropped %s through the world floor" % [cycle_index + 1, fragment.name])
 				return
 			var initial_position: Vector3 = initial_fragment_positions[fragment.get_instance_id()]
 			if fragment.global_position.distance_to(initial_position) > 0.05:

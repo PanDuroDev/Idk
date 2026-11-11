@@ -879,7 +879,7 @@ func _build_terrain(world: WorldDefinitionScript = null) -> void:
 		_terrain.set("surface_color", world.terrain_surface_color)
 		_terrain.set("use_low_end_fallback", world.terrain_low_end_fallback)
 	else:
-		_terrain.position = Vector3(0.0, -1.0, 0.0)
+		_terrain.position = Vector3(0.0, -1.05, 0.0)
 	add_child(_terrain)
 
 
