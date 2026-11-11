@@ -646,3 +646,4 @@ This is an append-only engineering journal. Each substantial session is recorded
 ### After work
 - Local `WORLDBREAK_SIMULATION_TOOLS_OK` passed with `settled=passed`; the full local regression and Linux + Windows CI results are recorded on the follow-up PR.
 - Limits: deterministic reset setup is not bit-identical cross-platform physics; settled counts and timing are observational; headless tests do not prove panel ergonomics or target-PC frame rate. Manual Windows settled/export validation remains outstanding.
+- Follow-up merged: [PR #24](https://github.com/PanDuroDev/Idk/pull/24) merged as `09c5602` after Linux + Windows CI passed. The merged tree is identical to the locally validated `12b47d5`; the full local regression re-passed on that tree (smoke, configuration persistence, all terrain markers, world loading, simulation tools, launch).
