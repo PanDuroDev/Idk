@@ -687,3 +687,23 @@ This is an append-only engineering journal. Each substantial session is recorded
 ### After work
 - Godot import clean. Full local Windows regression passed: smoke, configuration persistence, all terrain markers, world loading, and simulation tools. No `SCRIPT ERROR:`, `ERROR:`, `Parse Error:`, or `Failed to load script` matches.
 - Limits: no downloaded art/models/HDRI; effects are still mesh-and-tween with the eight-burst cap; the rocket is visual only and the blast applies on arrival rather than from a simulated projectile; headless tests do not prove visual quality or target-PC frame rate.
+
+## 2026-11-11 - GMod-style sandbox, CC0 assets, carry/throw
+
+### Before work
+- Started from `main` at `9165004` where the player fired a visual-only rocket like a weapon.
+- Owner asked for a Garry's-Mod-style sandbox instead: rockets lying in the world, a spawn menu for weapons/props, carrying a prop while holding another, and throwing modeled on GMod; also asked for free assets that are safe to bundle.
+- Scope: replace the player-fired rocket with spawnable physics props, add carry/throw and contact detonation, bundle CC0 models with credits, keep the existing blast/effects/camera systems, and avoid new dependencies.
+
+### During work
+- Downloaded the CC0 Kenney Space Kit and Poly Haven samples via their public download endpoints, pruned the kit to 12 models (7 spawnable props plus rocket parts), and recorded sources in `assets/CREDITS.md`.
+- Added `pickup` (E) and `spawn_menu` (Tab) InputMap actions.
+- Added a sandbox layer in `main.gd`: fixed seven-item spawn catalog (rocket, barrel, barrel stack, meteor, rock, generator, machine), model loader that recenters/scales GLB meshes from their combined AABB and adds a box collider, 24-prop cap, and two starter rockets on the ground.
+- Added E pickup with a physics ray plus forward-cone fallback, camera-relative carry with collision disabled, E drop, and left-mouse throw using camera aim and player momentum.
+- Rocket props enable contact monitoring and detonate once on first contact after being thrown, through a new shared `_detonate` path used by the blast tool too. The blast tool now applies instantly; removed the old player-fired rocket flight and the scenario fly-in.
+- Rebuilt the HUD hint and added a themed top-left Spawn Menu panel with a prop grid and status line.
+- Extended `tests/phase5/simulation_tools_test.gd` for the spawn catalog, starter rockets, spawn, menu toggle, pickup, throw, and rocket detonation.
+
+### After work
+- Local `WORLDBREAK_SIMULATION_TOOLS_OK` passed with the sandbox checks; import is clean.
+- Limits: seven curated models rather than a full asset browser; carrying freezes the body instead of using a grab constraint; 24 spawned props is a hard cap; headless tests cover logic, not interactivity. No audio and no target-PC telemetry.

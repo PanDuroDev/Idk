@@ -90,11 +90,44 @@ func _run() -> void:
 		_fail("Themed HUD or simulation panel is missing")
 		return
 
-	var rocket: Node3D = main.call("_build_rocket", 4.5) as Node3D
-	if rocket == null or rocket.get_child_count() == 0:
-		_fail("Rocket model did not build")
+	var spawn_items: Array = main.call("get_spawn_items")
+	if spawn_items.size() < 4:
+		_fail("Sandbox spawn catalog is too small")
 		return
-	rocket.free()
+	if int(main.call("get_spawned_prop_count")) < 2:
+		_fail("Starter rockets were not placed on the ground")
+		return
+	var spawn_result: Dictionary = main.call("spawn_item", &"barrel")
+	if not bool(spawn_result["ok"]) or spawn_result["prop"] == null:
+		_fail("Sandbox barrel spawn failed")
+		return
+	if not bool(main.call("is_spawn_menu_open")) and not bool(main.call("toggle_spawn_menu")):
+		_fail("Spawn menu did not open")
+		return
+	if bool(main.call("toggle_spawn_menu")):
+		_fail("Spawn menu did not close")
+		return
+	if not bool(main.call("try_pickup")):
+		_fail("Could not pick up the spawned barrel")
+		return
+	if main.call("get_held_prop") == null:
+		_fail("Held prop was not tracked")
+		return
+	if not bool(main.call("throw_held_prop")) or main.call("get_held_prop") != null:
+		_fail("Throwing the held prop failed")
+		return
+	var rocket_result: Dictionary = main.call("spawn_item", &"rocket")
+	var rocket: RigidBody3D = rocket_result.get("prop") as RigidBody3D
+	if rocket == null:
+		_fail("Sandbox rocket spawn failed")
+		return
+	var props_before: int = int(main.call("get_spawned_prop_count"))
+	rocket.set_meta("armed", true)
+	rocket.linear_velocity = Vector3(0.0, -6.0, 0.0)
+	main.call("_on_rocket_body_entered", rocket, rocket)
+	if int(main.call("get_spawned_prop_count")) >= props_before:
+		_fail("Armed rocket did not detonate on contact")
+		return
 
 	var load_errors: Array = main.call("load_scenario", &"foundation_strike")
 	if not load_errors.is_empty():

@@ -142,6 +142,14 @@ Each issue contains its own AI prompt, PR breakdown, acceptance criteria, and co
 - HUD and control panel share a dark theme with sectioned rows, hover/pressed states, a top-right anchored panel, a first-person crosshair, and a control-hint line.
 - Limits: no downloaded external art, models, or HDRI; effects remain mesh-and-tween; the rocket is visual only and the blast is applied on arrival rather than by a simulated projectile body; no target-PC frame-rate claim.
 
+## Sandbox pass
+
+- The player-fired rocket was replaced with a Garry's-Mod-style sandbox: Tab opens a spawn menu that creates CC0 Kenney props (rocket, barrel stack, meteor, rock, generator, machine) in front of the player, capped at 24 spawned bodies. Two starter rockets rest on the ground near spawn.
+- E picks up the aimed prop (physics ray first, then a forward-cone fallback), freezes it in front of the camera with collisions disabled, and drops it again. The left mouse button throws it with the camera's aim and the player's momentum; without a held prop the blast tool fires as before.
+- A thrown rocket arms itself and detonates on its first solid contact through the same shared `_detonate` path as the blast tool: ground carving, structure damage, radial impulse, blast effect, debris chips, and camera shake.
+- Sandbox props reuse the existing `blastable` group and gravity scaling; models are loaded from `assets/kenney/space_kit`, recentered and scaled from their mesh bounds, and get a box collision shape. CC0 sources are credited in `assets/CREDITS.md`.
+- Limits: the prop catalog is a fixed set of seven curated models rather than a full asset browser; carrying uses freeze plus disabled collision rather than a physical grab constraint; 24 spawned props is a hard cap; headless tests cover spawn/carry/throw/detonate logic, not interactive feel.
+
 ## Required update protocol
 
 Every substantial session updates this file and `WORK_LOG.md` at three points:

@@ -51,6 +51,14 @@ release_mouse={
 "deadzone": 0.5,
 "events": [Object(InputEventKey,"physical_keycode":4194305)]
 }
+pickup={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"physical_keycode":69)]
+}
+spawn_menu={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"physical_keycode":4194306)]
+}
 
 [physics]
 

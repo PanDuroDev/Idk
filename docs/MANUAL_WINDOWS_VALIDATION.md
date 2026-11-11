@@ -121,12 +121,22 @@ Do not treat a single FPS reading as a benchmark. Record the resolution, graphic
 - Fire near the structure and confirm the floor is carveable beneath it; loose debris may settle into the crater but must not fall through the world.
 - Confirm each impact shows a bright core flash, an expanding ground ring, dust, and debris chips, and that repeated impacts do not keep stale effects alive.
 - Fire at the structure and confirm the floor under it is carved as well, not only the structure itself.
-- Confirm the rocket starts at the player/camera and travels in the aimed direction, and that the explosion, chips, and camera shake happen when it arrives.
+- Confirm the blast tool detonates instantly at the aim point instead of launching a rocket from the camera.
 - Confirm the HUD and control panel use the dark theme, the crosshair hides outside first person, and the panel stays anchored top-right after resizing the window.
-- Run a settled scenario and confirm a rocket visibly flies into the impact point before the damage and settle window.
+- Run a settled scenario and confirm damage, crater, chips, and shake are applied immediately with no flying rocket.
 - Use the panel Camera row and the **C** key to switch between first person, orbit, and overview. Confirm orbit rotates and overview shows the arena, and that switching back to first person restores movement/aiming.
 - Record any visual artifacts, camera clipping, or frame-rate drops seen with the new effects.
 
-## 11. Report the result
+## 11. Sandbox: spawn menu, carrying, and thrown rockets
+
+- Press **Tab** and confirm the spawn menu opens with a prop grid and that the mouse cursor becomes visible; press Tab again to close and recapture the mouse.
+- Spawn each prop type and confirm it appears in front of the player on the ground, is stable, and has a sensible size and collision.
+- Look at a prop and press **E**; confirm it is carried in front of the camera, cannot be pushed through the player, and that **E** drops it.
+- Carry a prop and click; confirm it is thrown in the look direction with the player's momentum and that the blast tool does not also fire.
+- Throw a rocket at the structure or ground and confirm it explodes on contact with crater, structure damage, chips, and shake. Throw one at nothing and confirm it does not explode mid-air.
+- Confirm two starter rockets rest on the ground near spawn and reappear after **Reset world**, and that the spawned-prop count stops at 24.
+- Record any prop clipping, unstable jitter, missing detonation, or frame drops while carrying.
+
+## 12. Report the result
 
 Record the Godot version, Windows version, whether any errors appeared, the three material hit counts, the number of successful collapse/reset cycles, and the performance table above. Keep screenshots or a short recording of any failure. Do not mark interactive validation complete until these observations have been reviewed.
