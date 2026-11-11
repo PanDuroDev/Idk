@@ -43,6 +43,8 @@ static func validate_definition(
 		errors.append("World sun energy must be finite and within 0..%.1f." % MAX_SUN_ENERGY)
 	if not world.terrain_position.is_finite():
 		errors.append("World terrain position must contain finite values.")
+	if world.terrain_chunk_radius < 1 or world.terrain_chunk_radius > 8:
+		errors.append("World terrain chunk radius must be within 1..8.")
 	if not _is_valid_color(world.terrain_surface_color):
 		errors.append("World terrain surface color must contain finite channels within 0..1.")
 
