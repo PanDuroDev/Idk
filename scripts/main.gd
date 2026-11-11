@@ -50,6 +50,7 @@ var _terrain: Node3D
 var _player: CharacterBody3D
 var _blast_service: RefCounted
 var _pending_blasts: Array[Dictionary] = []
+var _pending_detonations: Array[Dictionary] = []
 var _reset_requested: bool = false
 var _hud_label: Label
 var _ui_canvas: CanvasLayer
@@ -182,6 +183,12 @@ func _physics_process(_delta: float) -> void:
 	while not _pending_blasts.is_empty():
 		var request: Dictionary = _pending_blasts.pop_front()
 		_process_blast(request["origin"], request["direction"])
+
+	# Contact signals are emitted during the physics step. Defer blast queries
+	# and terrain/structure mutations until the next physics tick.
+	while not _pending_detonations.is_empty():
+		var detonation: Dictionary = _pending_detonations.pop_front()
+		_detonate(detonation["position"], detonation["normal"], detonation["radius"])
 
 
 func _process(delta: float) -> void:
@@ -1351,6 +1358,7 @@ func _spawn_starter_rockets() -> void:
 
 func _clear_spawned_props() -> void:
 	_held_prop = null
+	_pending_detonations.clear()
 	for prop in _spawned_props:
 		if not is_instance_valid(prop):
 			continue
@@ -1370,7 +1378,11 @@ func _on_rocket_body_entered(body: Node, prop: RigidBody3D) -> void:
 	if _held_prop == prop:
 		_held_prop = null
 	prop.queue_free()
-	_detonate(impact, Vector3.UP, ROCKET_BLAST_RADIUS)
+	_pending_detonations.append({
+		"position": impact,
+		"normal": Vector3.UP,
+		"radius": ROCKET_BLAST_RADIUS
+	})
 	_set_sandbox_status("Rocket detonated on %s." % body.name)
 
 
