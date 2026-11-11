@@ -725,3 +725,24 @@ This is an append-only engineering journal. Each substantial session is recorded
 ### After work
 - GitHub Actions run [#43038602870](https://github.com/PanDuroDev/Idk/actions/runs/43038602870) passed on both Linux and Windows at implementation head 06dbe2b232d88aa8fe12ebaf9abbb0567a97ae7a. Both jobs imported and launched Godot 4.7.2, then passed smoke, configuration persistence, terrain, world-loading, and simulation-tools regressions, including the real rocket collision and world lifecycle assertions.
 - Manual visual checks remain required for model orientation, pickup feel, prop stability, and target-PC performance. These are explicitly not inferred from headless CI.
+
+## 2026-11-11 - Monochrome game UI/UX refresh (PR #29)
+
+### Before work
+- Started from main at 04b137c696592e40f89faca0c420225c782e89d1 after the sandbox merge.
+- Owner requested a UI/UX pass inspired by Genshin Impact's game-interface clarity, with a black/white palette, rounded panels, and borders.
+- Scope: shared visual system for HUD, Simulation Control, Spawn Menu, and F3 diagnostics; improve grouping and status hierarchy; make Simulation Control scrollable; add UI theme regression assertions.
+- Explicitly out of scope: simulation/physics behavior, world formats, controls, assets, and input bindings.
+
+### During work
+- Opened [PR #29](https://github.com/PanDuroDev/Idk/pull/29) and added the design plan and acceptance criteria in docs/UI_UX_REDESIGN.md.
+- Replaced the teal accent palette with near-black surfaces, white primary text, neutral-gray secondary text, and visible light borders.
+- Built one shared Theme with rounded panel surfaces and button/selector normal, hover, pressed, focus, and disabled states.
+- Refreshed the HUD and added bordered keycap hints; refreshed Spawn Menu, Simulation Control, and diagnostics; added a white primary scenario action and bordered status panels.
+- Wrapped Simulation Control in a vertical ScrollContainer.
+- Extended the Phase 5 test to assert the design tokens, panel geometry, shared theme, button states, primary action, key hints, and scroll support.
+
+### After work
+- GitHub Actions [#43041887242](https://github.com/PanDuroDev/Idk/actions/runs/43041887242) passed on both Linux and Windows at head a271ab699f5f926ff3cc0d83b8c8ced9ae71b051. Import, headless launch, smoke, configuration persistence, terrain, world loading, and Phase 5 simulation/UI regressions all passed.
+- The new UI assertions passed: near-black shared panel theme, rounded panel corners and visible borders, five button interaction states, shared theme usage across panels, white primary action, key-hint strip, and vertical scrolling.
+- Manual visual inspection at 1280x720 and shorter window heights is still required; headless assertions cannot judge the final visual composition.

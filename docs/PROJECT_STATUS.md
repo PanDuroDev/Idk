@@ -152,6 +152,14 @@ Each issue contains its own AI prompt, PR breakdown, acceptance criteria, and co
 - The Phase 5 regression now drives an armed rocket into a real StaticBody3D collision target, verifies the contact target, and checks the shared detonation path; it also covers world switch, unload, and reload cleanup.
 - Limits: the prop catalog is a fixed set of seven curated models rather than a full asset browser; carrying uses freeze plus disabled collision rather than a physical grab constraint; 24 spawned props is a hard cap; headless tests do not prove visual quality, interactive feel, or target-PC performance.
 
+## Monochrome UI/UX refresh
+
+- [PR #29](https://github.com/PanDuroDev/Idk/pull/29) introduces a cohesive black/white/gray visual system inspired by modern action-RPG interface clarity, without copying proprietary art or exact layouts.
+- A single shared Theme supplies rounded near-black panels, light borders, neutral typography, and normal/hover/pressed/focus/disabled states for buttons and selectors.
+- HUD now has a title/status hierarchy and a compact bordered keycap strip. Simulation Control uses a scroll container, improved grouping, a white primary scenario action, and bordered status feedback. Spawn Menu and F3 diagnostics use the same theme.
+- The Phase 5 regression includes assertions for palette, panel radius/border, shared theme usage, button interaction states, primary action hierarchy, key hints, and vertical scroll support.
+- Scope is presentation-only: physics, world data, sandbox behavior, and input bindings are unchanged. Interactive visual review at different window sizes remains required after CI.
+
 ## Required update protocol
 
 Every substantial session updates this file and `WORK_LOG.md` at three points:
