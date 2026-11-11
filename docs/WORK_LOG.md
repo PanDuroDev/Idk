@@ -707,3 +707,21 @@ This is an append-only engineering journal. Each substantial session is recorded
 ### After work
 - Local `WORLDBREAK_SIMULATION_TOOLS_OK` passed with the sandbox checks; import is clean.
 - Limits: seven curated models rather than a full asset browser; carrying freezes the body instead of using a grab constraint; 24 spawned props is a hard cap; headless tests cover logic, not interactivity. No audio and no target-PC telemetry.
+
+## 2026-11-11 - Sandbox integration hardening
+
+### Before work
+- Started from PR #28 head 9cd6109d40547d17be994ec04e62ee9a3f19b181.
+- Scope: fix spawned-prop ownership across world transitions, anchor starter rockets to the active world's player spawn, verify rocket detonation through a physical contact event, and keep physics queries out of the contact callback.
+- Risks: scenario loading reuses the world-loading path; tests must ensure the new cleanup does not remove world structure/terrain or leave the sandbox without its two starter rockets.
+
+### During work
+- World loading now clears old props only after the incoming simulation configuration validates and applies; it then places two starter rockets relative to the newly configured player spawn. World unload clears props and pending detonation work.
+- Prop cleanup detaches bodies immediately before freeing them, avoiding stale colliders during same-frame world replacement.
+- Rocket contact callbacks now enqueue the detonation; the shared blast path runs on the next physics tick, where the existing physics queries and terrain/structure updates are processed safely.
+- Replaced the direct callback-only rocket assertion with a test that throws/arms a rocket, drives it into a real static collision body, and verifies both the collision target and shared detonation result. Added world switch/unload/reload lifecycle assertions.
+- Updated the README, project status, and manual Windows checklist to document the behavior.
+
+### After work
+- Validation pending on the updated PR head; Linux and Windows CI must both pass before merge.
+- Manual visual checks remain required for model orientation, pickup feel, prop stability, and target-PC performance. These are explicitly not inferred from headless CI.
