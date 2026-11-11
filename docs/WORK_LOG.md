@@ -761,5 +761,6 @@ This is an append-only engineering journal. Each substantial session is recorded
 - Updated README, project status, and technical direction for chain reactions.
 
 ### After work
-- Local import clean and `WORLDBREAK_SIMULATION_TOOLS_OK` still passes with the new chain assertion; full regression and CI results are recorded on the follow-up PR.
+- Local import clean and `WORLDBREAK_SIMULATION_TOOLS_OK` still passes with the new chain assertion; the full local regression passed (smoke, configuration persistence, all terrain markers, world loading, simulation tools, clean launch).
+- Merged as `1b12c85` via [PR #30](https://github.com/PanDuroDev/Idk/pull/30) after Linux + Windows CI passed; the playable copy at `D:\godot\WORLDBREAK` was refreshed and its headless import/launch verified clean.
 - Limits: chain reactions detonate at the prop's center with a fixed 0.8x radius; there is no damage falloff between chained rockets beyond the existing blast falloff.
