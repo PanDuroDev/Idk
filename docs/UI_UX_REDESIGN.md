@@ -67,7 +67,8 @@ Give WORLDBREAK a cohesive in-game interface inspired by the clarity, layered su
 - [x] Refresh Debug Overlay.
 - [x] Add UI theme regression assertions.
 - [x] Update README/project status/work log.
-- [ ] Pass Linux and Windows CI.
+- [x] Pass Linux and Windows CI ([run #43041887242](https://github.com/PanDuroDev/Idk/actions/runs/43041887242)).
+- [ ] Manually review the layout at 1280x720 and a shorter window height; confirm no overlap, clipping, or unreadable key hints.
 
 ## Scope boundaries
 
