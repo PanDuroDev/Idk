@@ -148,7 +148,9 @@ Each issue contains its own AI prompt, PR breakdown, acceptance criteria, and co
 - E picks up the aimed prop (physics ray first, then a forward-cone fallback), freezes it in front of the camera with collisions disabled, and drops it again. The left mouse button throws it with the camera's aim and the player's momentum; without a held prop the blast tool fires as before.
 - A thrown rocket arms itself and detonates on its first solid contact through the same shared `_detonate` path as the blast tool: ground carving, structure damage, radial impulse, blast effect, debris chips, and camera shake.
 - Sandbox props reuse the existing `blastable` group and gravity scaling; models are loaded from `assets/kenney/space_kit`, recentered and scaled from their mesh bounds, and get a box collision shape. CC0 sources are credited in `assets/CREDITS.md`.
-- Limits: the prop catalog is a fixed set of seven curated models rather than a full asset browser; carrying uses freeze plus disabled collision rather than a physical grab constraint; 24 spawned props is a hard cap; headless tests cover spawn/carry/throw/detonate logic, not interactive feel.
+- World lifecycle follow-up: switching worlds now clears all previously spawned props and creates two starter rockets relative to the new world's player spawn; unloading clears props and queued detonations. Rocket contact callbacks enqueue detonation work for the next physics tick rather than running blast queries while the physics server is processing contacts.
+- The Phase 5 regression now drives an armed rocket into a real StaticBody3D collision target, verifies the contact target, and checks the shared detonation path; it also covers world switch, unload, and reload cleanup.
+- Limits: the prop catalog is a fixed set of seven curated models rather than a full asset browser; carrying uses freeze plus disabled collision rather than a physical grab constraint; 24 spawned props is a hard cap; headless tests do not prove visual quality, interactive feel, or target-PC performance.
 
 ## Required update protocol
 
