@@ -723,5 +723,5 @@ This is an append-only engineering journal. Each substantial session is recorded
 - Updated the README, project status, and manual Windows checklist to document the behavior.
 
 ### After work
-- Validation pending on the updated PR head; Linux and Windows CI must both pass before merge.
+- GitHub Actions run [#43038602870](https://github.com/PanDuroDev/Idk/actions/runs/43038602870) passed on both Linux and Windows at implementation head 06dbe2b232d88aa8fe12ebaf9abbb0567a97ae7a. Both jobs imported and launched Godot 4.7.2, then passed smoke, configuration persistence, terrain, world-loading, and simulation-tools regressions, including the real rocket collision and world lifecycle assertions.
 - Manual visual checks remain required for model orientation, pickup feel, prop stability, and target-PC performance. These are explicitly not inferred from headless CI.
