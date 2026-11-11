@@ -1911,11 +1911,13 @@ func _build_simulation_panel() -> void:
 	panel.name = "SimulationPanel"
 	panel.theme = _ui_theme
 	panel.anchor_left = 1.0
+	panel.anchor_top = 0.0
 	panel.anchor_right = 1.0
+	panel.anchor_bottom = 1.0
 	panel.offset_left = -392.0
 	panel.offset_right = -18.0
 	panel.offset_top = 18.0
-	panel.offset_bottom = 18.0
+	panel.offset_bottom = -18.0
 	panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	panel.grow_vertical = Control.GROW_DIRECTION_END
 	panel.custom_minimum_size = Vector2(374.0, 0.0)
