@@ -928,6 +928,25 @@ func _detonate(impact_position: Vector3, impact_normal: Vector3, radius: float) 
 	_spawn_blast_flash(impact_position)
 	_spawn_impact_chips(impact_position, impact_normal, _last_broken_count)
 	_add_camera_shake(clampf(radius / 22.0, 0.03, 0.12))
+	_chain_detonate_rockets(impact_position, radius)
+
+
+func _chain_detonate_rockets(impact_position: Vector3, radius: float) -> void:
+	for prop in _spawned_props.duplicate():
+		if not is_instance_valid(prop) or not bool(prop.get_meta("explosive", false)):
+			continue
+		if prop.global_position.distance_to(impact_position) > radius:
+			continue
+		var blast_position: Vector3 = prop.global_position
+		_spawned_props.erase(prop)
+		if _held_prop == prop:
+			_held_prop = null
+		prop.queue_free()
+		_pending_detonations.append({
+			"position": blast_position,
+			"normal": Vector3.UP,
+			"radius": ROCKET_BLAST_RADIUS * 0.8
+		})
 
 
 func _carve_ground(impact_position: Vector3, radius: float) -> void:
