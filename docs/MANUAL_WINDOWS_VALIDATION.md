@@ -108,11 +108,11 @@ Do not treat a single FPS reading as a benchmark. Record the resolution, graphic
 
 - Confirm the Simulation Control panel is visible and readable at the target resolution.
 - Select each world preset and confirm the environment, structure, terrain, and spawn change without errors.
-- Select each scenario, press **Run scenario**, and confirm the status label reports broken/loose/terrain counts and elapsed time.
+- Select each scenario, press **Run scenario (settled)**, and confirm the status label reports settled broken/loose/terrain counts, awake/sleeping/moved bodies, settle frames, and elapsed time.
 - Run the same scenario twice and confirm the comparison line appears; repeat after **Reset world** and check the initial state is restored.
 - Select a material preset, confirm the structure tint/mass behavior changes, then select `default` and confirm the original materials return.
 - Press **P** or the Pause button during debris motion; confirm physics stops while the panel remains usable, then resume.
-- Export JSON and CSV after several runs. Open both files and confirm they contain run indexes, scenario/world/building/material IDs, impact settings, counts, and timing fields. Treat elapsed time and FPS as non-deterministic observations, not reproducibility guarantees.
+- Export JSON and CSV after several runs. Open both files and confirm they contain run indexes, scenario/world/building/material IDs, impact settings, settled outcome fields, counts, and timing fields. Treat elapsed time, FPS, and settled physics counts as non-deterministic observations, not reproducibility guarantees.
 - Confirm unsupported export extensions are rejected and failed writes do not replace an existing export file.
 
 ## 10. Report the result

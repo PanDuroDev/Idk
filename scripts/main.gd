@@ -312,17 +312,57 @@ func load_scenario(scenario_id: StringName) -> Array[String]:
 
 
 func run_scenario(scenario_id: StringName) -> Dictionary:
+	var prepared: Dictionary = _prepare_scenario_run(scenario_id)
+	if not prepared["ok"]:
+		return {"ok": false, "errors": prepared["errors"], "run": {}}
+	var metrics: Dictionary = _apply_scenario_impact(prepared["scenario"], prepared["impact"])
+	metrics["active_loose"] = _get_active_loose_count()
+	metrics["sleeping_loose"] = _get_sleeping_loose_count()
+	metrics["moved_fragments"] = 0
+	var run: Dictionary = _record_run(prepared["scenario"], prepared["impact"], metrics, {})
+	return {"ok": true, "errors": prepared["errors"], "run": run}
+
+
+func run_scenario_settled(scenario_id: StringName, settle_frames: int = 120) -> Dictionary:
+	var prepared: Dictionary = _prepare_scenario_run(scenario_id)
+	if not prepared["ok"]:
+		await get_tree().process_frame
+		return {"ok": false, "errors": prepared["errors"], "run": {}}
+	var scenario: ExperimentScenarioScript = prepared["scenario"]
+	var impact: Vector3 = prepared["impact"]
+	var snapshot: Dictionary = _capture_fragment_positions()
+	var started_usec: int = Time.get_ticks_usec()
+	var metrics: Dictionary = _apply_scenario_impact(scenario, impact)
+	var frames: int = clampi(settle_frames, 1, 600)
+	for _frame in range(frames):
+		await get_tree().physics_frame
+		if not is_inside_tree():
+			return {"ok": false, "errors": ["Scene left the tree during settle."], "run": {}}
+	metrics["elapsed_usec"] = Time.get_ticks_usec() - started_usec
+	metrics["active_loose"] = _get_active_loose_count()
+	metrics["sleeping_loose"] = _get_sleeping_loose_count()
+	metrics["moved_fragments"] = _count_moved_fragments(snapshot)
+	var run: Dictionary = _record_run(
+		scenario,
+		impact,
+		metrics,
+		{"settled": true, "settle_frames": frames}
+	)
+	return {"ok": true, "errors": prepared["errors"], "run": run}
+
+
+func _prepare_scenario_run(scenario_id: StringName) -> Dictionary:
 	var errors: Array[String] = load_scenario(scenario_id)
 	if not errors.is_empty():
 		_set_status("SCENARIO FAILED\n" + "\n".join(errors))
-		return {"ok": false, "errors": errors, "run": {}}
+		return {"ok": false, "errors": errors, "scenario": null, "impact": Vector3.ZERO}
 	set_simulation_paused(false)
 	var scenario: ExperimentScenarioScript = _active_scenario
 	var target: Node3D = _structure if scenario.target_kind == &"structure" else _terrain
 	if not is_instance_valid(target):
 		var missing: Array[String] = ["Scenario target '%s' is not resident." % String(scenario.target_kind)]
 		_set_status("SCENARIO FAILED\n" + "\n".join(missing))
-		return {"ok": false, "errors": missing, "run": {}}
+		return {"ok": false, "errors": missing, "scenario": null, "impact": Vector3.ZERO}
 
 	# Reset through the existing sync paths so the run starts from the same state.
 	if is_instance_valid(_structure):
@@ -334,8 +374,15 @@ func run_scenario(scenario_id: StringName) -> Dictionary:
 	_pending_blasts.clear()
 	_last_broken_count = 0
 	_last_affected_count = 0
+	return {
+		"ok": true,
+		"errors": errors,
+		"scenario": scenario,
+		"impact": target.global_position + scenario.impact_offset
+	}
 
-	var impact: Vector3 = target.global_position + scenario.impact_offset
+
+func _apply_scenario_impact(scenario: ExperimentScenarioScript, impact: Vector3) -> Dictionary:
 	var started_usec: int = Time.get_ticks_usec()
 	var broken: int = 0
 	var released: int = 0
@@ -358,7 +405,20 @@ func run_scenario(scenario_id: StringName) -> Dictionary:
 	)
 	_total_impacts += 1
 	_spawn_blast_flash(impact)
+	return {
+		"broken": broken,
+		"released": released,
+		"terrain_edits": terrain_edits,
+		"elapsed_usec": elapsed_usec
+	}
 
+
+func _record_run(
+	scenario: ExperimentScenarioScript,
+	impact: Vector3,
+	metrics: Dictionary,
+	extra: Dictionary
+) -> Dictionary:
 	var building_id: StringName = &""
 	var material_ids: Array[String] = []
 	if is_instance_valid(_structure):
@@ -385,17 +445,61 @@ func run_scenario(scenario_id: StringName) -> Dictionary:
 		},
 		"gravity": _simulation_gravity,
 		"time_scale": Engine.time_scale,
-		"broken": broken,
-		"released": released,
-		"terrain_edits": terrain_edits,
-		"elapsed_usec": elapsed_usec,
+		"broken": int(metrics.get("broken", 0)),
+		"released": int(metrics.get("released", 0)),
+		"active_loose": int(metrics.get("active_loose", 0)),
+		"sleeping_loose": int(metrics.get("sleeping_loose", 0)),
+		"moved_fragments": int(metrics.get("moved_fragments", 0)),
+		"settled": bool(extra.get("settled", false)),
+		"settle_frames": int(extra.get("settle_frames", 0)),
+		"terrain_edits": int(metrics.get("terrain_edits", 0)),
+		"elapsed_usec": int(metrics.get("elapsed_usec", 0)),
 		"fps_sample": Engine.get_frames_per_second()
 	})
-	_last_broken_count = broken
-	_last_affected_count = released
+	_last_broken_count = int(metrics.get("broken", 0))
+	_last_affected_count = int(metrics.get("released", 0))
 	_set_status(_format_run_summary(run))
 	_refresh_simulation_controls()
-	return {"ok": true, "errors": errors, "run": run}
+	return run
+
+
+func _get_active_loose_count() -> int:
+	if not is_instance_valid(_structure):
+		return 0
+	return int(_structure.call("get_active_loose_fragment_count"))
+
+
+func _get_sleeping_loose_count() -> int:
+	if not is_instance_valid(_structure):
+		return 0
+	return int(_structure.call("get_sleeping_loose_fragment_count"))
+
+
+func _capture_fragment_positions() -> Dictionary:
+	var positions: Dictionary = {}
+	if not is_instance_valid(_structure):
+		return positions
+	for child in _structure.get_children():
+		var body := child as RigidBody3D
+		if body != null:
+			positions[body.get_instance_id()] = body.global_position
+	return positions
+
+
+func _count_moved_fragments(snapshot: Dictionary) -> int:
+	if snapshot.is_empty() or not is_instance_valid(_structure):
+		return 0
+	var moved: int = 0
+	for child in _structure.get_children():
+		var body := child as RigidBody3D
+		if body == null:
+			continue
+		var previous: Variant = snapshot.get(body.get_instance_id())
+		if previous == null:
+			continue
+		if body.global_position.distance_to(previous) > 0.05:
+			moved += 1
+	return moved
 
 
 func reset_simulation() -> void:
@@ -434,10 +538,18 @@ func _format_run_summary(run: Dictionary) -> String:
 		float(run.get("elapsed_usec", 0)) / 1000.0
 	]
 	if comparison["has_comparison"]:
-		summary += "\nvs run %d: broken %+d | time %+d us" % [
+		summary += "\nvs run %d: broken %+d | moved %+d | time %+d us" % [
 			int(comparison["previous_run_index"]),
 			int(comparison["broken_delta"]),
+			int(comparison.get("moved_fragments_delta", 0)),
 			int(comparison["elapsed_usec_delta"])
+		]
+	if bool(run.get("settled", false)):
+		summary += "\nsettled %d frames | awake %d | asleep %d | moved %d" % [
+			int(run.get("settle_frames", 0)),
+			int(run.get("active_loose", 0)),
+			int(run.get("sleeping_loose", 0)),
+			int(run.get("moved_fragments", 0))
 		]
 	return summary
 
@@ -957,8 +1069,8 @@ func _build_simulation_panel() -> void:
 	layout.add_child(action_row)
 
 	var run_button := Button.new()
-	run_button.text = "Run scenario"
-	run_button.tooltip_text = "Reset the world and apply the selected scenario at its fixed anchor"
+	run_button.text = "Run scenario (settled)"
+	run_button.tooltip_text = "Reset the world, apply the selected scenario, and record the outcome after 120 physics frames"
 	run_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	run_button.pressed.connect(_run_selected_scenario)
 	action_row.add_child(run_button)
@@ -1090,7 +1202,8 @@ func _on_material_selected(index: int) -> void:
 func _run_selected_scenario() -> void:
 	if not is_instance_valid(_scenario_option) or _scenario_option.selected < 0:
 		return
-	run_scenario(_scenario_option.get_item_metadata(_scenario_option.selected))
+	_set_status("Running scenario...")
+	await run_scenario_settled(_scenario_option.get_item_metadata(_scenario_option.selected))
 
 
 func _export_history(path: String) -> void:

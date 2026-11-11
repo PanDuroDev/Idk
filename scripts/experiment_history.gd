@@ -11,7 +11,8 @@ const CSV_COLUMNS: Array[String] = [
 	"material_override_id", "material_profile_ids",
 	"impact_x", "impact_y", "impact_z", "blast_radius", "blast_damage",
 	"blast_impulse", "blast_upward_bias", "gravity", "time_scale",
-	"broken", "released", "terrain_edits", "elapsed_usec", "fps_sample"
+	"broken", "released", "active_loose", "sleeping_loose", "moved_fragments",
+	"settle_frames", "settled", "terrain_edits", "elapsed_usec", "fps_sample"
 ]
 
 var _runs: Array[Dictionary] = []
@@ -55,6 +56,7 @@ func get_comparison() -> Dictionary:
 		"latest_run_index": int(latest.get("run_index", 0)),
 		"broken_delta": int(latest.get("broken", 0)) - int(previous.get("broken", 0)),
 		"released_delta": int(latest.get("released", 0)) - int(previous.get("released", 0)),
+		"moved_fragments_delta": int(latest.get("moved_fragments", 0)) - int(previous.get("moved_fragments", 0)),
 		"terrain_edit_delta": int(latest.get("terrain_edits", 0)) - int(previous.get("terrain_edits", 0)),
 		"elapsed_usec_delta": int(latest.get("elapsed_usec", 0)) - int(previous.get("elapsed_usec", 0))
 	}
@@ -99,6 +101,11 @@ func to_csv_text() -> String:
 			str(run.get("time_scale", 1.0)),
 			str(run.get("broken", 0)),
 			str(run.get("released", 0)),
+			str(run.get("active_loose", 0)),
+			str(run.get("sleeping_loose", 0)),
+			str(run.get("moved_fragments", 0)),
+			str(run.get("settle_frames", 0)),
+			str(run.get("settled", false)),
 			str(run.get("terrain_edits", 0)),
 			str(run.get("elapsed_usec", 0)),
 			str(run.get("fps_sample", 0.0))

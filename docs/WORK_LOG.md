@@ -626,3 +626,23 @@ This is an append-only engineering journal. Each substantial session is recorded
 - Final logs contained no `SCRIPT ERROR:`, `ERROR:`, `Parse Error:`, or `Failed to load script` matches.
 - Limits: deterministic scenario setup is not bit-identical cross-platform physics; headless tests do not prove interactive panel ergonomics, visual quality, or target-PC frame rate. Manual Windows panel/export/comparison validation remains outstanding.
 - Next: verify [PR #23](https://github.com/PanDuroDev/Idk/pull/23) Linux + Windows CI markers, complete integration review/merge, then perform manual target-PC validation and close issue #9.
+
+## 2026-11-11 - Phase 5 settled-outcome experiments
+
+### Before work
+- Started from merged `main` at `94c71b4` after [PR #23](https://github.com/PanDuroDev/Idk/pull/23).
+- Owner asked to continue the recent work and make the simulation more realistic, so the next gap was that scenario runs recorded only the instant damage result and never the settled physics outcome.
+- Scope: keep synchronous `run_scenario` for compatibility, add a bounded settled variant, record post-impact physics metrics, extend export/test/docs, and avoid new dependencies or a physics rewrite.
+
+### During work
+- Split `main.gd` scenario execution into `_prepare_scenario_run`, `_apply_scenario_impact`, and `_record_run` helpers so both run modes share the reset, impact, and history paths.
+- Added `run_scenario_settled(scenario_id, settle_frames := 120)`; it clamps the window to 1-600 physics frames, bails if the scene leaves the tree, and records final broken/released counts, awake and sleeping loose bodies, moved fragments (position delta over 0.05 against a pre-impact snapshot), settle frames, and elapsed time across the settle.
+- Kept `run_scenario` synchronous and still recording awake/asleep counts with `moved_fragments = 0` and `settled = false`.
+- Extended `ExperimentHistory` CSV columns and the comparison delta with the settled fields; JSON carries them through the existing run dictionary.
+- Sim panel run button is now **Run scenario (settled)** and awaits the settled run; the status summary adds a settled/awake/asleep/moved line and a moved delta in the comparison line.
+- Extended `tests/phase5/simulation_tools_test.gd`: awaits a 20-frame settled foundation run, asserts the recorded window, non-zero damage, non-negative physics counters, and history growth; updated JSON/CSV expectations to four runs.
+- Updated README, project status, roadmap, technical direction, and the manual Windows checklist for settled runs and the deterministic-setup caveat.
+
+### After work
+- Local `WORLDBREAK_SIMULATION_TOOLS_OK` passed with `settled=passed`; the full local regression and Linux + Windows CI results are recorded on the follow-up PR.
+- Limits: deterministic reset setup is not bit-identical cross-platform physics; settled counts and timing are observational; headless tests do not prove panel ergonomics or target-PC frame rate. Manual Windows settled/export validation remains outstanding.
