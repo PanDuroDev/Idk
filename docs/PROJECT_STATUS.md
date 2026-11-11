@@ -160,6 +160,15 @@ Each issue contains its own AI prompt, PR breakdown, acceptance criteria, and co
 - The Phase 5 regression includes assertions for palette, panel radius/border, shared theme usage, button interaction states, primary action hierarchy, key hints, and vertical scroll support.
 - Scope is presentation-only: physics, world data, sandbox behavior, and input bindings are unchanged. Interactive visual review at different window sizes remains required after CI.
 
+## Per-mode camera pass
+
+- Orbit now orbits on right-drag (yaw and pitch) with wheel zoom, replacing the fixed auto-spin; overview pans on right-drag and zooms with the wheel. Both keep the structure anchor in view and stay inside bounded distances and pan limits.
+- Switching away from first person calls `set_input_enabled(false)` on the player, so movement, jump, mouse-look, and the player-fired blast signal stop while the player stays grounded. Switching back restores them.
+- `request_blast` and `get_camera_aim_ray` now source the blast origin and direction from the active camera in orbit and overview, so the blast tool and thrown rockets leave from the camera rather than the player. First person keeps the eye-level ray.
+- The crosshair remains visible in every mode because every mode aims from its own camera center.
+- The Phase 5 regression asserts player input locking, orbit/overview aim origins, the orbit aim direction, and that a queued blast is camera-sourced.
+- Limits: no cinematic camera blending, collision-aware camera boom, or third-person follow camera; right-drag rotation has no pointer lock indicator beyond the existing Escape toggle.
+
 ## Required update protocol
 
 Every substantial session updates this file and `WORK_LOG.md` at three points:

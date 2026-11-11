@@ -764,3 +764,23 @@ This is an append-only engineering journal. Each substantial session is recorded
 - Local import clean and `WORLDBREAK_SIMULATION_TOOLS_OK` still passes with the new chain assertion; the full local regression passed (smoke, configuration persistence, all terrain markers, world loading, simulation tools, clean launch).
 - Merged as `1b12c85` via [PR #30](https://github.com/PanDuroDev/Idk/pull/30) after Linux + Windows CI passed; the playable copy at `D:\godot\WORLDBREAK` was refreshed and its headless import/launch verified clean.
 - Limits: chain reactions detonate at the prop's center with a fixed 0.8x radius; there is no damage falloff between chained rockets beyond the existing blast falloff.
+
+## 2026-11-12 - Per-mode camera aim and locking
+
+### Before work
+- Started from main at `db14cb1` after the sandbox chain-reaction merge.
+- Owner asked for a stronger camera flow: each camera mode should throw/fire from its own position, the player should be hidden and locked outside first person, and the camera should be movable after switching.
+- Researched ready-made options through the Godot Asset Library API. Phantom Camera is real and MIT, but the needed behavior is a small native change; no rocket/projectile addon exists in the library, so the custom thrown-rocket contact system stays.
+- Scope: camera poses, per-mode input ownership, blast aim routing, tests, and docs. Out of scope: plugin installation, cinematic blending, and a third-person follow camera.
+
+### During work
+- Added `input_enabled` and `set_input_enabled()` to `PlayerController`; movement, jump, mouse-look, and its blast signal are skipped while disabled.
+- Replaced the orbit auto-spin with right-drag yaw/pitch plus wheel zoom, and added right-drag pan plus wheel zoom to the overview camera. Both poses stay bounded.
+- `_apply_camera_mode()` now locks or restores player input and keeps the crosshair visible as an aim reticle.
+- Added `get_camera_aim_ray()` and made `request_blast()` replace the player ray with the active camera ray whenever the mode is not first person.
+- Extended the Phase 5 regression with player-lock, orbit/overview origin, aim-direction, and queued-blast-origin assertions.
+- Updated README controls/features, project status, and the manual validation checklist.
+
+### After work
+- Local import clean; full local regression passed (smoke, configuration persistence, all terrain markers, world loading, Phase 5 simulation tools).
+- Limits: no collision-aware camera boom, no smooth mode blending, and rotating/panning use right-drag only; the existing Escape capture toggle is unchanged.

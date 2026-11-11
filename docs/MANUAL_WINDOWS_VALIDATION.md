@@ -122,9 +122,10 @@ Do not treat a single FPS reading as a benchmark. Record the resolution, graphic
 - Confirm each impact shows a bright core flash, an expanding ground ring, dust, and debris chips, and that repeated impacts do not keep stale effects alive.
 - Fire at the structure and confirm the floor under it is carved as well, not only the structure itself.
 - Confirm the blast tool detonates instantly at the aim point instead of launching a rocket from the camera.
-- Confirm the HUD and control panel use the dark theme, the crosshair hides outside first person, and the panel stays anchored top-right after resizing the window.
+- Confirm the HUD and control panel use the dark theme, the crosshair remains visible as the aim reticle in every camera mode, and the panel stays anchored top-right after resizing the window.
 - Run a settled scenario and confirm damage, crater, chips, and shake are applied immediately with no flying rocket.
-- Use the panel Camera row and the **C** key to switch between first person, orbit, and overview. Confirm orbit rotates and overview shows the arena, and that switching back to first person restores movement/aiming.
+- Use the panel Camera row and the **C** key to switch between first person, orbit, and overview. Confirm orbit rotates on right-drag and zooms with the wheel, overview pans on right-drag and zooms with the wheel, WASD does not move the player outside first person, and switching back to first person restores movement/aiming.
+- In orbit and overview, fire the blast tool and throw a carried rocket. Confirm the impact or throw starts from the camera view rather than the player's position.
 - Record any visual artifacts, camera clipping, or frame-rate drops seen with the new effects.
 
 ## 11. Sandbox: spawn menu, carrying, and thrown rockets

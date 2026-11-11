@@ -6,8 +6,13 @@ signal blast_requested(ray_origin: Vector3, ray_direction: Vector3)
 @export_range(1.0, 12.0, 0.5) var jump_velocity: float = 5.5
 @export_range(0.0005, 0.01, 0.0001) var mouse_sensitivity: float = 0.0022
 
+var input_enabled: bool = true
 var _camera: Camera3D
 var _pitch: float = 0.0
+
+
+func set_input_enabled(enabled: bool) -> void:
+	input_enabled = enabled
 
 
 func _ready() -> void:
@@ -41,7 +46,7 @@ func _physics_process(delta: float) -> void:
 	elif velocity.y < 0.0:
 		velocity.y = 0.0
 
-	if Input.is_action_just_pressed("jump") and is_on_floor():
+	if input_enabled and Input.is_action_just_pressed("jump") and is_on_floor():
 		velocity.y = jump_velocity
 
 	var input_vector: Vector2 = Input.get_vector(
@@ -49,7 +54,7 @@ func _physics_process(delta: float) -> void:
 		"move_right",
 		"move_forward",
 		"move_backward"
-	)
+	) if input_enabled else Vector2.ZERO
 	var local_direction := Vector3(input_vector.x, 0.0, input_vector.y)
 	var move_direction: Vector3 = (global_transform.basis * local_direction).normalized()
 	velocity.x = move_direction.x * move_speed
@@ -59,6 +64,8 @@ func _physics_process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if not input_enabled:
+		return
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		rotate_y(-event.relative.x * mouse_sensitivity)
 		_pitch = clampf(

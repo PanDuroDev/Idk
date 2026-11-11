@@ -3,7 +3,7 @@
 WORLDBREAK is a 3D physics and destruction sandbox in active prototyping. The long-term goal is to let users experiment with impacts, forces, structural collapse, terrain damage, and multiple simulation worlds.
 
 ## Current prototype
-- First-person movement with switchable first-person, orbit, and overview cameras (panel row or C).
+- First-person movement with switchable first-person, orbit, and overview cameras (panel row or C). Orbit and overview aim and fire from their own view, lock player movement, and support right-drag rotation/pan plus wheel zoom.
 - A 7 x 5 x 2 modular block structure (70 rigid-body fragments).
 - Six-axis support graph rooted at surviving ground anchors.
 - Per-fragment accumulated damage with distance falloff and material-specific integrity/resistance.
@@ -44,13 +44,15 @@ The support graph is a deterministic topology approximation. The material profil
 | P | Pause/resume simulation |
 | F3 | Toggle destruction/physics diagnostics |
 | C | Cycle first-person / orbit / overview cameras |
+| Right mouse drag | Orbit: rotate. Overview: pan |
+| Mouse wheel | Orbit/overview: zoom in or out |
 | Escape | Release/capture mouse |
 
 The in-game Simulation Control panel adjusts blast radius, damage, physical impulse, gravity, and time scale; selects world, scenario, material, and camera presets; runs settled scenarios and resets them; pauses/resumes physics; and exports the bounded run history as JSON or CSV. Its contents are vertically scrollable. Settled runs wait a bounded physics window and record broken/loose counts, awake/sleeping bodies, moved fragments, and settle frames. Material selection applies an existing catalog profile to the resident building through the Phase 2 override path; `default` restores the building definition's materials. Pause stops scene-tree physics without overwriting the experiment time scale. Movement and impact inputs are defined through Godot InputMap and can be remapped in Project Settings.
 
 The monochrome interface uses one shared Theme across the HUD, Simulation Control, Spawn Menu, and diagnostics. Panels use rounded near-black surfaces with light borders; controls use consistent normal/hover/pressed/focus/disabled states; the settled scenario action is visually primary; and the HUD presents controls as compact keycaps.
 
-The sandbox spawn menu (Tab) spawns weighted CC0 Kenney props — rockets, barrels, meteors, rocks, and machines — in front of the player, up to 24 bodies. Each loaded world places two starter rockets near its configured player spawn; switching worlds removes the previous world's spawned props, and unloading a world clears them. E carries the prop under the crosshair; the left mouse button throws it with the camera's aim and the player's momentum, and E drops it. A thrown rocket detonates on its first solid contact, using the same crater, damage, impulse, chips, and shake path as the blast tool, and any rockets inside a blast radius chain-detonate. The blast is queued from the contact callback and applied on the next physics tick. The left mouse button still fires the blast tool when nothing is carried.
+The sandbox spawn menu (Tab) spawns weighted CC0 Kenney props — rockets, barrels, meteors, rocks, and machines — in front of the active camera, up to 24 bodies. Each loaded world places two starter rockets near its configured player spawn; switching worlds removes the previous world's spawned props, and unloading a world clears them. E carries the prop under the crosshair; the left mouse button throws it with the camera's aim and the player's momentum, and E drops it. A thrown rocket detonates on its first solid contact, using the same crater, damage, impulse, chips, and shake path as the blast tool, and any rockets inside a blast radius chain-detonate. The blast is queued from the contact callback and applied on the next physics tick. The left mouse button still fires the blast tool when nothing is carried, and in orbit or overview the blast starts at the active camera instead of the player.
 
 The current prototype retains all 70 original structure nodes for reset. Released fragments use a 30-second default lifetime and a 70-awake-fragment budget; excess bodies are parked until an impact wakes them. Impact effects are capped at eight concurrent bursts, each with an emissive core, a ground shockwave ring, and six dust motes, with a 0.55-second lifetime; the meshes and dust/chip materials are created once and reused across bursts. Blasts carve the terrain under the hit point, so craters remain until the world is reset. Bundled CC0 assets are credited in `assets/CREDITS.md`.
 

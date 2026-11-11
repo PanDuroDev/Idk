@@ -73,14 +73,48 @@ func _run() -> void:
 		_fail("Camera mode selection accepted an unknown mode")
 		return
 
+	var player: CharacterBody3D = main.get("_player") as CharacterBody3D
+	if player == null or not bool(player.get("input_enabled")):
+		_fail("First person did not enable player input")
+		return
 	main.call("set_camera_mode", &"orbit")
 	var crosshair: Label = main.get("_crosshair") as Label
-	if crosshair == null or crosshair.visible:
-		_fail("Leaving first person did not hide the crosshair")
+	if crosshair == null or not crosshair.visible:
+		_fail("Orbit camera lost the aim crosshair")
+		return
+	if bool(player.get("input_enabled")):
+		_fail("Orbit camera did not lock player input")
+		return
+	var anchor: Vector3 = main.call("_get_camera_anchor")
+	var orbit_aim: Dictionary = main.call("get_camera_aim_ray")
+	var orbit_origin: Vector3 = orbit_aim["origin"]
+	if orbit_origin.distance_to(anchor) < 6.0 or orbit_origin.y <= anchor.y + 2.0:
+		_fail("Orbit aim ray does not start from the orbit camera")
+		return
+	if (anchor - orbit_origin).normalized().dot(orbit_aim["direction"]) < 0.5:
+		_fail("Orbit aim ray does not point at the structure anchor")
+		return
+	main.call("request_blast", Vector3.ZERO, Vector3.DOWN)
+	var pending: Array = main.get("_pending_blasts")
+	if pending.is_empty() or (pending[0]["origin"] as Vector3).distance_to(orbit_origin) > 0.01:
+		_fail("Blast request did not start from the orbit camera")
+		return
+	pending.clear()
+	main.call("set_camera_mode", &"overview")
+	var overview_aim: Dictionary = main.call("get_camera_aim_ray")
+	if (overview_aim["origin"] as Vector3).y <= anchor.y + 10.0:
+		_fail("Overview aim ray does not start from the overview camera")
 		return
 	main.call("set_camera_mode", &"first_person")
 	if not crosshair.visible:
 		_fail("First person did not restore the crosshair")
+		return
+	if not bool(player.get("input_enabled")):
+		_fail("First person did not restore player input")
+		return
+	var first_person_aim: Dictionary = main.call("get_camera_aim_ray")
+	if absf((first_person_aim["origin"] as Vector3).y - (player.global_position.y + 1.62)) > 0.2:
+		_fail("First-person aim ray is not at eye height")
 		return
 
 	var ui_canvas: CanvasLayer = main.get("_ui_canvas") as CanvasLayer

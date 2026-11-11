@@ -89,6 +89,10 @@ var _orbit_camera: Camera3D
 var _overview_camera: Camera3D
 var _camera_mode: StringName = &"first_person"
 var _orbit_angle: float = 0.0
+var _orbit_pitch: float = 0.45
+var _orbit_distance: float = 22.0
+var _overview_height: float = 42.0
+var _overview_pan: Vector3 = Vector3.ZERO
 var _crosshair: Label
 var _shake_time: float = 0.0
 var _shake_strength: float = 0.0
@@ -155,6 +159,19 @@ func _unhandled_input(event: InputEvent) -> void:
 		cycle_camera_mode()
 		get_viewport().set_input_as_handled()
 		return
+	if _camera_mode != &"first_person":
+		if _handle_camera_mouse(event):
+			get_viewport().set_input_as_handled()
+			return
+		if event.is_action_pressed("release_mouse"):
+			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED else Input.MOUSE_MODE_CAPTURED
+			get_viewport().set_input_as_handled()
+			return
+		if event.is_action_pressed("trigger_impact"):
+			var aim: Dictionary = get_camera_aim_ray()
+			request_blast(aim["origin"], aim["direction"])
+			get_viewport().set_input_as_handled()
+			return
 	if event.is_action_pressed("spawn_menu"):
 		toggle_spawn_menu()
 		get_viewport().set_input_as_handled()
@@ -196,7 +213,6 @@ func _physics_process(_delta: float) -> void:
 
 
 func _process(delta: float) -> void:
-	_update_orbit_camera(delta)
 	_update_camera_shake(delta)
 	_update_held_prop()
 	_hud_refresh_timer += delta
@@ -228,6 +244,10 @@ func request_blast(ray_origin: Vector3, ray_direction: Vector3) -> void:
 	if _held_prop != null:
 		throw_held_prop()
 		return
+	if _camera_mode != &"first_person":
+		var aim: Dictionary = get_camera_aim_ray()
+		ray_origin = aim["origin"]
+		ray_direction = aim["direction"]
 	if _pending_blasts.size() >= MAX_PENDING_BLASTS or ray_direction.is_zero_approx():
 		return
 	_pending_blasts.append({
@@ -391,17 +411,17 @@ func _apply_camera_mode() -> void:
 		var player_camera: Camera3D = _player.call("get_camera")
 		if is_instance_valid(player_camera):
 			player_camera.current = _camera_mode == &"first_person"
-	var anchor: Vector3 = _get_camera_anchor()
+		_player.call("set_input_enabled", _camera_mode == &"first_person")
+		_player.visible = _camera_mode == &"first_person"
 	if is_instance_valid(_orbit_camera):
-		_orbit_camera.position = anchor + Vector3(cos(_orbit_angle) * 22.0, 12.0, sin(_orbit_angle) * 22.0)
-		_orbit_camera.look_at(anchor + Vector3(0.0, 2.0, 0.0))
+		_update_orbit_camera_pose()
 		_orbit_camera.current = _camera_mode == &"orbit"
 	if is_instance_valid(_overview_camera):
-		_overview_camera.position = anchor + Vector3(0.0, 42.0, 0.1)
-		_overview_camera.look_at(anchor)
+		_update_overview_camera_pose()
 		_overview_camera.current = _camera_mode == &"overview"
+	# Every camera mode fires from its own view, so the reticle is always useful.
 	if is_instance_valid(_crosshair):
-		_crosshair.visible = _camera_mode == &"first_person"
+		_crosshair.visible = true
 	_reset_camera_offsets()
 
 
@@ -417,13 +437,63 @@ func _build_cameras() -> void:
 	_apply_camera_mode()
 
 
-func _update_orbit_camera(delta: float) -> void:
-	if _camera_mode != &"orbit" or not is_instance_valid(_orbit_camera):
-		return
-	_orbit_angle += delta * 0.25
+func _update_orbit_camera_pose() -> void:
 	var anchor: Vector3 = _get_camera_anchor()
-	_orbit_camera.position = anchor + Vector3(cos(_orbit_angle) * 22.0, 12.0, sin(_orbit_angle) * 22.0)
+	var horizontal: float = cos(_orbit_pitch) * _orbit_distance
+	_orbit_camera.position = anchor + Vector3(
+		cos(_orbit_angle) * horizontal,
+		sin(_orbit_pitch) * _orbit_distance + 2.0,
+		sin(_orbit_angle) * horizontal
+	)
 	_orbit_camera.look_at(anchor + Vector3(0.0, 2.0, 0.0))
+
+
+func _update_overview_camera_pose() -> void:
+	var anchor: Vector3 = _get_camera_anchor() + _overview_pan
+	_overview_camera.position = anchor + Vector3(0.0, _overview_height, 0.1)
+	_overview_camera.look_at(anchor)
+
+
+func _handle_camera_mouse(event: InputEvent) -> bool:
+	if event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT):
+		if _camera_mode == &"orbit":
+			_orbit_angle -= event.relative.x * 0.008
+			_orbit_pitch = clampf(_orbit_pitch - event.relative.y * 0.006, 0.08, 1.3)
+			_update_orbit_camera_pose()
+			return true
+		if _camera_mode == &"overview":
+			var pan_scale: float = _overview_height * 0.0022
+			_overview_pan.x = clampf(_overview_pan.x - event.relative.x * pan_scale, -70.0, 70.0)
+			_overview_pan.z = clampf(_overview_pan.z - event.relative.y * pan_scale, -70.0, 70.0)
+			_update_overview_camera_pose()
+			return true
+	if event is InputEventMouseButton and event.pressed:
+		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			_zoom_camera(-1.0)
+			return true
+		if event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			_zoom_camera(1.0)
+			return true
+	return false
+
+
+func _zoom_camera(direction: float) -> void:
+	if _camera_mode == &"orbit":
+		_orbit_distance = clampf(_orbit_distance + direction * 1.5, 6.0, 50.0)
+		_update_orbit_camera_pose()
+	elif _camera_mode == &"overview":
+		_overview_height = clampf(_overview_height + direction * 3.0, 12.0, 90.0)
+		_update_overview_camera_pose()
+
+
+func get_camera_aim_ray() -> Dictionary:
+	var camera: Camera3D = _get_active_camera()
+	if camera == null:
+		return {"origin": Vector3.ZERO, "direction": Vector3.FORWARD}
+	return {
+		"origin": camera.global_position,
+		"direction": -camera.global_transform.basis.z.normalized()
+	}
 
 
 func _get_camera_anchor() -> Vector3:
