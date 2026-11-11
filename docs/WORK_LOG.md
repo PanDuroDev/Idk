@@ -746,3 +746,20 @@ This is an append-only engineering journal. Each substantial session is recorded
 - GitHub Actions [#43041887242](https://github.com/PanDuroDev/Idk/actions/runs/43041887242) passed on both Linux and Windows at head a271ab699f5f926ff3cc0d83b8c8ced9ae71b051. Import, headless launch, smoke, configuration persistence, terrain, world loading, and Phase 5 simulation/UI regressions all passed.
 - The new UI assertions passed: near-black shared panel theme, rounded panel corners and visible borders, five button interaction states, shared theme usage across panels, white primary action, key-hint strip, and vertical scrolling.
 - Manual visual inspection at 1280x720 and shorter window heights is still required; headless assertions cannot judge the final visual composition.
+
+## 2026-11-11 - Sandbox chain reactions
+
+### Before work
+- Reviewed merged `main` at `1cec6ef` after the sandbox squash `04b137c` and the monochrome UI refresh.
+- Confirmed the merged code already fixed the earlier gaps: detonation is deferred to the next physics tick, world switches and unloads clear props, and the Phase 5 regression drives a rocket into a real collision body.
+- Remaining behavior gap: planted or starter rockets were inert to nearby explosions. In a sandbox, a rocket next to a blast should go off.
+
+### During work
+- Added `_chain_detonate_rockets(position, radius)` and called it from `_detonate`: every explosive prop inside the blast radius is removed from the tracked list and queued as its own pending detonation with a slightly smaller radius, so chain reactions stay bounded by the 24-prop cap and reuse the same physics-tick path.
+- Held rockets also chain, which keeps the blast tool honest when the player stands next to a rocket.
+- Extended `tests/phase5/simulation_tools_test.gd` with a two-rocket chain check: one `_detonate` call must remove both rockets and add at least two shared-path impacts.
+- Updated README, project status, and technical direction for chain reactions.
+
+### After work
+- Local import clean and `WORLDBREAK_SIMULATION_TOOLS_OK` still passes with the new chain assertion; full regression and CI results are recorded on the follow-up PR.
+- Limits: chain reactions detonate at the prop's center with a fixed 0.8x radius; there is no damage falloff between chained rockets beyond the existing blast falloff.

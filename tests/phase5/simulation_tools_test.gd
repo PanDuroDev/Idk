@@ -209,6 +209,31 @@ func _run() -> void:
 	collision_target.queue_free()
 	await physics_frame
 
+	# Two rockets inside one blast radius must chain-detonate from a single blast.
+	var chain_a_result: Dictionary = main.call("spawn_item", &"rocket")
+	var chain_b_result: Dictionary = main.call("spawn_item", &"rocket")
+	var chain_a: RigidBody3D = chain_a_result.get("prop") as RigidBody3D
+	var chain_b: RigidBody3D = chain_b_result.get("prop") as RigidBody3D
+	if chain_a == null or chain_b == null:
+		_fail("Could not spawn chained rockets")
+		return
+	chain_a.global_position = Vector3(30.0, 1.5, 30.0)
+	chain_b.global_position = Vector3(32.0, 1.5, 30.0)
+	chain_a.gravity_scale = 0.0
+	chain_b.gravity_scale = 0.0
+	chain_a.sleeping = false
+	chain_b.sleeping = false
+	var chain_impacts_before: int = int(main.get("_total_impacts"))
+	main.call("_detonate", Vector3(30.0, 1.5, 30.0), Vector3.UP, 6.0)
+	for _frame in range(10):
+		await physics_frame
+	if is_instance_valid(chain_a) or is_instance_valid(chain_b):
+		_fail("A blast did not chain-detonate nearby rockets")
+		return
+	if int(main.get("_total_impacts")) < chain_impacts_before + 2:
+		_fail("Chained rockets did not share the detonation path")
+		return
+
 	var load_errors: Array = main.call("load_scenario", &"foundation_strike")
 	if not load_errors.is_empty():
 		_fail("Foundation scenario load failed: %s" % "\n".join(load_errors))
