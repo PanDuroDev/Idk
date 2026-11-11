@@ -133,8 +133,10 @@ Do not treat a single FPS reading as a benchmark. Record the resolution, graphic
 - Spawn each prop type and confirm it appears in front of the player on the ground, is stable, and has a sensible size and collision.
 - Look at a prop and press **E**; confirm it is carried in front of the camera, cannot be pushed through the player, and that **E** drops it.
 - Carry a prop and click; confirm it is thrown in the look direction with the player's momentum and that the blast tool does not also fire.
-- Throw a rocket at the structure or ground and confirm it explodes on contact with crater, structure damage, chips, and shake. Throw one at nothing and confirm it does not explode mid-air.
-- Confirm two starter rockets rest on the ground near spawn and reappear after **Reset world**, and that the spawned-prop count stops at 24.
+- Throw a rocket at a solid wall, the structure, or the ground and confirm a real collision triggers crater, structure damage, chips, and shake. Throw one at nothing and confirm it does not explode mid-air; the rocket must not detonate merely because it was thrown.
+- Confirm two starter rockets rest on the ground near the active world's player spawn and reappear after **Reset world**.
+- Spawn an extra prop, switch between both world presets, and confirm old props are removed and exactly two starter rockets appear near each new spawn point. Unload the world and confirm no spawned props remain; load a world again and confirm its two starter rockets return.
+- Confirm the spawned-prop count stops at 24, including the two starter rockets.
 - Record any prop clipping, unstable jitter, missing detonation, or frame drops while carrying.
 
 ## 12. Report the result
