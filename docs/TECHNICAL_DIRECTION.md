@@ -60,8 +60,8 @@ These values are editable prototype tuning, not measured real-world material con
 | Loose bodies after full release | 70 | 70 maximum in the current structure |
 | Awake loose-body cap | Unbounded by a lifecycle manager | 70 by default; configurable 1-256 |
 | Loose-debris expiry | None | 30 seconds by default |
-| Concurrent impact effects | Transient light, no explicit count cap | 8 bursts x 6 motes = 48 motes maximum |
-| Effect lifetime | 0.16-second light fade | 0.55-second dust fade |
+| Concurrent impact effects | Transient light, no explicit count cap | 8 bursts x (core + ring + 6 motes) maximum |
+| Effect lifetime | 0.16-second light fade | 0.55-second dust/core/ring fade |
 
 These are object/count budgets derived from the actual prototype and implementation, not FPS/CPU/GPU measurements. No numerical performance improvement is claimed until the target PC is profiled.
 
@@ -75,7 +75,7 @@ These are object/count budgets derived from the actual prototype and implementat
 
 ### Lightweight effects and diagnostics
 
-- Each impact emits a short-lived dust/debris burst made from six small shared-mesh instances. At most eight bursts are alive at once; the oldest burst is evicted when the cap is reached.
+- Each impact emits a short-lived dust/debris burst made from six small shared-mesh instances, plus an emissive core sphere and a flat expanding shockwave ring. At most eight bursts are alive at once; the oldest burst is evicted when the cap is reached.
 - The effect lifetime is 0.55 seconds and uses Compatibility-renderer-friendly mesh instances rather than GPU particles or expensive screen-space effects.
 - F3 toggles an opt-in diagnostics panel. The normal HUD remains unchanged while the panel is hidden. Diagnostics include intact/broken/supported/loose/awake/sleeping/retired counts, the configured active-fragment and effect budgets, debris lifetime, impact settings, FPS, physics tick rate, active physics objects, and collision pairs.
 - The overlay is a diagnostic view, not a performance benchmark. Collect target-PC measurements separately.
@@ -107,7 +107,9 @@ Runtime terrain deformation is a separate subsystem. The Phase 3 prototype uses 
 
 ## Simulation tools
 
-Phase 5 adds a unified Simulation Control panel without duplicating the Phase 1/2/4 settings systems. World and scenario selection reuse `WorldCatalog` and the existing configuration/structure/terrain paths. Material selection resolves a `MaterialProfileCatalog` ID and applies it through the existing per-cell override path; `default` restores the building definition's materials. Gravity uses per-body `gravity_scale`, and time scale uses `Engine.time_scale`.
+Phase 5 adds a unified Simulation Control panel without duplicating the Phase 1/2/4 settings systems. World and scenario selection reuse `WorldCatalog` and the existing configuration/structure/terrain paths. Material selection resolves a `MaterialProfileCatalog` ID and applies it through the existing per-cell override path; `default` restores the building definition's materials. Gravity uses per-body `gravity_scale`, and time scale uses `Engine.time_scale`. The panel also exposes camera mode selection; `main.gd` keeps one current camera among first person, an auto-rotating orbit view, and a high overview, while the player camera remains the movement view.
+
+Blast presentation stays bounded: each impact builds one `BlastEffect` node with an emissive core sphere, a flat ground shockwave ring, and six dust motes under the existing eight-burst cap. Settled scenario runs fly a code-built rocket to the impact point before applying damage; the rocket is visual only and does not simulate flight physics. Scenarios, effects, rockets, and cameras add no new dependencies and keep the Compatibility-renderer baseline.
 
 Pause/resume sets `SceneTree.paused` while the UI canvas uses `PROCESS_MODE_ALWAYS`, so physics stops without overwriting the experiment time scale and the panel remains usable. Run/reset reuse the existing physics-tick reset path. `ExperimentScenario` Resources (schema version 1) define a world, target kind, impact anchor, blast settings, gravity, and time scale; `ScenarioCatalog` validates them before loading.
 

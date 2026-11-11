@@ -34,7 +34,7 @@ Density edits and mesh-array generation are CPU-side operations. Do not create o
 
 ## Runtime coordinator
 
-`terrain/terrain_world.gd` (`class_name TerrainWorld`) owns a small resident patch: four chunks in a 2x2 XZ footprint with one vertical layer, built at chunk coordinate Y=0. The default profile uses 16-cell chunks with a 1.0 world-unit cell size; the low-end profile uses 8-cell chunks with a 2.0 cell size, keeping the same 32 x 32 world-unit footprint. The base field is a flat 1-unit-thick slab (`1.0 - local_y`) with its top surface at local Y=1.
+`terrain/terrain_world.gd` (`class_name TerrainWorld`) owns a small resident patch sized by the exported `chunk_radius` (default 1): `(2 * chunk_radius)^2` chunks in an XZ footprint with one vertical layer, built at chunk coordinate Y=0. The shipped worlds use radius 2, giving a 4x4 footprint centered on the arena; the default profile uses 16-cell chunks with a 1.0 world-unit cell size, so a radius-2 patch covers 64 x 64 world units. The low-end profile uses 8-cell chunks with a 2.0 cell size, keeping the same world-unit footprint. The base field is a flat 1-unit-thick slab (`1.0 - local_y`) with its top surface at local Y=1.
 
 - Each resident chunk has a `TerrainChunkData`, `MeshInstance3D`, `StaticBody3D`, and `CollisionShape3D`. Terrain bodies use collision layer 1 and the `terrain` group.
 - Initial chunk meshes and colliders are built synchronously when the patch loads so gameplay does not start above missing collision.

@@ -115,6 +115,15 @@ Do not treat a single FPS reading as a benchmark. Record the resolution, graphic
 - Export JSON and CSV after several runs. Open both files and confirm they contain run indexes, scenario/world/building/material IDs, impact settings, settled outcome fields, counts, and timing fields. Treat elapsed time, FPS, and settled physics counts as non-deterministic observations, not reproducibility guarantees.
 - Confirm unsupported export extensions are rejected and failed writes do not replace an existing export file.
 
-## 10. Report the result
+## 10. Presentation: explosions, ground, rocket, cameras
+
+- Fire at the ground away from the structure and confirm the whole arena floor can be carved; the crater should persist until **Reset world**.
+- Fire near the structure and confirm the floor is carveable beneath it; loose debris may settle into the crater but must not fall through the world.
+- Confirm each impact shows a bright core flash, an expanding ground ring, and dust, and that repeated impacts do not keep stale effects alive.
+- Run a settled scenario and confirm a rocket visibly flies into the impact point before the damage and settle window.
+- Use the panel Camera row and the **C** key to switch between first person, orbit, and overview. Confirm orbit rotates and overview shows the arena, and that switching back to first person restores movement/aiming.
+- Record any visual artifacts, camera clipping, or frame-rate drops seen with the new effects.
+
+## 11. Report the result
 
 Record the Godot version, Windows version, whether any errors appeared, the three material hit counts, the number of successful collapse/reset cycles, and the performance table above. Keep screenshots or a short recording of any failure. Do not mark interactive validation complete until these observations have been reviewed.

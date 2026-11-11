@@ -3,14 +3,14 @@
 WORLDBREAK is a 3D physics and destruction sandbox in active prototyping. The long-term goal is to let users experiment with impacts, forces, structural collapse, terrain damage, and multiple simulation worlds.
 
 ## Current prototype
-- First-person movement and a generated 3D test arena.
+- First-person movement with switchable first-person, orbit, and overview cameras (panel row or C).
 - A 7 x 5 x 2 modular block structure (70 rigid-body fragments).
 - Six-axis support graph rooted at surviving ground anchors.
 - Per-fragment accumulated damage with distance falloff and material-specific integrity/resistance.
 - Three editable material profiles: Foundation Concrete, Masonry, and Lightweight Panel.
 - Radial impacts that break damaged cells and release sections that lose all support paths.
-- A small resident chunked terrain patch that blasts carve through bounded mesh and static-collision rebuild queues.
-- Six movable physics props, bounded loose-debris lifetime/sleeping, reset-safe cleanup, lightweight dust bursts, and runtime HUD.
+- A resident chunked terrain patch under the whole arena whose surface blasts carve through bounded mesh and static-collision rebuild queues. The shipped worlds use a configurable 4x4 patch (64x64 units); a floor far below only catches debris.
+- Six movable physics props, bounded loose-debris lifetime/sleeping, reset-safe cleanup, a blast flash/shockwave look with dust bursts, a rocket that flies into settled runs, and a runtime HUD.
 - Two reusable building-definition Resources: the classic 70-piece layout and a sparse 11-cell pillar-and-beam sample.
 - Versioned JSON simulation configurations that resolve building and material IDs through trusted catalogs, with transactional save/load and live application.
 - Two data-driven world presets (`Classic Yard`, `Sparse Quarry`) that reuse those building, material, configuration, terrain, and environment systems, with runtime load, unload, reset, and a one-resident-world bound.
@@ -43,7 +43,7 @@ The support graph is a deterministic topology approximation. The material profil
 
 The in-game Simulation Control panel adjusts blast radius, damage, physical impulse, gravity, and time scale; selects world, scenario, and material presets; runs settled scenarios and resets them; pauses/resumes physics; and exports the bounded run history as JSON or CSV. Settled runs wait a bounded physics window and record broken/loose counts, awake/sleeping bodies, moved fragments, and settle frames. Material selection applies an existing catalog profile to the resident building through the Phase 2 override path; `default` restores the building definition's materials. Pause stops scene-tree physics without overwriting the experiment time scale. Movement and impact inputs are defined through Godot InputMap and can be remapped in Project Settings.
 
-The current prototype retains all 70 original structure nodes for reset. Released fragments use a 30-second default lifetime and a 70-awake-fragment budget; excess bodies are parked until an impact wakes them. Impact dust is capped at eight concurrent bursts (six motes each) with a 0.55-second lifetime.
+The current prototype retains all 70 original structure nodes for reset. Released fragments use a 30-second default lifetime and a 70-awake-fragment budget; excess bodies are parked until an impact wakes them. Impact effects are capped at eight concurrent bursts, each with an emissive core, a ground shockwave ring, and six dust motes, with a 0.55-second lifetime.
 
 ## Architecture
 - GDScript and Godot Physics 3D.

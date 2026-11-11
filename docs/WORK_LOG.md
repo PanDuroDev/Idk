@@ -647,3 +647,22 @@ This is an append-only engineering journal. Each substantial session is recorded
 - Local `WORLDBREAK_SIMULATION_TOOLS_OK` passed with `settled=passed`; the full local regression and Linux + Windows CI results are recorded on the follow-up PR.
 - Limits: deterministic reset setup is not bit-identical cross-platform physics; settled counts and timing are observational; headless tests do not prove panel ergonomics or target-PC frame rate. Manual Windows settled/export validation remains outstanding.
 - Follow-up merged: [PR #24](https://github.com/PanDuroDev/Idk/pull/24) merged as `09c5602` after Linux + Windows CI passed. The merged tree is identical to the locally validated `12b47d5`; the full local regression re-passed on that tree (smoke, configuration persistence, all terrain markers, world loading, simulation tools, launch).
+
+## 2026-11-11 - Presentation pass: explosions, ground, rocket, cameras
+
+### Before work
+- Started from merged `main` at `f1841d4`. The owner asked for a new explosion look, a fully carveable ground, a rocket that flies and explodes, and switchable cameras.
+- Scope kept to the existing code-built scene, Compatibility renderer, bounded effect cap, and resident terrain patch; no new dependencies, particle systems, or physics rewrite.
+
+### During work
+- Centered the resident terrain patch on the arena and made its footprint configurable through `chunk_radius` (radius 2 => 4x4 chunks, 64x64 units in both shipped worlds); moved the old flat ground box to y=-6 as a debris safety floor.
+- Rebuilt `_spawn_blast_flash` as a `BlastEffect` with an emissive core sphere, a flat expanding shockwave ring, and the existing six dust motes, still under the eight-burst cap.
+- Added `_build_rocket`/`_launch_rocket` and hooked the rocket flight into `run_scenario_settled` before damage is applied.
+- Added first-person/orbit/overview camera modes with `get_camera_modes`/`get_camera_mode`/`set_camera_mode`/`cycle_camera_mode`, a panel row, and the C shortcut; exposed `PlayerController.get_camera()`.
+- Updated tests: camera API coverage in the Phase 5 regression, 16-chunk expectations in terrain integration and world loading, and smoke ground-containment thresholds that accept craters but still catch debris escaping the safety floor.
+
+### After work
+- Local regression passed on the branch: smoke, configuration persistence, all terrain markers, world loading, simulation tools, and headless launch, with no script/parse errors.
+- Known cause of the earlier smoke failure: the gameplay blast path now carves terrain under the structure, so debris legitimately settles below y=0. No collision or CCD workaround was kept; both speculative changes were reverted.
+- Limits: effects are mesh-and-tween based without dynamic blast lighting, the rocket is visual-only, terrain remains a bounded resident patch, and headless tests cannot judge visual quality or camera ergonomics. Manual Windows checks are listed in the validation guide.
+- Integration: [PR #26](https://github.com/PanDuroDev/Idk/pull/26) carries the code and this documentation update.
