@@ -135,7 +135,6 @@ func _ready() -> void:
 	var load_errors: Array[String] = load_world(DEFAULT_WORLD_ID)
 	if not load_errors.is_empty():
 		push_error("Could not load default world: %s" % "\n".join(load_errors))
-	_spawn_starter_rockets()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -294,16 +293,21 @@ func load_world(world_id: StringName) -> Array[String]:
 		errors.assign(apply_errors)
 		return errors
 
+	# Spawned props belong to the resident world. Remove them only after the
+	# incoming configuration has validated and applied successfully.
+	_clear_spawned_props()
 	_apply_world_environment(world)
 	_build_terrain(world)
 	_active_world_definition = world
 	_reset_player_to_spawn(world.player_spawn)
+	_spawn_starter_rockets()
 	_world_load_count += 1
 	_refresh_simulation_controls()
 	return errors
 
 
 func unload_world() -> void:
+	_clear_spawned_props()
 	_clear_structure()
 	_remove_terrain()
 	_apply_environment_defaults()
@@ -1324,15 +1328,17 @@ func _spawn_starter_rockets() -> void:
 	var info: Dictionary = _find_spawn_item(&"rocket")
 	if info.is_empty():
 		return
-	var offsets: Array[Vector3] = [Vector3(-2.6, 0.2, 1.4), Vector3(-3.8, 0.2, 2.6)]
+	var spawn_origin: Vector3 = _player.global_position if is_instance_valid(_player) else _get_active_spawn()
+	var offsets: Array[Vector3] = [Vector3(-2.6, 0.2, -2.4), Vector3(2.6, 0.2, -2.4)]
 	for offset in offsets:
 		var prop: RigidBody3D = _create_sandbox_prop(info)
 		if prop == null:
 			continue
 		prop.name = "StarterRocket_%d" % _spawned_props.size()
 		add_child(prop)
-		var point := Vector3(offset.x, 0.2, offset.z)
-		var query := PhysicsRayQueryParameters3D.create(point + Vector3.UP * 8.0, point - Vector3.UP * 12.0, 1)
+		var world_offset: Vector3 = _player.global_transform.basis * offset if is_instance_valid(_player) else offset
+		var point: Vector3 = spawn_origin + world_offset
+		var query := PhysicsRayQueryParameters3D.create(point + Vector3.UP * 8.0, point - Vector3.UP * 20.0, 1)
 		if is_instance_valid(_player):
 			query.exclude = [_player.get_rid()]
 		var hit: Dictionary = get_world_3d().direct_space_state.intersect_ray(query)
@@ -1346,8 +1352,11 @@ func _spawn_starter_rockets() -> void:
 func _clear_spawned_props() -> void:
 	_held_prop = null
 	for prop in _spawned_props:
-		if is_instance_valid(prop):
-			prop.queue_free()
+		if not is_instance_valid(prop):
+			continue
+		if prop.get_parent() == self:
+			remove_child(prop)
+		prop.queue_free()
 	_spawned_props.clear()
 
 
