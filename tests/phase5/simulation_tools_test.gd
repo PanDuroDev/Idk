@@ -73,6 +73,29 @@ func _run() -> void:
 		_fail("Camera mode selection accepted an unknown mode")
 		return
 
+	main.call("set_camera_mode", &"orbit")
+	var crosshair: Label = main.get("_crosshair") as Label
+	if crosshair == null or crosshair.visible:
+		_fail("Leaving first person did not hide the crosshair")
+		return
+	main.call("set_camera_mode", &"first_person")
+	if not crosshair.visible:
+		_fail("First person did not restore the crosshair")
+		return
+
+	var ui_canvas: CanvasLayer = main.get("_ui_canvas") as CanvasLayer
+	var hud_panel: PanelContainer = ui_canvas.get_node_or_null("HudPanel") as PanelContainer
+	var simulation_panel: PanelContainer = ui_canvas.get_node_or_null("SimulationPanel") as PanelContainer
+	if hud_panel == null or simulation_panel == null or hud_panel.theme == null or simulation_panel.theme == null:
+		_fail("Themed HUD or simulation panel is missing")
+		return
+
+	var rocket: Node3D = main.call("_build_rocket", 4.5) as Node3D
+	if rocket == null or rocket.get_child_count() == 0:
+		_fail("Rocket model did not build")
+		return
+	rocket.free()
+
 	var load_errors: Array = main.call("load_scenario", &"foundation_strike")
 	if not load_errors.is_empty():
 		_fail("Foundation scenario load failed: %s" % "\n".join(load_errors))

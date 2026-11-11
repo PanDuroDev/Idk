@@ -135,6 +135,13 @@ Each issue contains its own AI prompt, PR breakdown, acceptance criteria, and co
 - The previous flat ground box is now a far safety floor at y=-6; debris may legitimately settle in craters below y=0.
 - Limits: effects are mesh-and-tween based with the existing eight-burst cap, the rocket is visual-only (no trajectory physics), and the terrain remains a bounded resident patch without streaming.
 
+## Realism and interface pass
+
+- [PR #27](https://github.com/PanDuroDev/Idk/pull/27) fires the rocket from the player toward the aim point captured at fire time and detonates it on arrival; every blast also carves the terrain beneath the hit, adds debris chips, and applies a short decaying camera shake.
+- The scene now uses a procedural sky (blue zenith, warm horizon, filmic tonemapping, sky-based ambient light); world presets tint the sky rather than replacing it with a flat background color. The prop set is nine varied crates, barrels, and cones with shared resources.
+- HUD and control panel share a dark theme with sectioned rows, hover/pressed states, a top-right anchored panel, a first-person crosshair, and a control-hint line.
+- Limits: no downloaded external art, models, or HDRI; effects remain mesh-and-tween; the rocket is visual only and the blast is applied on arrival rather than by a simulated projectile body; no target-PC frame-rate claim.
+
 ## Required update protocol
 
 Every substantial session updates this file and `WORK_LOG.md` at three points:

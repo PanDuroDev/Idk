@@ -24,11 +24,22 @@ const EFFECT_LIFETIME: float = 0.55
 const DEFAULT_GRAVITY: float = 9.8
 const DEFAULT_WORLD_ID: StringName = &"classic_yard"
 const MAX_RESIDENT_WORLDS: int = 1
-const DEFAULT_BACKGROUND_COLOR: Color = Color(0.035, 0.045, 0.06)
+const DEFAULT_BACKGROUND_COLOR: Color = Color(0.09, 0.13, 0.18)
 const DEFAULT_AMBIENT_COLOR: Color = Color(0.55, 0.59, 0.68)
 const DEFAULT_AMBIENT_ENERGY: float = 0.7
 const DEFAULT_SUN_ROTATION: Vector3 = Vector3(-52.0, -28.0, 0.0)
 const DEFAULT_SUN_ENERGY: float = 1.25
+const SKY_TOP_COLOR: Color = Color(0.11, 0.24, 0.44)
+const SKY_HORIZON_COLOR: Color = Color(0.78, 0.66, 0.5)
+const SKY_GROUND_COLOR: Color = Color(0.08, 0.08, 0.09)
+const UI_ACCENT: Color = Color(0.36, 0.8, 0.72)
+const UI_TEXT_COLOR: Color = Color(0.87, 0.9, 0.94)
+const UI_MUTED_COLOR: Color = Color(0.6, 0.66, 0.72)
+const UI_PANEL_COLOR: Color = Color(0.055, 0.065, 0.08, 0.93)
+const UI_FIELD_COLOR: Color = Color(0.12, 0.14, 0.17, 1.0)
+const UI_BORDER_COLOR: Color = Color(0.22, 0.26, 0.31, 1.0)
+const ROCKET_SPEED: float = 55.0
+const SHAKE_DECAY_SECONDS: float = 0.26
 
 @export_range(0.5, 12.0, 0.25) var blast_radius: float = 4.5
 @export_range(1.0, 100.0, 1.0) var blast_impulse: float = 22.0
@@ -75,6 +86,15 @@ var _orbit_camera: Camera3D
 var _overview_camera: Camera3D
 var _camera_mode: StringName = &"first_person"
 var _orbit_angle: float = 0.0
+var _crosshair: Label
+var _shake_time: float = 0.0
+var _shake_strength: float = 0.0
+var _effect_core_mesh: SphereMesh
+var _effect_ring_mesh: TorusMesh
+var _effect_dust_mesh: SphereMesh
+var _effect_dust_material: StandardMaterial3D
+var _effect_chip_mesh: BoxMesh
+var _effect_chip_material: StandardMaterial3D
 
 const CAMERA_MODES: Array[StringName] = [&"first_person", &"orbit", &"overview"]
 
@@ -140,6 +160,7 @@ func _physics_process(_delta: float) -> void:
 
 func _process(delta: float) -> void:
 	_update_orbit_camera(delta)
+	_update_camera_shake(delta)
 	_hud_refresh_timer += delta
 	if _hud_refresh_timer < 0.25 or not is_instance_valid(_hud_label):
 		return
@@ -150,7 +171,7 @@ func _process(delta: float) -> void:
 	var fragment_unsupported: int = int(_structure.call("get_unsupported_fragment_count")) if is_instance_valid(_structure) else 0
 	var terrain_edits: int = int(_terrain.call("get_terrain_edit_count")) if is_instance_valid(_terrain) else 0
 	var world_name: String = _active_world_definition.display_name if _active_world_definition != null else "none"
-	_hud_label.text = "WORLDBREAK [%s]  |  FPS %d  |  Loose %d/%d  |  Broken %d (+%d)  |  Unsupported %d  |  Targets %d  |  Terrain %d" % [
+	_hud_label.text = "World  %s\nFPS  %d      Loose  %d/%d\nBroken  %d (+%d)      Unsupported  %d\nTargets  %d      Terrain edits  %d" % [
 		world_name,
 		Engine.get_frames_per_second(),
 		fragment_released,
@@ -333,6 +354,9 @@ func _apply_camera_mode() -> void:
 		_overview_camera.position = anchor + Vector3(0.0, 42.0, 0.1)
 		_overview_camera.look_at(anchor)
 		_overview_camera.current = _camera_mode == &"overview"
+	if is_instance_valid(_crosshair):
+		_crosshair.visible = _camera_mode == &"first_person"
+	_reset_camera_offsets()
 
 
 func _build_cameras() -> void:
@@ -360,6 +384,43 @@ func _get_camera_anchor() -> Vector3:
 	if is_instance_valid(_structure):
 		return _structure.global_position
 	return Vector3(0.0, 1.0, -12.0)
+
+
+func _get_active_camera() -> Camera3D:
+	if _camera_mode == &"orbit":
+		return _orbit_camera if is_instance_valid(_orbit_camera) else null
+	if _camera_mode == &"overview":
+		return _overview_camera if is_instance_valid(_overview_camera) else null
+	if is_instance_valid(_player):
+		return _player.call("get_camera") as Camera3D
+	return null
+
+
+func _reset_camera_offsets() -> void:
+	for camera in [_get_active_camera(), _orbit_camera, _overview_camera]:
+		if is_instance_valid(camera):
+			camera.h_offset = 0.0
+			camera.v_offset = 0.0
+
+
+func _add_camera_shake(strength: float) -> void:
+	_shake_strength = maxf(_shake_strength, strength)
+	_shake_time = SHAKE_DECAY_SECONDS
+
+
+func _update_camera_shake(delta: float) -> void:
+	var camera: Camera3D = _get_active_camera()
+	if not is_instance_valid(camera):
+		return
+	if _shake_time <= 0.0:
+		if not is_zero_approx(camera.h_offset) or not is_zero_approx(camera.v_offset):
+			camera.h_offset = 0.0
+			camera.v_offset = 0.0
+		return
+	_shake_time = maxf(_shake_time - delta, 0.0)
+	var falloff: float = _shake_time / SHAKE_DECAY_SECONDS
+	camera.h_offset = randf_range(-_shake_strength, _shake_strength) * falloff
+	camera.v_offset = randf_range(-_shake_strength, _shake_strength) * falloff
 
 
 func load_scenario(scenario_id: StringName) -> Array[String]:
@@ -409,7 +470,7 @@ func run_scenario_settled(scenario_id: StringName, settle_frames: int = 120) -> 
 	var scenario: ExperimentScenarioScript = prepared["scenario"]
 	var impact: Vector3 = prepared["impact"]
 	var snapshot: Dictionary = _capture_fragment_positions()
-	await _launch_rocket(impact, scenario.blast_radius)
+	await _launch_rocket(impact + Vector3(0.0, 14.0, 18.0), impact, scenario.blast_radius)
 	var started_usec: int = Time.get_ticks_usec()
 	var metrics: Dictionary = _apply_scenario_impact(scenario, impact)
 	var frames: int = clampi(settle_frames, 1, 600)
@@ -802,9 +863,15 @@ func _process_blast(ray_origin: Vector3, ray_direction: Vector3) -> void:
 	var space_state: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state
 	var ray_hit: Dictionary = space_state.intersect_ray(ray_query)
 	var impact_position: Vector3 = ray_hit.get("position", ray_end)
+	var impact_normal: Vector3 = ray_hit.get("normal", Vector3.UP)
 
-	if is_instance_valid(_terrain):
-		_terrain.call("carve_sphere", impact_position, blast_radius, blast_damage)
+	# Fire from the weapon toward the captured aim point, then detonate on arrival.
+	if DisplayServer.get_name() != "headless":
+		await _launch_rocket(ray_origin + ray_direction * 0.8, impact_position, blast_radius)
+		if not is_inside_tree():
+			return
+
+	_carve_ground(impact_position)
 
 	_last_broken_count = int(_structure.call("apply_blast_damage", impact_position, blast_radius, blast_damage)) if is_instance_valid(_structure) else 0
 	_last_affected_count = int(_blast_service.call(
@@ -817,17 +884,55 @@ func _process_blast(ray_origin: Vector3, ray_direction: Vector3) -> void:
 	))
 	_total_impacts += 1
 	_spawn_blast_flash(impact_position)
+	_spawn_impact_chips(impact_position, impact_normal, _last_broken_count)
+	_add_camera_shake(clampf(blast_radius / 22.0, 0.03, 0.12))
+
+
+func _carve_ground(impact_position: Vector3) -> void:
+	if not is_instance_valid(_terrain):
+		return
+	var ground_point: Vector3 = _find_terrain_below(impact_position)
+	var carve_point: Vector3 = ground_point if ground_point != Vector3.INF else impact_position
+	var carve_radius: float = blast_radius * (1.15 if ground_point != Vector3.INF else 0.9)
+	_terrain.call("carve_sphere", carve_point, carve_radius, blast_damage)
+
+
+func _find_terrain_below(position: Vector3) -> Vector3:
+	if not is_instance_valid(_terrain) or not is_inside_tree():
+		return Vector3.INF
+	var distance: float = maxf(blast_radius * 1.6, 4.0)
+	var query := PhysicsRayQueryParameters3D.create(position + Vector3.UP * 0.1, position - Vector3.UP * distance, 1)
+	if is_instance_valid(_player):
+		query.exclude = [_player.get_rid()]
+	var hit: Dictionary = get_world_3d().direct_space_state.intersect_ray(query)
+	if hit.is_empty():
+		return Vector3.INF
+	var collider: Object = hit.get("collider")
+	if collider == null or not _terrain.is_ancestor_of(collider as Node):
+		return Vector3.INF
+	return hit.get("position", Vector3.INF)
 
 
 func _build_environment() -> void:
 	_world_environment = WorldEnvironment.new()
 	_world_environment.name = "WorldEnvironment"
 	var environment := Environment.new()
-	environment.background_mode = Environment.BG_COLOR
-	environment.background_color = DEFAULT_BACKGROUND_COLOR
-	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	var sky_material := ProceduralSkyMaterial.new()
+	sky_material.sky_top_color = SKY_TOP_COLOR
+	sky_material.sky_horizon_color = SKY_HORIZON_COLOR
+	sky_material.ground_horizon_color = SKY_HORIZON_COLOR.darkened(0.55)
+	sky_material.ground_bottom_color = SKY_GROUND_COLOR
+	sky_material.sun_angle_max = 18.0
+	sky_material.sky_energy_multiplier = 1.0
+	var sky := Sky.new()
+	sky.sky_material = sky_material
+	environment.sky = sky
+	environment.background_mode = Environment.BG_SKY
+	environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 	environment.ambient_light_color = DEFAULT_AMBIENT_COLOR
 	environment.ambient_light_energy = DEFAULT_AMBIENT_ENERGY
+	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	environment.tonemap_white = 6.0
 	_world_environment.environment = environment
 	add_child(_world_environment)
 
@@ -907,9 +1012,11 @@ func _clear_structure() -> void:
 
 func _apply_world_environment(world: WorldDefinitionScript) -> void:
 	if is_instance_valid(_world_environment) and _world_environment.environment != null:
-		_world_environment.environment.background_color = world.background_color
-		_world_environment.environment.ambient_light_color = world.ambient_color
-		_world_environment.environment.ambient_light_energy = world.ambient_energy
+		var environment: Environment = _world_environment.environment
+		environment.background_color = world.background_color
+		environment.ambient_light_color = world.ambient_color
+		environment.ambient_light_energy = world.ambient_energy
+		_apply_sky_tint(environment, world.background_color)
 	if is_instance_valid(_sun):
 		_sun.rotation_degrees = world.sun_rotation_degrees
 		_sun.light_energy = world.sun_energy
@@ -918,13 +1025,25 @@ func _apply_world_environment(world: WorldDefinitionScript) -> void:
 
 func _apply_environment_defaults() -> void:
 	if is_instance_valid(_world_environment) and _world_environment.environment != null:
-		_world_environment.environment.background_color = DEFAULT_BACKGROUND_COLOR
-		_world_environment.environment.ambient_light_color = DEFAULT_AMBIENT_COLOR
-		_world_environment.environment.ambient_light_energy = DEFAULT_AMBIENT_ENERGY
+		var environment: Environment = _world_environment.environment
+		environment.background_color = DEFAULT_BACKGROUND_COLOR
+		environment.ambient_light_color = DEFAULT_AMBIENT_COLOR
+		environment.ambient_light_energy = DEFAULT_AMBIENT_ENERGY
+		_apply_sky_tint(environment, DEFAULT_BACKGROUND_COLOR)
 	if is_instance_valid(_sun):
 		_sun.rotation_degrees = DEFAULT_SUN_ROTATION
 		_sun.light_energy = DEFAULT_SUN_ENERGY
 		_sun.shadow_enabled = true
+
+
+func _apply_sky_tint(environment: Environment, tint: Color) -> void:
+	if environment.sky == null:
+		return
+	var sky_material := environment.sky.sky_material as ProceduralSkyMaterial
+	if sky_material == null:
+		return
+	sky_material.sky_top_color = SKY_TOP_COLOR.lerp(tint, 0.35)
+	sky_material.sky_horizon_color = SKY_HORIZON_COLOR.lerp(tint, 0.3)
 
 
 func _get_active_spawn() -> Vector3:
@@ -939,20 +1058,46 @@ func _reset_player_to_spawn(spawn: Vector3) -> void:
 
 
 func _spawn_physics_props() -> void:
-	var prop_mesh := BoxMesh.new()
-	prop_mesh.size = Vector3(0.8, 0.8, 0.8)
-	var prop_shape := BoxShape3D.new()
-	prop_shape.size = prop_mesh.size
-	var prop_material := StandardMaterial3D.new()
-	prop_material.albedo_color = Color(0.22, 0.48, 0.68)
-	prop_material.roughness = 0.72
-	prop_mesh.material = prop_material
+	var crate_mesh := BoxMesh.new()
+	crate_mesh.size = Vector3(0.8, 0.8, 0.8)
+	var crate_shape := BoxShape3D.new()
+	crate_shape.size = crate_mesh.size
+	var barrel_mesh := CylinderMesh.new()
+	barrel_mesh.top_radius = 0.3
+	barrel_mesh.bottom_radius = 0.3
+	barrel_mesh.height = 0.9
+	var barrel_shape := CylinderShape3D.new()
+	barrel_shape.radius = 0.3
+	barrel_shape.height = barrel_mesh.height
+	var cone_mesh := CylinderMesh.new()
+	cone_mesh.top_radius = 0.03
+	cone_mesh.bottom_radius = 0.34
+	cone_mesh.height = 0.8
+	var cone_shape := CylinderShape3D.new()
+	cone_shape.radius = 0.34
+	cone_shape.height = cone_mesh.height
+	var crate_material := StandardMaterial3D.new()
+	crate_material.albedo_color = Color(0.45, 0.33, 0.22)
+	crate_material.roughness = 0.9
+	var barrel_material := StandardMaterial3D.new()
+	barrel_material.albedo_color = Color(0.26, 0.44, 0.52)
+	barrel_material.roughness = 0.55
+	barrel_material.metallic = 0.35
+	var cone_material := StandardMaterial3D.new()
+	cone_material.albedo_color = Color(0.75, 0.32, 0.14)
+	cone_material.roughness = 0.8
 
-	for index in range(6):
+	var kinds: Array[Dictionary] = [
+		{"mesh": crate_mesh, "shape": crate_shape, "material": crate_material, "mass": 1.5},
+		{"mesh": barrel_mesh, "shape": barrel_shape, "material": barrel_material, "mass": 2.0},
+		{"mesh": cone_mesh, "shape": cone_shape, "material": cone_material, "mass": 0.6},
+	]
+	for index in range(9):
+		var kind: Dictionary = kinds[index % kinds.size()]
 		var prop := RigidBody3D.new()
 		prop.name = "PhysicsProp_%02d" % index
-		prop.position = Vector3(-5.0 + float(index) * 1.8, 1.2, -3.0)
-		prop.mass = 1.5
+		prop.position = Vector3(-6.0 + float(index % 5) * 2.3, 1.1 + floorf(float(index) / 5.0) * 0.5, -4.0 + floorf(float(index) / 5.0) * 2.6)
+		prop.mass = float(kind["mass"])
 		prop.gravity_scale = _simulation_gravity / DEFAULT_GRAVITY
 		prop.collision_layer = 1
 		prop.collision_mask = 1
@@ -960,23 +1105,28 @@ func _spawn_physics_props() -> void:
 		add_child(prop)
 
 		var mesh_instance := MeshInstance3D.new()
-		mesh_instance.mesh = prop_mesh
+		mesh_instance.mesh = kind["mesh"]
+		mesh_instance.material_override = kind["material"]
 		prop.add_child(mesh_instance)
 
 		var collision := CollisionShape3D.new()
-		collision.shape = prop_shape
+		collision.shape = kind["shape"]
 		prop.add_child(collision)
 
 
-func _launch_rocket(impact: Vector3, radius: float) -> void:
+func _launch_rocket(origin: Vector3, impact: Vector3, radius: float) -> void:
 	if DisplayServer.get_name() == "headless":
+		return
+	var direction: Vector3 = impact - origin
+	if direction.length_squared() < 0.0001:
 		return
 	var rocket := _build_rocket(radius)
 	add_child(rocket)
-	rocket.global_position = impact + Vector3(0.0, 12.0, 20.0)
+	rocket.global_position = origin
 	rocket.look_at(impact)
+	var duration: float = clampf(origin.distance_to(impact) / ROCKET_SPEED, 0.12, 0.6)
 	var flight: Tween = create_tween()
-	flight.tween_property(rocket, "global_position", impact, 0.7).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	flight.tween_property(rocket, "global_position", impact, duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	await flight.finished
 	if is_instance_valid(rocket):
 		rocket.queue_free()
@@ -1045,10 +1195,31 @@ func _build_rocket(radius: float) -> Node3D:
 	return rocket
 
 
-func _spawn_blast_flash(position: Vector3) -> void:
-	if DisplayServer.get_name() == "headless":
-		_headless_effect_burst_count = mini(_headless_effect_burst_count + 1, MAX_ACTIVE_EFFECTS)
+func _ensure_effect_resources() -> void:
+	if _effect_core_mesh != null:
 		return
+	_effect_core_mesh = SphereMesh.new()
+	_effect_core_mesh.radius = 1.0
+	_effect_core_mesh.height = 2.0
+	_effect_ring_mesh = TorusMesh.new()
+	_effect_ring_mesh.inner_radius = 0.85
+	_effect_ring_mesh.outer_radius = 1.0
+	_effect_dust_mesh = SphereMesh.new()
+	_effect_dust_mesh.radius = 0.07
+	_effect_dust_mesh.height = 0.14
+	_effect_dust_material = StandardMaterial3D.new()
+	_effect_dust_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_effect_dust_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_effect_dust_material.albedo_color = Color(0.72, 0.62, 0.46, 0.78)
+	_effect_dust_material.roughness = 1.0
+	_effect_chip_mesh = BoxMesh.new()
+	_effect_chip_mesh.size = Vector3(0.12, 0.09, 0.14)
+	_effect_chip_material = StandardMaterial3D.new()
+	_effect_chip_material.albedo_color = Color(0.42, 0.38, 0.33)
+	_effect_chip_material.roughness = 1.0
+
+
+func _begin_effect(effect_name: String, position: Vector3) -> Node3D:
 	for index in range(_active_effects.size() - 1, -1, -1):
 		if not is_instance_valid(_active_effects[index]):
 			_active_effects.remove_at(index)
@@ -1056,12 +1227,20 @@ func _spawn_blast_flash(position: Vector3) -> void:
 		var oldest: Node3D = _active_effects.pop_front()
 		if is_instance_valid(oldest):
 			oldest.queue_free()
-
 	var effect := Node3D.new()
-	effect.name = "BlastEffect"
+	effect.name = effect_name
 	add_child(effect)
 	effect.global_position = position
 	_active_effects.append(effect)
+	return effect
+
+
+func _spawn_blast_flash(position: Vector3) -> void:
+	if DisplayServer.get_name() == "headless":
+		_headless_effect_burst_count = mini(_headless_effect_burst_count + 1, MAX_ACTIVE_EFFECTS)
+		return
+	_ensure_effect_resources()
+	var effect: Node3D = _begin_effect("BlastEffect", position)
 
 	# Hot core flash.
 	var flash_material := StandardMaterial3D.new()
@@ -1072,10 +1251,7 @@ func _spawn_blast_flash(position: Vector3) -> void:
 	flash_material.emission = Color(1.0, 0.5, 0.12)
 	flash_material.emission_energy_multiplier = 4.0
 	var flash := MeshInstance3D.new()
-	var sphere_mesh := SphereMesh.new()
-	sphere_mesh.radius = 1.0
-	sphere_mesh.height = 2.0
-	flash.mesh = sphere_mesh
+	flash.mesh = _effect_core_mesh
 	flash.material_override = flash_material
 	flash.scale = Vector3.ONE * 0.25
 	effect.add_child(flash)
@@ -1089,24 +1265,12 @@ func _spawn_blast_flash(position: Vector3) -> void:
 	shock_material.emission = Color(1.0, 0.72, 0.35)
 	shock_material.emission_energy_multiplier = 2.0
 	var shock := MeshInstance3D.new()
-	var torus := TorusMesh.new()
-	torus.inner_radius = 0.85
-	torus.outer_radius = 1.0
-	shock.mesh = torus
+	shock.mesh = _effect_ring_mesh
 	shock.material_override = shock_material
 	shock.rotation_degrees.x = 90.0
 	shock.position.y = 0.05
 	shock.scale = Vector3.ONE * 0.4
 	effect.add_child(shock)
-
-	var dust_mesh := SphereMesh.new()
-	dust_mesh.radius = 0.07
-	dust_mesh.height = 0.14
-	var dust_material := StandardMaterial3D.new()
-	dust_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	dust_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	dust_material.albedo_color = Color(0.72, 0.62, 0.46, 0.78)
-	dust_material.roughness = 1.0
 
 	var directions: Array[Vector3] = [
 		Vector3(1.0, 0.45, 0.0), Vector3(-1.0, 0.35, 0.2),
@@ -1120,15 +1284,36 @@ func _spawn_blast_flash(position: Vector3) -> void:
 	tween.tween_property(shock_material, "albedo_color", Color(0.95, 0.86, 0.7, 0.0), EFFECT_LIFETIME)
 	for index in range(directions.size()):
 		var dust := MeshInstance3D.new()
-		dust.mesh = dust_mesh
-		dust.material_override = dust_material
+		dust.mesh = _effect_dust_mesh
+		dust.material_override = _effect_dust_material
 		dust.scale = Vector3.ONE * (0.65 + float(index % 3) * 0.2)
 		effect.add_child(dust)
 		var direction: Vector3 = directions[index].normalized()
 		var travel: float = 0.45 + float(index % 3) * 0.18
 		tween.tween_property(dust, "position", direction * travel, EFFECT_LIFETIME).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 		tween.tween_property(dust, "scale", Vector3.ZERO, EFFECT_LIFETIME)
-	tween.tween_property(dust_material, "albedo_color", Color(0.72, 0.62, 0.46, 0.0), EFFECT_LIFETIME)
+	tween.finished.connect(_remove_effect.bind(effect))
+
+
+func _spawn_impact_chips(position: Vector3, normal: Vector3, broken_count: int) -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	_ensure_effect_resources()
+	var effect: Node3D = _begin_effect("ImpactChips", position)
+	var count: int = clampi(6 + broken_count, 6, 16)
+	var tween := create_tween().set_parallel(true)
+	for index in range(count):
+		var chip := MeshInstance3D.new()
+		chip.mesh = _effect_chip_mesh
+		chip.material_override = _effect_chip_material
+		chip.scale = Vector3.ONE * (0.55 + float(index % 4) * 0.22)
+		effect.add_child(chip)
+		var angle: float = TAU * float(index) / float(count)
+		var spread := Vector3(cos(angle), 0.0, sin(angle)) * (0.5 + float(index % 3) * 0.3)
+		var direction: Vector3 = (normal * 0.85 + spread + Vector3.UP * 0.35).normalized()
+		var distance: float = 1.0 + float(index % 5) * 0.3
+		tween.tween_property(chip, "position", direction * distance - Vector3(0.0, 0.5, 0.0), 0.45).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tween.tween_property(chip, "scale", Vector3.ZERO, 0.5).set_delay(0.12)
 	tween.finished.connect(_remove_effect.bind(effect))
 
 
@@ -1204,17 +1389,95 @@ func _refresh_debug_overlay() -> void:
 	]
 
 
+func _create_ui_theme() -> Theme:
+	var theme := Theme.new()
+	theme.default_font_size = 13
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = UI_PANEL_COLOR
+	panel_style.border_color = UI_BORDER_COLOR
+	panel_style.set_border_width_all(1)
+	panel_style.set_corner_radius_all(10)
+	panel_style.set_content_margin_all(14)
+	theme.set_stylebox("panel", "PanelContainer", panel_style)
+
+	var field_style := StyleBoxFlat.new()
+	field_style.bg_color = UI_FIELD_COLOR
+	field_style.border_color = UI_BORDER_COLOR
+	field_style.set_border_width_all(1)
+	field_style.set_corner_radius_all(6)
+	field_style.set_content_margin_all(6)
+	var hover_style := field_style.duplicate() as StyleBoxFlat
+	hover_style.bg_color = Color(0.18, 0.22, 0.27)
+	hover_style.border_color = UI_ACCENT
+	var pressed_style := field_style.duplicate() as StyleBoxFlat
+	pressed_style.bg_color = UI_ACCENT.darkened(0.55)
+	pressed_style.border_color = UI_ACCENT
+	for control_type in ["Button", "OptionButton"]:
+		theme.set_stylebox("normal", control_type, field_style)
+		theme.set_stylebox("hover", control_type, hover_style)
+		theme.set_stylebox("pressed", control_type, pressed_style)
+		theme.set_stylebox("focus", control_type, hover_style)
+		theme.set_color("font_color", control_type, UI_TEXT_COLOR)
+		theme.set_color("font_hover_color", control_type, Color.WHITE)
+		theme.set_color("font_pressed_color", control_type, Color.WHITE)
+	theme.set_color("font_color", "Label", UI_TEXT_COLOR)
+	theme.set_color("font_color", "CheckBox", UI_TEXT_COLOR)
+	return theme
+
+
 func _build_hud() -> void:
 	_ui_canvas = CanvasLayer.new()
 	_ui_canvas.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(_ui_canvas)
 
+	var hud_panel := PanelContainer.new()
+	hud_panel.name = "HudPanel"
+	hud_panel.theme = _create_ui_theme()
+	hud_panel.position = Vector2(18.0, 16.0)
+	_ui_canvas.add_child(hud_panel)
+
+	var hud_layout := VBoxContainer.new()
+	hud_layout.add_theme_constant_override("separation", 3)
+	hud_panel.add_child(hud_layout)
+
+	var title := Label.new()
+	title.text = "WORLDBREAK"
+	title.add_theme_font_size_override("font_size", 17)
+	title.add_theme_color_override("font_color", UI_ACCENT)
+	hud_layout.add_child(title)
+
 	_hud_label = Label.new()
-	_hud_label.position = Vector2(18.0, 16.0)
-	_hud_label.add_theme_font_size_override("font_size", 15)
-	_hud_label.add_theme_color_override("font_color", Color(0.88, 0.91, 0.96))
-	_ui_canvas.add_child(_hud_label)
-	_hud_label.text = "WORLDBREAK - initializing"
+	_hud_label.add_theme_font_size_override("font_size", 12)
+	_hud_label.add_theme_color_override("font_color", UI_MUTED_COLOR)
+	_hud_label.text = "initializing"
+	hud_layout.add_child(_hud_label)
+
+	_crosshair = Label.new()
+	_crosshair.text = "+"
+	_crosshair.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_crosshair.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_crosshair.add_theme_font_size_override("font_size", 22)
+	_crosshair.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 0.72))
+	_crosshair.anchor_left = 0.5
+	_crosshair.anchor_top = 0.5
+	_crosshair.anchor_right = 0.5
+	_crosshair.anchor_bottom = 0.5
+	_crosshair.offset_left = -9.0
+	_crosshair.offset_top = -16.0
+	_crosshair.offset_right = 9.0
+	_crosshair.offset_bottom = 16.0
+	_ui_canvas.add_child(_crosshair)
+
+	var hint := Label.new()
+	hint.text = "LMB  blast      C  camera      P  pause      F3  diagnostics      Esc  cursor"
+	hint.add_theme_font_size_override("font_size", 12)
+	hint.add_theme_color_override("font_color", Color(0.75, 0.8, 0.86, 0.7))
+	hint.anchor_top = 1.0
+	hint.anchor_bottom = 1.0
+	hint.offset_left = 20.0
+	hint.offset_top = -34.0
+	hint.offset_bottom = -14.0
+	_ui_canvas.add_child(hint)
 
 
 func adjust_impact_setting(setting: StringName, amount: float) -> void:
@@ -1240,8 +1503,16 @@ func reset_impact_settings() -> void:
 func _build_simulation_panel() -> void:
 	var panel := PanelContainer.new()
 	panel.name = "SimulationPanel"
-	panel.position = Vector2(910.0, 54.0)
-	panel.custom_minimum_size = Vector2(350.0, 0.0)
+	panel.theme = _create_ui_theme()
+	panel.anchor_left = 1.0
+	panel.anchor_right = 1.0
+	panel.offset_left = -378.0
+	panel.offset_right = -18.0
+	panel.offset_top = 18.0
+	panel.offset_bottom = 18.0
+	panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	panel.grow_vertical = Control.GROW_DIRECTION_END
+	panel.custom_minimum_size = Vector2(360.0, 0.0)
 	_ui_canvas.add_child(panel)
 
 	var layout := VBoxContainer.new()
@@ -1249,10 +1520,12 @@ func _build_simulation_panel() -> void:
 	panel.add_child(layout)
 
 	var heading := Label.new()
-	heading.text = "SIMULATION CONTROL"
-	heading.add_theme_font_size_override("font_size", 14)
+	heading.text = "WORLDBREAK  ·  CONTROL"
+	heading.add_theme_font_size_override("font_size", 15)
+	heading.add_theme_color_override("font_color", UI_ACCENT)
 	layout.add_child(heading)
 
+	_add_section(layout, "ENVIRONMENT")
 	_world_option = _add_option_row(layout, "World", WORLD_CATALOG.get_world_ids(), _on_world_selected)
 	_scenario_option = _add_option_row(layout, "Scenario", SCENARIO_CATALOG.get_scenario_ids(), _on_scenario_selected)
 	var material_ids: Array[StringName] = [&"default"]
@@ -1260,12 +1533,14 @@ func _build_simulation_panel() -> void:
 	_material_option = _add_option_row(layout, "Material", material_ids, _on_material_selected)
 	_camera_option = _add_option_row(layout, "Camera", CAMERA_MODES, _on_camera_selected)
 
+	_add_section(layout, "IMPACT")
 	_add_impact_control_row(layout, "Blast radius", &"blast_radius", 0.25)
 	_add_impact_control_row(layout, "Damage", &"blast_damage", 0.25)
 	_add_impact_control_row(layout, "Physical impulse", &"blast_impulse", 1.0)
 	_gravity_value_label = _add_setting_control_row(layout, "Gravity", &"gravity", 0.5)
 	_time_scale_value_label = _add_setting_control_row(layout, "Time scale", &"time_scale", 0.05)
 
+	_add_section(layout, "SESSION")
 	var action_row := HBoxContainer.new()
 	layout.add_child(action_row)
 
@@ -1314,6 +1589,17 @@ func _build_simulation_panel() -> void:
 	_refresh_simulation_controls()
 
 
+func _add_section(parent: VBoxContainer, title: String) -> void:
+	var separator := HSeparator.new()
+	separator.add_theme_constant_override("separation", 6)
+	parent.add_child(separator)
+	var label := Label.new()
+	label.text = title
+	label.add_theme_font_size_override("font_size", 10)
+	label.add_theme_color_override("font_color", UI_ACCENT)
+	parent.add_child(label)
+
+
 func _add_option_row(
 	parent: VBoxContainer,
 	title: String,
@@ -1325,7 +1611,9 @@ func _add_option_row(
 
 	var name_label := Label.new()
 	name_label.text = title
-	name_label.custom_minimum_size.x = 142.0
+	name_label.custom_minimum_size.x = 128.0
+	name_label.add_theme_font_size_override("font_size", 12)
+	name_label.add_theme_color_override("font_color", UI_MUTED_COLOR)
 	row.add_child(name_label)
 
 	var option := OptionButton.new()
@@ -1349,7 +1637,9 @@ func _add_setting_control_row(
 
 	var name_label := Label.new()
 	name_label.text = title
-	name_label.custom_minimum_size.x = 142.0
+	name_label.custom_minimum_size.x = 128.0
+	name_label.add_theme_font_size_override("font_size", 12)
+	name_label.add_theme_color_override("font_color", UI_MUTED_COLOR)
 	row.add_child(name_label)
 
 	var decrease_button := Button.new()
@@ -1457,7 +1747,9 @@ func _add_impact_control_row(parent: VBoxContainer, title: String, setting: Stri
 
 	var name_label := Label.new()
 	name_label.text = title
-	name_label.custom_minimum_size.x = 142.0
+	name_label.custom_minimum_size.x = 128.0
+	name_label.add_theme_font_size_override("font_size", 12)
+	name_label.add_theme_color_override("font_color", UI_MUTED_COLOR)
 	row.add_child(name_label)
 
 	var decrease_button := Button.new()

@@ -666,3 +666,24 @@ This is an append-only engineering journal. Each substantial session is recorded
 - Known cause of the earlier smoke failure: the gameplay blast path now carves terrain under the structure, so debris legitimately settles below y=0. No collision or CCD workaround was kept; both speculative changes were reverted.
 - Limits: effects are mesh-and-tween based without dynamic blast lighting, the rocket is visual-only, terrain remains a bounded resident patch, and headless tests cannot judge visual quality or camera ergonomics. Manual Windows checks are listed in the validation guide.
 - Integration: [PR #26](https://github.com/PanDuroDev/Idk/pull/26) carries the code and this documentation update.
+
+## 2026-11-11 - Realism and interface pass
+
+### Before work
+- Started from merged `main` at `65ec91f` after the presentation pass.
+- Owner asked for more realism: better ground breaking, stronger damage feedback, lower effect cost, a nicer sky, a professional interface, and a rocket that is aimed by the player instead of appearing beside the target. The owner also asked for downloaded assets; none were added because that would bring licensing, repository-size, and offline-CI costs without a gameplay change. The same look was built procedurally from existing primitives.
+- Scope: rework the rocket launch/fire timing, carve the ground beneath structure hits, add chips and camera shake, reuse effect resources, add a procedural sky, vary the props, and theme the HUD/panel.
+
+### During work
+- `_process_blast` now captures the aim ray, fires the rocket from the camera toward the hit point, waits for arrival, then applies terrain carving, damage, impulse, flash, chips, and camera shake. Headless runs stay instant.
+- `_carve_ground` raycasts down from the impact, carves the terrain surface beneath it when it belongs to the resident patch, and scales the carve radius up on direct ground hits. `_find_terrain_below` guards non-terrain colliders.
+- `_spawn_impact_chips` adds up to sixteen shared-mesh debris chips that tween outward and fade; `_ensure_effect_resources` caches the core sphere, ring, dust sphere/material, and chip mesh/material once instead of rebuilding them per blast.
+- Camera shake adds a short decaying `h_offset`/`v_offset` to the active camera and resets cleanly on mode changes.
+- `_build_environment` uses a `ProceduralSkyMaterial` with a blue zenith, warm horizon, filmic tonemapping, and sky-source ambient light; world presets tint the sky through `_apply_sky_tint`.
+- `_spawn_physics_props` now spawns nine crates, barrels, and cones with shared meshes, shapes, and materials.
+- `_create_ui_theme` provides one dark theme for the HUD and panel; the HUD gained a title panel, crosshair, and control hints, and the panel gained section headers and a top-right anchored layout.
+- Extended `tests/phase5/simulation_tools_test.gd` to check crosshair visibility per camera mode, themed HUD/panel presence, and rocket model construction.
+
+### After work
+- Godot import clean. Full local Windows regression passed: smoke, configuration persistence, all terrain markers, world loading, and simulation tools. No `SCRIPT ERROR:`, `ERROR:`, `Parse Error:`, or `Failed to load script` matches.
+- Limits: no downloaded art/models/HDRI; effects are still mesh-and-tween with the eight-burst cap; the rocket is visual only and the blast applies on arrival rather than from a simulated projectile; headless tests do not prove visual quality or target-PC frame rate.

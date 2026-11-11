@@ -10,12 +10,13 @@ WORLDBREAK is a 3D physics and destruction sandbox in active prototyping. The lo
 - Three editable material profiles: Foundation Concrete, Masonry, and Lightweight Panel.
 - Radial impacts that break damaged cells and release sections that lose all support paths.
 - A resident chunked terrain patch under the whole arena whose surface blasts carve through bounded mesh and static-collision rebuild queues. The shipped worlds use a configurable 4x4 patch (64x64 units); a floor far below only catches debris.
-- Six movable physics props, bounded loose-debris lifetime/sleeping, reset-safe cleanup, a blast flash/shockwave look with dust bursts, a rocket that flies into settled runs, and a runtime HUD.
+- Nine movable physics props (crates, barrels, and cones), bounded loose-debris lifetime/sleeping, reset-safe cleanup, a blast flash/shockwave look with dust and debris chips, a player-fired rocket, and a runtime HUD.
 - Two reusable building-definition Resources: the classic 70-piece layout and a sparse 11-cell pillar-and-beam sample.
 - Versioned JSON simulation configurations that resolve building and material IDs through trusted catalogs, with transactional save/load and live application.
 - Two data-driven world presets (`Classic Yard`, `Sparse Quarry`) that reuse those building, material, configuration, terrain, and environment systems, with runtime load, unload, reset, and a one-resident-world bound.
 - A unified Simulation Control panel for world, scenario, and material selection; blast/gravity/time-scale controls; pause/resume/reset; settled-outcome runs; and a bounded 50-run experiment history with JSON/CSV export.
 - Three versioned experiment scenarios (`Foundation Strike`, `Terrain Crater`, `Sparse Beam Shear`) with repeatable setup, run comparison, and result metadata.
+- A procedural sky with filmic tonemapping and sky-based ambient light, plus a themed HUD, sectioned control panel, crosshair, and control hints.
 - Optional destruction/physics diagnostics overlay toggled with F3.
 
 The support graph is a deterministic topology approximation. The material profiles are tunable prototype values, not calibrated material data. There is no arbitrary mesh fracture. Terrain deformation is limited to the resident prototype patch described in `docs/TERRAIN_ARCHITECTURE.md`.
@@ -43,7 +44,7 @@ The support graph is a deterministic topology approximation. The material profil
 
 The in-game Simulation Control panel adjusts blast radius, damage, physical impulse, gravity, and time scale; selects world, scenario, and material presets; runs settled scenarios and resets them; pauses/resumes physics; and exports the bounded run history as JSON or CSV. Settled runs wait a bounded physics window and record broken/loose counts, awake/sleeping bodies, moved fragments, and settle frames. Material selection applies an existing catalog profile to the resident building through the Phase 2 override path; `default` restores the building definition's materials. Pause stops scene-tree physics without overwriting the experiment time scale. Movement and impact inputs are defined through Godot InputMap and can be remapped in Project Settings.
 
-The current prototype retains all 70 original structure nodes for reset. Released fragments use a 30-second default lifetime and a 70-awake-fragment budget; excess bodies are parked until an impact wakes them. Impact effects are capped at eight concurrent bursts, each with an emissive core, a ground shockwave ring, and six dust motes, with a 0.55-second lifetime.
+The current prototype retains all 70 original structure nodes for reset. Released fragments use a 30-second default lifetime and a 70-awake-fragment budget; excess bodies are parked until an impact wakes them. Impact effects are capped at eight concurrent bursts, each with an emissive core, a ground shockwave ring, and six dust motes, with a 0.55-second lifetime; the meshes and dust/chip materials are created once and reused across bursts. A player-fired rocket starts at the camera, flies to the aim point captured at fire time, and detonates on arrival, adding debris chips and a short camera shake. Blasts also carve the terrain under the hit point, so craters remain until the world is reset.
 
 ## Architecture
 - GDScript and Godot Physics 3D.

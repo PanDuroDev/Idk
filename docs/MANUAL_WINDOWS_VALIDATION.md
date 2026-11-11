@@ -119,7 +119,10 @@ Do not treat a single FPS reading as a benchmark. Record the resolution, graphic
 
 - Fire at the ground away from the structure and confirm the whole arena floor can be carved; the crater should persist until **Reset world**.
 - Fire near the structure and confirm the floor is carveable beneath it; loose debris may settle into the crater but must not fall through the world.
-- Confirm each impact shows a bright core flash, an expanding ground ring, and dust, and that repeated impacts do not keep stale effects alive.
+- Confirm each impact shows a bright core flash, an expanding ground ring, dust, and debris chips, and that repeated impacts do not keep stale effects alive.
+- Fire at the structure and confirm the floor under it is carved as well, not only the structure itself.
+- Confirm the rocket starts at the player/camera and travels in the aimed direction, and that the explosion, chips, and camera shake happen when it arrives.
+- Confirm the HUD and control panel use the dark theme, the crosshair hides outside first person, and the panel stays anchored top-right after resizing the window.
 - Run a settled scenario and confirm a rocket visibly flies into the impact point before the damage and settle window.
 - Use the panel Camera row and the **C** key to switch between first person, orbit, and overview. Confirm orbit rotates and overview shows the arena, and that switching back to first person restores movement/aiming.
 - Record any visual artifacts, camera clipping, or frame-rate drops seen with the new effects.
