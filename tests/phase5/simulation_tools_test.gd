@@ -148,7 +148,7 @@ func _run() -> void:
 	var impacts_before: int = int(main.get("_total_impacts"))
 	for _frame in range(120):
 		await physics_frame
-		if int(main.call("get_spawned_prop_count")) < props_before:
+		if int(main.call("get_spawned_prop_count")) < props_before and int(main.get("_total_impacts")) > impacts_before:
 			break
 	if int(main.call("get_spawned_prop_count")) >= props_before:
 		_fail("Thrown rocket did not detonate through a real physics collision")
