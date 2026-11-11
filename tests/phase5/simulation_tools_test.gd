@@ -138,6 +138,24 @@ func _run() -> void:
 		_fail("Run comparison did not report a repeatable broken count")
 		return
 
+	var settled: Dictionary = await main.call("run_scenario_settled", &"foundation_strike", 20)
+	if not settled["ok"]:
+		_fail("Settled foundation run failed: %s" % "\n".join(settled["errors"]))
+		return
+	var settled_run: Dictionary = settled["run"]
+	if not bool(settled_run.get("settled", false)) or int(settled_run.get("settle_frames", 0)) != 20:
+		_fail("Settled run did not record its bounded settle window")
+		return
+	if int(settled_run.get("broken", 0)) <= 0:
+		_fail("Settled run did not break structure fragments")
+		return
+	if int(settled_run.get("active_loose", -1)) < 0 or int(settled_run.get("sleeping_loose", -1)) < 0 or int(settled_run.get("moved_fragments", -1)) < 0:
+		_fail("Settled run did not capture post-impact physics state")
+		return
+	if int(main.call("get_experiment_history").get_run_count()) != 3:
+		_fail("Settled run was not recorded in history")
+		return
+
 	var terrain_result: Dictionary = main.call("run_scenario", &"terrain_crater")
 	if not terrain_result["ok"]:
 		_fail("Terrain scenario run failed: %s" % "\n".join(terrain_result["errors"]))
@@ -181,7 +199,7 @@ func _run() -> void:
 	if not (parsed is Dictionary) or String(parsed.get("format", "")) != "worldbreak.experiment-history":
 		_fail("JSON export did not contain the versioned history schema")
 		return
-	if (parsed.get("runs", []) as Array).size() != 3:
+	if (parsed.get("runs", []) as Array).size() != 4:
 		_fail("JSON export did not include every recorded run")
 		return
 
@@ -190,11 +208,11 @@ func _run() -> void:
 		_fail("CSV export failed: %s" % "\n".join(csv_result["errors"]))
 		return
 	var csv_lines: PackedStringArray = FileAccess.get_file_as_string(CSV_PATH).split("\n", false)
-	if csv_lines.size() != 4 or not String(csv_lines[0]).begins_with("run_index,scenario_id,world_id"):
+	if csv_lines.size() != 5 or not String(csv_lines[0]).begins_with("run_index,scenario_id,world_id"):
 		_fail("CSV export did not contain a header and one row per run")
 		return
-	if not String(csv_lines[0]).contains("impact") or not String(csv_lines[0]).contains("material_profile_ids") or not String(csv_lines[3]).contains("terrain_crater"):
-		_fail("CSV export is missing impact, material, or scenario fields")
+	if not String(csv_lines[0]).contains("impact") or not String(csv_lines[0]).contains("material_profile_ids") or not String(csv_lines[0]).contains("settle_frames") or not String(csv_lines[4]).contains("terrain_crater"):
+		_fail("CSV export is missing impact, material, settle, or scenario fields")
 		return
 
 	var bad_export: Dictionary = main.call("export_experiment_history", "user://phase5_runs.txt")
@@ -224,7 +242,7 @@ func _run() -> void:
 
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(JSON_PATH))
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(CSV_PATH))
-	print("WORLDBREAK_SIMULATION_TOOLS_OK: scenarios=3; run=passed; repeat=passed; comparison=passed; terrain=passed; reset=passed; export=passed; validation=passed")
+	print("WORLDBREAK_SIMULATION_TOOLS_OK: scenarios=3; run=passed; repeat=passed; settled=passed; comparison=passed; terrain=passed; reset=passed; export=passed; validation=passed")
 	quit(0)
 
 

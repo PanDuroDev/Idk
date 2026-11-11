@@ -96,7 +96,7 @@ Five dedicated implementation issues are open:
 - Phase 2: [#6 - Reusable structures and material authoring](https://github.com/PanDuroDev/Idk/issues/6) - merged via PRs #18, #19, and #20.
 - Phase 3: [#7 - Chunked terrain deformation](https://github.com/PanDuroDev/Idk/issues/7) - merged via PRs #10, #12, #13, #15, and #21.
 - Phase 4: [#8 - Multiple worlds](https://github.com/PanDuroDev/Idk/issues/8) - merged via [PR #22](https://github.com/PanDuroDev/Idk/pull/22) as `a61fe2e`.
-- Phase 5: [#9 - Simulation tools](https://github.com/PanDuroDev/Idk/issues/9) - implementation in [PR #23](https://github.com/PanDuroDev/Idk/pull/23) on `ai/phase-5/simulation-tools`; unified panel, scenarios, history/export, material selection, and pause/resume are implemented with a dedicated headless regression.
+- Phase 5: [#9 - Simulation tools](https://github.com/PanDuroDev/Idk/issues/9) - merged via [PR #23](https://github.com/PanDuroDev/Idk/pull/23) as `94c71b4`; settled-outcome runs are added on `ai/phase-5/settled-experiments`.
 
 Each issue contains its own AI prompt, PR breakdown, acceptance criteria, and common engineering rules. Agents may implement and open PRs proactively without asking between ordinary subtasks, but they must not merge. One integration maintainer reviews and merges PRs in dependency order. See [AI_PHASE_ASSIGNMENTS.md](AI_PHASE_ASSIGNMENTS.md).
 
@@ -124,9 +124,10 @@ Each issue contains its own AI prompt, PR breakdown, acceptance criteria, and co
 - The Simulation Control panel reuses Phase 1 impact controls, Phase 2 material/configuration APIs, and Phase 4 world presets. It adds world/scenario/material selection, gravity/time-scale controls, pause/resume, run/reset, and JSON/CSV export.
 - `ExperimentScenario` (schema version 1), `ScenarioCatalog`, and three samples (`foundation_strike`, `terrain_crater`, `sparse_beam_shear`) provide repeatable setup through the existing world/structure/terrain paths.
 - `ExperimentHistory` keeps a bounded 50-run history, compares the latest two runs, records impact/world/building/material metadata, and exports versioned JSON or CSV through a temporary-file verify/rename path.
+- `run_scenario_settled` repeats a scenario and waits a bounded physics window (default 120 frames, clamped 1-600) before recording final broken/released counts, awake and sleeping loose bodies, moved fragments, and settle frames. The synchronous `run_scenario` remains for cheap compatibility checks. The reset setup is deterministic; observed post-impact physics is not promised to be bit-identical across runs or platforms.
 - Material selection applies an existing catalog profile through the Phase 2 per-cell override path; `default` restores the building definition's materials. Pause uses `SceneTree.paused` while the UI canvas remains processable, without overwriting `Engine.time_scale`.
-- `tests/phase5/simulation_tools_test.gd` reports `WORLDBREAK_SIMULATION_TOOLS_OK`. The local Windows full regression passed (smoke, configuration persistence, all terrain markers, world loading, and simulation tools); Linux + Windows CI is pending on [PR #23](https://github.com/PanDuroDev/Idk/pull/23).
-- Limitations: scenarios provide deterministic setup, not bit-identical cross-platform physics; material selection is catalog-preset based, not a free-form material editor; headless tests do not prove interactive button ergonomics, visual quality, or target-PC frame rate.
+- `tests/phase5/simulation_tools_test.gd` reports `WORLDBREAK_SIMULATION_TOOLS_OK`. Local Windows validation passed the full regression (smoke, configuration persistence, all terrain markers, world loading, and simulation tools). [PR #23](https://github.com/PanDuroDev/Idk/pull/23) merged as `94c71b4` after Linux + Windows CI passed; the settled-run follow-up passed the local marker, with CI pending on its PR.
+- Limitations: scenarios provide deterministic setup, not bit-identical cross-platform physics; settled counts and timing are observational; material selection is catalog-preset based, not a free-form material editor; headless tests do not prove interactive button ergonomics, visual quality, or target-PC frame rate.
 
 ## Required update protocol
 

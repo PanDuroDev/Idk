@@ -113,6 +113,8 @@ Pause/resume sets `SceneTree.paused` while the UI canvas uses `PROCESS_MODE_ALWA
 
 `ExperimentHistory` is bounded to 50 runs, renumbers indexes on overflow, compares the latest two runs, and records impact/world/building/material metadata plus elapsed microseconds and an FPS sample. JSON/CSV exports write a temporary file, re-read it, and replace the destination only after verification. Scenarios provide deterministic setup, not bit-identical cross-platform physics; elapsed time and FPS samples are observational fields. Headless tests verify state/export logic, not interactive panel ergonomics or target-PC performance.
 
+Settled runs wait a bounded number of physics frames (default 120, clamped 1-600) after the impact and then record final broken/released counts, awake and sleeping loose bodies, moved fragments, and the settle window. This measures the post-impact outcome instead of only the instant damage result, while keeping the reset setup deterministic and the work bounded.
+
 ## Research references
 - Godot 4.7 RigidBody3D: https://docs.godotengine.org/en/4.7/classes/class_rigidbody3d.html
 - Godot 4.7 Joint3D: https://docs.godotengine.org/en/4.7/classes/class_joint3d.html
