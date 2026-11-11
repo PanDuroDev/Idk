@@ -49,5 +49,6 @@
 - [x] Add repeatable experiments and resettable scenarios with bounded run history, comparison, and JSON/CSV export ([PR #23](https://github.com/PanDuroDev/Idk/pull/23), merged as `94c71b4`).
 - [x] Add bounded settled-outcome runs that record post-impact physics metrics (`run_scenario_settled`, [PR #24](https://github.com/PanDuroDev/Idk/pull/24) merged as `09c5602`).
 - [x] Improve presentation: blast core flash and ground shockwave, a rocket that flies into settled runs, first-person/orbit/overview camera modes, and a centered radius-configurable terrain patch that makes the whole arena ground carveable ([PR #26](https://github.com/PanDuroDev/Idk/pull/26)).
+- [x] Add a realism and interface pass: player-fired rocket with arrival timing, crater carving beneath every blast, debris chips and camera shake, procedural sky and lighting, varied props, and a themed HUD/control panel ([PR #27](https://github.com/PanDuroDev/Idk/pull/27)).
 - [ ] Profile before considering native extensions.
 - [ ] Complete manual Windows panel/export/comparison validation and record target-PC telemetry.
