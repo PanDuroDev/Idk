@@ -743,5 +743,6 @@ This is an append-only engineering journal. Each substantial session is recorded
 - Extended the Phase 5 test to assert the design tokens, panel geometry, shared theme, button states, primary action, key hints, and scroll support.
 
 ### After work
-- Implementation and CI validation pending; the PR must pass Godot import/launch and full Linux + Windows regression before it is considered ready.
+- GitHub Actions [#43041887242](https://github.com/PanDuroDev/Idk/actions/runs/43041887242) passed on both Linux and Windows at head a271ab699f5f926ff3cc0d83b8c8ced9ae71b051. Import, headless launch, smoke, configuration persistence, terrain, world loading, and Phase 5 simulation/UI regressions all passed.
+- The new UI assertions passed: near-black shared panel theme, rounded panel corners and visible borders, five button interaction states, shared theme usage across panels, white primary action, key-hint strip, and vertical scrolling.
 - Manual visual inspection at 1280x720 and shorter window heights is still required; headless assertions cannot judge the final visual composition.
