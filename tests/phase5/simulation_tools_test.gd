@@ -89,6 +89,52 @@ func _run() -> void:
 	if hud_panel == null or simulation_panel == null or hud_panel.theme == null or simulation_panel.theme == null:
 		_fail("Themed HUD or simulation panel is missing")
 		return
+	var ui_theme: Theme = main.get("_ui_theme") as Theme
+	if ui_theme == null or hud_panel.theme != ui_theme or simulation_panel.theme != ui_theme:
+		_fail("HUD and simulation controls must share the central UI theme")
+		return
+	var panel_style: StyleBoxFlat = ui_theme.get_stylebox("panel", "PanelContainer") as StyleBoxFlat
+	if panel_style == null or panel_style.corner_radius_top_left < 12 or panel_style.border_width_left < 1:
+		_fail("Monochrome panels must use rounded corners and a visible border")
+		return
+	if panel_style.bg_color.r > 0.1 or panel_style.bg_color.g > 0.1 or panel_style.bg_color.b > 0.1:
+		_fail("Panel surface is not using the near-black monochrome palette")
+		return
+	var button_normal: StyleBoxFlat = ui_theme.get_stylebox("normal", "Button") as StyleBoxFlat
+	var button_hover: StyleBoxFlat = ui_theme.get_stylebox("hover", "Button") as StyleBoxFlat
+	var button_pressed: StyleBoxFlat = ui_theme.get_stylebox("pressed", "Button") as StyleBoxFlat
+	var button_focus: StyleBoxFlat = ui_theme.get_stylebox("focus", "Button") as StyleBoxFlat
+	var button_disabled: StyleBoxFlat = ui_theme.get_stylebox("disabled", "Button") as StyleBoxFlat
+	if button_normal == null or button_hover == null or button_pressed == null or button_focus == null or button_disabled == null:
+		_fail("Buttons are missing one or more interaction states")
+		return
+	if button_normal.corner_radius_top_left < 7 or button_hover.border_color.r < 0.8:
+		_fail("Button interaction styles do not match the rounded monochrome system")
+		return
+	var spawn_menu: PanelContainer = main.get("_spawn_menu") as PanelContainer
+	if spawn_menu == null or spawn_menu.theme != ui_theme:
+		_fail("Spawn menu is not using the shared monochrome theme")
+		return
+	var debug_panel: PanelContainer = main.get("_debug_overlay_panel") as PanelContainer
+	if debug_panel == null or debug_panel.theme != ui_theme:
+		_fail("Debug overlay is not using the shared monochrome theme")
+		return
+	var control_scroll: ScrollContainer = simulation_panel.find_child("ControlScroll", true, false) as ScrollContainer
+	if control_scroll == null or control_scroll.vertical_scroll_mode != ScrollContainer.SCROLL_MODE_AUTO:
+		_fail("Simulation controls must remain reachable through vertical scrolling")
+		return
+	var key_hints: PanelContainer = ui_canvas.get_node_or_null("ControlHints") as PanelContainer
+	if key_hints == null or key_hints.theme != ui_theme:
+		_fail("HUD control hints are missing their shared bordered panel")
+		return
+	var primary_button: Button = simulation_panel.find_child("RunScenarioButton", true, false) as Button
+	if primary_button == null:
+		_fail("Primary scenario action is missing")
+		return
+	var primary_style: StyleBoxFlat = primary_button.get_theme_stylebox("normal") as StyleBoxFlat
+	if primary_style == null or primary_style.bg_color.r < 0.8:
+		_fail("Primary scenario action does not have the inverted white-button hierarchy")
+		return
 
 	var spawn_items: Array = main.call("get_spawn_items")
 	if spawn_items.size() < 4:
