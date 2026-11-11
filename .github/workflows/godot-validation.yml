@@ -10,6 +10,7 @@ on:
       - main
       - 'ai/phase-3/**'
       - 'ai/phase-4/**'
+      - 'ai/phase-5/**'
   pull_request:
     branches:
       - '**'
@@ -199,6 +200,23 @@ jobs:
           fi
           if grep -Eq 'SCRIPT ERROR:|(^|[[:space:]])ERROR:|Parse Error:|Failed to load script' godot-world-loading.log; then
             cat godot-world-loading.log
+            exit 1
+          fi
+
+      - name: Run simulation tools test
+        run: |
+          set +e
+          ./Godot_v4.7.2-stable_linux.x86_64 --headless --path . --script res://tests/phase5/simulation_tools_test.gd --log-file godot-simulation-tools.log > godot-simulation-tools-console.log 2>&1
+          test_status=$?
+          set -e
+          cat godot-simulation-tools-console.log
+          if [ -f godot-simulation-tools.log ]; then cat godot-simulation-tools.log; fi
+          if [ "$test_status" -ne 0 ]; then exit "$test_status"; fi
+          if ! grep -q 'WORLDBREAK_SIMULATION_TOOLS_OK' godot-simulation-tools-console.log && ! grep -q 'WORLDBREAK_SIMULATION_TOOLS_OK' godot-simulation-tools.log; then
+            echo "Simulation tools test did not report its success marker."
+            exit 1
+          fi
+          if grep -Eq 'SCRIPT ERROR:|(^|[[:space:]])ERROR:|Parse Error:|Failed to load script|WORLDBREAK_SIMULATION_TOOLS_FAILED' godot-simulation-tools-console.log godot-simulation-tools.log; then
             exit 1
           fi
 
@@ -418,5 +436,23 @@ jobs:
           if ($worldLog -match "SCRIPT ERROR:|(^|\\s)ERROR:|Parse Error:|Failed to load script") {
             Write-Output $worldLog
             throw "World loading test reported errors."
+          }
+
+      - name: Run simulation tools test
+        shell: pwsh
+        run: |
+          $godot = ".\godot\Godot_v4.7.2-stable_win64.exe"
+          $engineOutput = & $godot --headless --path . --script res://tests/phase5/simulation_tools_test.gd --log-file godot-simulation-tools.log 2>&1
+          $testExitCode = $LASTEXITCODE
+          $consoleLog = ($engineOutput | Out-String)
+          $engineLog = if (Test-Path "godot-simulation-tools.log") { Get-Content "godot-simulation-tools.log" -Raw } else { "" }
+          $combinedLog = $consoleLog + [Environment]::NewLine + $engineLog
+          Write-Output $combinedLog
+          if ($testExitCode -ne 0) { exit $testExitCode }
+          if ($combinedLog -notmatch "WORLDBREAK_SIMULATION_TOOLS_OK") {
+            throw "Simulation tools test did not report its success marker."
+          }
+          if ($combinedLog -match "SCRIPT ERROR:|(^|\s)ERROR:|Parse Error:|Failed to load script|WORLDBREAK_SIMULATION_TOOLS_FAILED") {
+            throw "Simulation tools test reported script or engine errors."
           }
 

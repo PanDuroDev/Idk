@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ExperimentScenario" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/experiment_scenario.gd" id="1_scenario"]
+
+[resource]
+script = ExtResource("1_scenario")
+schema_version = 1
+scenario_id = &"sparse_beam_shear"
+display_name = "Sparse Beam Shear"
+world_id = &"sparse_quarry"
+target_kind = &"structure"
+impact_offset = Vector3(0, 2, 0.52)
+blast_radius = 6.0
+blast_damage = 6.5
+blast_impulse = 30.0
+blast_upward_bias = 0.45
+gravity = 12.5
+time_scale = 0.85

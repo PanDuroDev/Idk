@@ -8,9 +8,14 @@ const BUILDING_DEFINITION_CATALOG = preload("res://resources/buildings/building_
 const MATERIAL_PROFILE_CATALOG = preload("res://resources/materials/material_profile_catalog.tres")
 const SIMULATION_CONFIGURATION_CODEC = preload("res://scripts/simulation_configuration_codec.gd")
 const SimulationConfigurationScript = preload("res://scripts/simulation_configuration.gd")
+const SimulationMaterialOverrideScript = preload("res://scripts/simulation_material_override.gd")
 const WORLD_CATALOG = preload("res://resources/worlds/world_catalog.tres")
 const WORLD_DEFINITION_VALIDATOR = preload("res://scripts/world_definition_validator.gd")
 const WorldDefinitionScript = preload("res://scripts/world_definition.gd")
+const SCENARIO_CATALOG = preload("res://resources/scenarios/scenario_catalog.tres")
+const SCENARIO_CATALOG_SCRIPT = preload("res://scripts/scenario_catalog.gd")
+const EXPERIMENT_HISTORY_SCRIPT = preload("res://scripts/experiment_history.gd")
+const ExperimentScenarioScript = preload("res://scripts/experiment_scenario.gd")
 
 const BLAST_DISTANCE: float = 70.0
 const MAX_PENDING_BLASTS: int = 4
@@ -55,6 +60,16 @@ var _sun: DirectionalLight3D
 var _active_world_definition: WorldDefinitionScript
 var _world_load_count: int = 0
 var _world_unload_count: int = 0
+var _experiment_history = EXPERIMENT_HISTORY_SCRIPT.new()
+var _active_scenario: ExperimentScenarioScript
+var _scenario_option: OptionButton
+var _world_option: OptionButton
+var _simulation_status_label: Label
+var _gravity_value_label: Label
+var _time_scale_value_label: Label
+var _material_option: OptionButton
+var _pause_button: Button
+var _material_override_id: StringName = &""
 
 const DEFAULT_BLAST_RADIUS: float = 4.5
 const DEFAULT_BLAST_DAMAGE: float = 4.0
@@ -74,7 +89,7 @@ func _ready() -> void:
 	_player.blast_requested.connect(request_blast)
 
 	_build_hud()
-	_build_impact_controls()
+	_build_simulation_panel()
 	_build_debug_overlay()
 	var load_errors: Array[String] = load_world(DEFAULT_WORLD_ID)
 	if not load_errors.is_empty():
@@ -82,6 +97,10 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_P:
+		toggle_simulation_paused()
+		get_viewport().set_input_as_handled()
+		return
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F3:
 		toggle_debug_overlay()
 		get_viewport().set_input_as_handled()
@@ -215,6 +234,7 @@ func load_world(world_id: StringName) -> Array[String]:
 	_active_world_definition = world
 	_reset_player_to_spawn(world.player_spawn)
 	_world_load_count += 1
+	_refresh_simulation_controls()
 	return errors
 
 
@@ -224,6 +244,7 @@ func unload_world() -> void:
 	_apply_environment_defaults()
 	_active_world_definition = null
 	_active_simulation_configuration = null
+	_material_override_id = &""
 	Engine.time_scale = 1.0
 	set_simulation_gravity(DEFAULT_GRAVITY)
 	_reset_player_to_spawn(Vector3(0.0, 0.1, 6.0))
@@ -232,6 +253,198 @@ func unload_world() -> void:
 	_last_broken_count = 0
 	_last_affected_count = 0
 	_world_unload_count += 1
+	_refresh_simulation_controls()
+
+
+func get_scenario_catalog() -> ScenarioCatalog:
+	return SCENARIO_CATALOG
+
+
+func get_scenario_ids() -> Array[StringName]:
+	return SCENARIO_CATALOG.get_scenario_ids()
+
+
+func get_active_scenario() -> ExperimentScenarioScript:
+	return _active_scenario
+
+
+func get_experiment_history() -> ExperimentHistory:
+	return _experiment_history
+
+
+func get_last_run() -> Dictionary:
+	return _experiment_history.get_last_run()
+
+
+func get_run_comparison() -> Dictionary:
+	return _experiment_history.get_comparison()
+
+
+func get_simulation_time_scale() -> float:
+	return Engine.time_scale
+
+
+func load_scenario(scenario_id: StringName) -> Array[String]:
+	var errors: Array[String] = []
+	var scenario: ExperimentScenarioScript = SCENARIO_CATALOG.get_scenario_by_id(scenario_id)
+	if scenario == null:
+		errors.append("Unknown scenario ID '%s'." % String(scenario_id))
+		return errors
+	errors.assign(SCENARIO_CATALOG_SCRIPT.validate_definition(scenario, WORLD_CATALOG))
+	if not errors.is_empty():
+		return errors
+
+	var world_errors: Array[String] = load_world(scenario.world_id)
+	if not world_errors.is_empty():
+		errors.assign(world_errors)
+		return errors
+
+	blast_radius = scenario.blast_radius
+	blast_damage = scenario.blast_damage
+	blast_impulse = scenario.blast_impulse
+	blast_upward_bias = scenario.blast_upward_bias
+	set_simulation_gravity(scenario.gravity)
+	Engine.time_scale = clampf(scenario.time_scale, 0.05, 10.0)
+	_active_scenario = scenario
+	_refresh_impact_controls()
+	_refresh_simulation_controls()
+	return errors
+
+
+func run_scenario(scenario_id: StringName) -> Dictionary:
+	var errors: Array[String] = load_scenario(scenario_id)
+	if not errors.is_empty():
+		_set_status("SCENARIO FAILED\n" + "\n".join(errors))
+		return {"ok": false, "errors": errors, "run": {}}
+	set_simulation_paused(false)
+	var scenario: ExperimentScenarioScript = _active_scenario
+	var target: Node3D = _structure if scenario.target_kind == &"structure" else _terrain
+	if not is_instance_valid(target):
+		var missing: Array[String] = ["Scenario target '%s' is not resident." % String(scenario.target_kind)]
+		_set_status("SCENARIO FAILED\n" + "\n".join(missing))
+		return {"ok": false, "errors": missing, "run": {}}
+
+	# Reset through the existing sync paths so the run starts from the same state.
+	if is_instance_valid(_structure):
+		_structure.call("reset_structure")
+	if is_instance_valid(_terrain):
+		_terrain.call("reset_terrain")
+	_reset_player_to_spawn(_get_active_spawn())
+	_reset_requested = false
+	_pending_blasts.clear()
+	_last_broken_count = 0
+	_last_affected_count = 0
+
+	var impact: Vector3 = target.global_position + scenario.impact_offset
+	var started_usec: int = Time.get_ticks_usec()
+	var broken: int = 0
+	var released: int = 0
+	var terrain_edits: int = 0
+	if scenario.target_kind == &"structure":
+		broken = int(_structure.call("apply_blast_damage", impact, scenario.blast_radius, scenario.blast_damage))
+		released = int(_structure.call("get_released_fragment_count"))
+	else:
+		_terrain.call("carve_sphere", impact, scenario.blast_radius, scenario.blast_damage)
+		terrain_edits = int(_terrain.call("get_terrain_edit_count"))
+	var elapsed_usec: int = Time.get_ticks_usec() - started_usec
+
+	_blast_service.call(
+		"apply_radial_impulse",
+		get_world_3d().direct_space_state,
+		impact,
+		scenario.blast_radius,
+		scenario.blast_impulse,
+		scenario.blast_upward_bias
+	)
+	_total_impacts += 1
+	_spawn_blast_flash(impact)
+
+	var building_id: StringName = &""
+	var material_ids: Array[String] = []
+	if is_instance_valid(_structure):
+		building_id = _structure.call("get_building_definition_id")
+		var definition = _structure.call("get_building_definition")
+		if definition != null:
+			for cell in definition.cells:
+				var material_id: String = String(_structure.call("get_cell_material_id", cell.coordinate))
+				if not material_id.is_empty() and not material_ids.has(material_id):
+					material_ids.append(material_id)
+	var run: Dictionary = _experiment_history.add_run({
+		"scenario_id": String(scenario.scenario_id),
+		"world_id": String(scenario.world_id),
+		"target_kind": String(scenario.target_kind),
+		"building_definition_id": String(building_id),
+		"material_override_id": String(_material_override_id),
+		"material_profile_ids": material_ids,
+		"impact": {
+			"position": [impact.x, impact.y, impact.z],
+			"radius": scenario.blast_radius,
+			"damage": scenario.blast_damage,
+			"impulse": scenario.blast_impulse,
+			"upward_bias": scenario.blast_upward_bias
+		},
+		"gravity": _simulation_gravity,
+		"time_scale": Engine.time_scale,
+		"broken": broken,
+		"released": released,
+		"terrain_edits": terrain_edits,
+		"elapsed_usec": elapsed_usec,
+		"fps_sample": Engine.get_frames_per_second()
+	})
+	_last_broken_count = broken
+	_last_affected_count = released
+	_set_status(_format_run_summary(run))
+	_refresh_simulation_controls()
+	return {"ok": true, "errors": errors, "run": run}
+
+
+func reset_simulation() -> void:
+	set_simulation_paused(false)
+	request_world_reset()
+
+
+func export_experiment_history(path: String) -> Dictionary:
+	var lower_path: String = path.to_lower()
+	if lower_path.ends_with(".json"):
+		return _experiment_history.save_json(path)
+	if lower_path.ends_with(".csv"):
+		return _experiment_history.save_csv(path)
+	return {"ok": false, "errors": ["Experiment exports must use the .json or .csv extension."]}
+
+
+func adjust_simulation_setting(setting: StringName, amount: float) -> void:
+	match setting:
+		&"gravity":
+			set_simulation_gravity(_simulation_gravity + amount)
+		&"time_scale":
+			Engine.time_scale = clampf(Engine.time_scale + amount, 0.05, 10.0)
+		_:
+			return
+	_refresh_simulation_controls()
+
+
+func _format_run_summary(run: Dictionary) -> String:
+	var comparison: Dictionary = _experiment_history.get_comparison()
+	var summary: String = "RUN %d  %s\nbroken %d | loose %d | terrain %d | %.2f ms" % [
+		int(run.get("run_index", 0)),
+		String(run.get("scenario_id", "")),
+		int(run.get("broken", 0)),
+		int(run.get("released", 0)),
+		int(run.get("terrain_edits", 0)),
+		float(run.get("elapsed_usec", 0)) / 1000.0
+	]
+	if comparison["has_comparison"]:
+		summary += "\nvs run %d: broken %+d | time %+d us" % [
+			int(comparison["previous_run_index"]),
+			int(comparison["broken_delta"]),
+			int(comparison["elapsed_usec_delta"])
+		]
+	return summary
+
+
+func _set_status(text: String) -> void:
+	if is_instance_valid(_simulation_status_label):
+		_simulation_status_label.text = text
 
 
 func apply_simulation_configuration(configuration: SimulationConfigurationScript) -> Array[String]:
@@ -277,10 +490,12 @@ func apply_simulation_configuration(configuration: SimulationConfigurationScript
 	set_simulation_gravity(configuration.gravity)
 	Engine.time_scale = configuration.time_scale
 	_active_simulation_configuration = configuration
+	_material_override_id = &""
 	_reset_requested = false
 	_last_broken_count = 0
 	_last_affected_count = 0
 	_refresh_impact_controls()
+	_refresh_simulation_controls()
 	return errors
 
 
@@ -295,6 +510,66 @@ func set_simulation_gravity(value: float) -> void:
 
 func get_simulation_gravity() -> float:
 	return _simulation_gravity
+
+
+func set_simulation_paused(paused: bool) -> void:
+	get_tree().paused = paused
+	_refresh_simulation_controls()
+
+
+func is_simulation_paused() -> bool:
+	return get_tree().paused
+
+
+func toggle_simulation_paused() -> void:
+	set_simulation_paused(not is_simulation_paused())
+
+
+func get_material_profile_ids() -> Array[StringName]:
+	var ids: Array[StringName] = []
+	for profile in MATERIAL_PROFILE_CATALOG.profiles:
+		if profile != null:
+			ids.append(profile.material_id)
+	return ids
+
+
+func get_active_material_override_id() -> StringName:
+	return _material_override_id
+
+
+func select_material_profile(material_id: StringName) -> Array[String]:
+	var errors: Array[String] = []
+	if not is_instance_valid(_structure):
+		errors.append("No resident structure to apply a material profile.")
+		return errors
+	var definition = _structure.call("get_building_definition")
+	if definition == null:
+		errors.append("Active structure has no building definition.")
+		return errors
+	var overrides: Dictionary = {}
+	var configuration_overrides: Array[SimulationMaterialOverrideScript] = []
+	if material_id != &"":
+		var profile = MATERIAL_PROFILE_CATALOG.get_profile_by_id(material_id)
+		if profile == null:
+			errors.append("Unknown material profile ID '%s'." % String(material_id))
+			return errors
+		for cell in definition.cells:
+			overrides[cell.coordinate] = profile
+			var configuration_override := SimulationMaterialOverrideScript.new()
+			configuration_override.cell = cell.coordinate
+			configuration_override.material_id = material_id
+			configuration_overrides.append(configuration_override)
+	var rebuild_errors: Array = _structure.call("configure_definition", definition, overrides)
+	if not rebuild_errors.is_empty():
+		errors.assign(rebuild_errors)
+		return errors
+	_material_override_id = material_id
+	if _active_simulation_configuration != null:
+		var updated: SimulationConfigurationScript = _active_simulation_configuration.duplicate(true) as SimulationConfigurationScript
+		updated.material_overrides = configuration_overrides
+		_active_simulation_configuration = updated
+	_refresh_simulation_controls()
+	return errors
 
 
 func save_simulation_configuration(path: String) -> Dictionary:
@@ -619,6 +894,7 @@ func _refresh_debug_overlay() -> void:
 
 func _build_hud() -> void:
 	_ui_canvas = CanvasLayer.new()
+	_ui_canvas.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(_ui_canvas)
 
 	_hud_label = Label.new()
@@ -649,9 +925,9 @@ func reset_impact_settings() -> void:
 	_refresh_impact_controls()
 
 
-func _build_impact_controls() -> void:
+func _build_simulation_panel() -> void:
 	var panel := PanelContainer.new()
-	panel.name = "ImpactControls"
+	panel.name = "SimulationPanel"
 	panel.position = Vector2(910.0, 54.0)
 	panel.custom_minimum_size = Vector2(350.0, 0.0)
 	_ui_canvas.add_child(panel)
@@ -661,20 +937,198 @@ func _build_impact_controls() -> void:
 	panel.add_child(layout)
 
 	var heading := Label.new()
-	heading.text = "IMPACT SETTINGS"
+	heading.text = "SIMULATION CONTROL"
 	heading.add_theme_font_size_override("font_size", 14)
 	layout.add_child(heading)
+
+	_world_option = _add_option_row(layout, "World", WORLD_CATALOG.get_world_ids(), _on_world_selected)
+	_scenario_option = _add_option_row(layout, "Scenario", SCENARIO_CATALOG.get_scenario_ids(), _on_scenario_selected)
+	var material_ids: Array[StringName] = [&"default"]
+	material_ids.append_array(get_material_profile_ids())
+	_material_option = _add_option_row(layout, "Material", material_ids, _on_material_selected)
 
 	_add_impact_control_row(layout, "Blast radius", &"blast_radius", 0.25)
 	_add_impact_control_row(layout, "Damage", &"blast_damage", 0.25)
 	_add_impact_control_row(layout, "Physical impulse", &"blast_impulse", 1.0)
+	_gravity_value_label = _add_setting_control_row(layout, "Gravity", &"gravity", 0.5)
+	_time_scale_value_label = _add_setting_control_row(layout, "Time scale", &"time_scale", 0.05)
+
+	var action_row := HBoxContainer.new()
+	layout.add_child(action_row)
+
+	var run_button := Button.new()
+	run_button.text = "Run scenario"
+	run_button.tooltip_text = "Reset the world and apply the selected scenario at its fixed anchor"
+	run_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	run_button.pressed.connect(_run_selected_scenario)
+	action_row.add_child(run_button)
+
+	_pause_button = Button.new()
+	_pause_button.text = "Pause"
+	_pause_button.tooltip_text = "Pause or resume physics without changing the experiment time scale (P)"
+	_pause_button.pressed.connect(toggle_simulation_paused)
+	action_row.add_child(_pause_button)
 
 	var reset_button := Button.new()
-	reset_button.text = "Reset impact defaults"
-	reset_button.tooltip_text = "Restore radius 4.5, damage 4.0, and impulse 22.0"
-	reset_button.pressed.connect(reset_impact_settings)
-	layout.add_child(reset_button)
+	reset_button.text = "Reset world"
+	reset_button.pressed.connect(reset_simulation)
+	action_row.add_child(reset_button)
+
+	var export_row := HBoxContainer.new()
+	layout.add_child(export_row)
+
+	var json_button := Button.new()
+	json_button.text = "Export JSON"
+	json_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	json_button.pressed.connect(_export_history.bind("user://experiment_runs.json"))
+	export_row.add_child(json_button)
+
+	var csv_button := Button.new()
+	csv_button.text = "Export CSV"
+	csv_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	csv_button.pressed.connect(_export_history.bind("user://experiment_runs.csv"))
+	export_row.add_child(csv_button)
+
+	_simulation_status_label = Label.new()
+	_simulation_status_label.custom_minimum_size = Vector2(0.0, 52.0)
+	_simulation_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_simulation_status_label.add_theme_font_size_override("font_size", 12)
+	_simulation_status_label.add_theme_color_override("font_color", Color(0.78, 0.88, 0.78))
+	_simulation_status_label.text = "Select a world and scenario."
+	layout.add_child(_simulation_status_label)
+
 	_refresh_impact_controls()
+	_refresh_simulation_controls()
+
+
+func _add_option_row(
+	parent: VBoxContainer,
+	title: String,
+	ids: Array[StringName],
+	callback: Callable
+) -> OptionButton:
+	var row := HBoxContainer.new()
+	parent.add_child(row)
+
+	var name_label := Label.new()
+	name_label.text = title
+	name_label.custom_minimum_size.x = 142.0
+	row.add_child(name_label)
+
+	var option := OptionButton.new()
+	option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	for index in range(ids.size()):
+		option.add_item(String(ids[index]))
+		option.set_item_metadata(index, ids[index])
+	option.item_selected.connect(callback)
+	row.add_child(option)
+	return option
+
+
+func _add_setting_control_row(
+	parent: VBoxContainer,
+	title: String,
+	setting: StringName,
+	step: float
+) -> Label:
+	var row := HBoxContainer.new()
+	parent.add_child(row)
+
+	var name_label := Label.new()
+	name_label.text = title
+	name_label.custom_minimum_size.x = 142.0
+	row.add_child(name_label)
+
+	var decrease_button := Button.new()
+	decrease_button.text = "−"
+	decrease_button.custom_minimum_size.x = 34.0
+	decrease_button.pressed.connect(adjust_simulation_setting.bind(setting, -step))
+	row.add_child(decrease_button)
+
+	var value_label := Label.new()
+	value_label.custom_minimum_size.x = 62.0
+	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	row.add_child(value_label)
+
+	var increase_button := Button.new()
+	increase_button.text = "+"
+	increase_button.custom_minimum_size.x = 34.0
+	increase_button.pressed.connect(adjust_simulation_setting.bind(setting, step))
+	row.add_child(increase_button)
+	return value_label
+
+
+func _on_world_selected(index: int) -> void:
+	var world_id: StringName = _world_option.get_item_metadata(index)
+	var errors: Array[String] = load_world(world_id)
+	if errors.is_empty():
+		_set_status("World loaded: %s" % String(world_id))
+	else:
+		_set_status("WORLD FAILED\n" + "\n".join(errors))
+	_refresh_simulation_controls()
+
+
+func _on_scenario_selected(index: int) -> void:
+	var scenario_id: StringName = _scenario_option.get_item_metadata(index)
+	var errors: Array[String] = load_scenario(scenario_id)
+	if errors.is_empty():
+		_set_status("Scenario ready: %s\nPress Run scenario." % String(scenario_id))
+	else:
+		_set_status("SCENARIO FAILED\n" + "\n".join(errors))
+
+
+func _on_material_selected(index: int) -> void:
+	var material_id: StringName = _material_option.get_item_metadata(index)
+	var errors: Array[String] = select_material_profile(&"" if material_id == &"default" else material_id)
+	if errors.is_empty():
+		_set_status("Material applied: %s" % String(material_id))
+	else:
+		_set_status("MATERIAL FAILED\n" + "\n".join(errors))
+	_refresh_simulation_controls()
+
+
+func _run_selected_scenario() -> void:
+	if not is_instance_valid(_scenario_option) or _scenario_option.selected < 0:
+		return
+	run_scenario(_scenario_option.get_item_metadata(_scenario_option.selected))
+
+
+func _export_history(path: String) -> void:
+	var result: Dictionary = export_experiment_history(path)
+	if result["ok"]:
+		_set_status("Exported %d runs to %s" % [_experiment_history.get_run_count(), path])
+	else:
+		_set_status("EXPORT FAILED\n" + "\n".join(result["errors"]))
+
+
+func _refresh_simulation_controls() -> void:
+	if is_instance_valid(_gravity_value_label):
+		_gravity_value_label.text = "%.1f" % _simulation_gravity
+	if is_instance_valid(_time_scale_value_label):
+		_time_scale_value_label.text = "%.2f" % Engine.time_scale
+	if is_instance_valid(_pause_button):
+		_pause_button.text = "Resume" if is_simulation_paused() else "Pause"
+	_select_option(
+		_world_option,
+		_active_world_definition.world_id if _active_world_definition != null else &""
+	)
+	_select_option(
+		_scenario_option,
+		_active_scenario.scenario_id if _active_scenario != null else &""
+	)
+	_select_option(
+		_material_option,
+		_material_override_id if _material_override_id != &"" else &"default"
+	)
+
+
+func _select_option(option: OptionButton, option_id: StringName) -> void:
+	if not is_instance_valid(option):
+		return
+	for index in range(option.item_count):
+		if option.get_item_metadata(index) == option_id:
+			option.select(index)
+			return
 
 
 func _add_impact_control_row(parent: VBoxContainer, title: String, setting: StringName, step: float) -> void:

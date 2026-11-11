@@ -1,0 +1,233 @@
+extends SceneTree
+
+const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
+const SCENARIO_CATALOG: Resource = preload("res://resources/scenarios/scenario_catalog.tres")
+const SCENARIO_CATALOG_SCRIPT = preload("res://scripts/scenario_catalog.gd")
+const ExperimentScenarioScript = preload("res://scripts/experiment_scenario.gd")
+const JSON_PATH: String = "user://phase5_runs.json"
+const CSV_PATH: String = "user://phase5_runs.csv"
+
+
+func _initialize() -> void:
+	call_deferred("_run")
+
+
+func _run() -> void:
+	var world_catalog: Resource = load("res://resources/worlds/world_catalog.tres")
+	var catalog_errors: Array[String] = SCENARIO_CATALOG.validate_catalog(world_catalog)
+	if not catalog_errors.is_empty():
+		_fail("Scenario catalog is invalid: %s" % "\n".join(catalog_errors))
+		return
+	if SCENARIO_CATALOG.scenarios.size() != 3 or SCENARIO_CATALOG.get_scenario_ids().size() != 3:
+		_fail("Expected three sample scenarios")
+		return
+
+	var invalid := ExperimentScenarioScript.new()
+	invalid.scenario_id = &""
+	invalid.display_name = ""
+	invalid.world_id = &"missing_world"
+	invalid.target_kind = &"nothing"
+	invalid.blast_radius = 99.0
+	invalid.gravity = -5.0
+	if SCENARIO_CATALOG_SCRIPT.validate_definition(invalid, world_catalog).size() < 5:
+		_fail("Malformed scenario was not rejected with all errors")
+		return
+
+	var main: Node = MAIN_SCENE.instantiate()
+	root.add_child(main)
+	await process_frame
+	await physics_frame
+	await physics_frame
+
+	var panel: Node = main.find_child("SimulationPanel", true, false)
+	if panel == null:
+		_fail("Simulation control panel was not built")
+		return
+	if main.call("get_scenario_ids").size() != 3:
+		_fail("Runtime scenario catalog is not exposed")
+		return
+	if main.call("get_material_profile_ids").size() != 3:
+		_fail("Runtime material catalog is not exposed")
+		return
+	main.call("set_simulation_paused", true)
+	if not bool(main.call("is_simulation_paused")):
+		_fail("Simulation pause did not take effect")
+		return
+	main.call("set_simulation_paused", false)
+	if bool(main.call("is_simulation_paused")):
+		_fail("Simulation resume did not take effect")
+		return
+
+	var load_errors: Array = main.call("load_scenario", &"foundation_strike")
+	if not load_errors.is_empty():
+		_fail("Foundation scenario load failed: %s" % "\n".join(load_errors))
+		return
+	var active_scenario: ExperimentScenarioScript = main.call("get_active_scenario")
+	if active_scenario == null or active_scenario.scenario_id != &"foundation_strike":
+		_fail("Scenario load did not select the requested scenario")
+		return
+	if absf(float(main.get("blast_damage")) - 10.0) > 0.001 or absf(float(main.call("get_simulation_gravity")) - 9.8) > 0.001:
+		_fail("Scenario load did not apply its impact and gravity settings")
+		return
+	main.call("adjust_simulation_setting", &"gravity", 100.0)
+	if absf(float(main.call("get_simulation_gravity")) - 50.0) > 0.001:
+		_fail("Gravity control is not clamped")
+		return
+	main.call("adjust_simulation_setting", &"time_scale", 100.0)
+	if absf(float(main.call("get_simulation_time_scale")) - 10.0) > 0.001:
+		_fail("Time-scale control is not clamped")
+		return
+	load_errors = main.call("load_scenario", &"foundation_strike")
+	if not load_errors.is_empty():
+		_fail("Scenario reload after control clamping failed")
+		return
+
+	var material_ids: Array = main.call("get_material_profile_ids")
+	var test_material: StringName = material_ids[0]
+	var material_errors: Array = main.call("select_material_profile", test_material)
+	if not material_errors.is_empty():
+		_fail("Material selection failed: %s" % "\n".join(material_errors))
+		return
+	if main.call("get_active_material_override_id") != test_material:
+		_fail("Material selection did not record the active override")
+		return
+	var structure_for_material: Node = main.get_node_or_null("DestructibleStructure")
+	if structure_for_material == null:
+		_fail("Material selection lost the resident structure")
+		return
+	var definition_for_material = structure_for_material.call("get_building_definition")
+	if definition_for_material == null or definition_for_material.cells.is_empty():
+		_fail("Material selection lost the building definition")
+		return
+	var material_cell: Vector3i = definition_for_material.cells[0].coordinate
+	if String(structure_for_material.call("get_cell_material_id", material_cell)) != String(test_material):
+		_fail("Material selection did not apply the profile to structure cells")
+		return
+	material_errors = main.call("select_material_profile", &"")
+	if not material_errors.is_empty() or main.call("get_active_material_override_id") != &"":
+		_fail("Material selection could not restore definition defaults")
+		return
+
+	var first: Dictionary = main.call("run_scenario", &"foundation_strike")
+	if not first["ok"]:
+		_fail("Foundation run failed: %s" % "\n".join(first["errors"]))
+		return
+	var first_run: Dictionary = first["run"]
+	if int(first_run["broken"]) <= 0 or int(first_run["released"]) <= 0:
+		_fail("Foundation run did not break structure fragments")
+		return
+	if String(first_run["world_id"]) != "classic_yard" or String(first_run["building_definition_id"]) != "classic_70_piece":
+		_fail("Run record is missing its world or building metadata")
+		return
+	if not (first_run.get("material_profile_ids") is Array) or (first_run["material_profile_ids"] as Array).is_empty():
+		_fail("Run record is missing material metadata")
+		return
+	if int(main.call("get_experiment_history").get_run_count()) != 1:
+		_fail("Run was not recorded in history")
+		return
+
+	var second: Dictionary = main.call("run_scenario", &"foundation_strike")
+	if not second["ok"]:
+		_fail("Repeated foundation run failed")
+		return
+	if int(second["run"]["broken"]) != int(first_run["broken"]):
+		_fail("Repeated scenario produced a different broken count")
+		return
+	var comparison: Dictionary = main.call("get_run_comparison")
+	if not comparison["has_comparison"] or int(comparison["broken_delta"]) != 0:
+		_fail("Run comparison did not report a repeatable broken count")
+		return
+
+	var terrain_result: Dictionary = main.call("run_scenario", &"terrain_crater")
+	if not terrain_result["ok"]:
+		_fail("Terrain scenario run failed: %s" % "\n".join(terrain_result["errors"]))
+		return
+	if int(terrain_result["run"]["terrain_edits"]) <= 0 or int(terrain_result["run"]["broken"]) != 0:
+		_fail("Terrain scenario did not carve terrain without structural damage")
+		return
+
+	var active_before_invalid: ExperimentScenarioScript = main.call("get_active_scenario")
+	load_errors = main.call("load_scenario", &"missing_scenario")
+	if load_errors.is_empty() or main.call("get_active_scenario") != active_before_invalid:
+		_fail("Invalid scenario load was accepted or changed the active scenario")
+		return
+	load_errors = main.call("load_scenario", &"sparse_beam_shear")
+	if not load_errors.is_empty():
+		_fail("Sparse scenario load failed: %s" % "\n".join(load_errors))
+		return
+	if String(main.call("get_active_world_definition").world_id) != "sparse_quarry":
+		_fail("Sparse scenario did not switch to its world")
+		return
+
+	main.call("reset_simulation")
+	await physics_frame
+	await process_frame
+	await physics_frame
+	var structure: Node = main.get_node_or_null("DestructibleStructure")
+	var terrain: Node = main.get_node_or_null("TerrainWorld")
+	if structure == null or terrain == null:
+		_fail("Reset removed the active world nodes")
+		return
+	if not bool(structure.call("is_reset_to_initial_state")) or not bool(terrain.call("is_reset_to_initial_state")):
+		_fail("Simulation reset did not restore structure and terrain")
+		return
+
+	var json_result: Dictionary = main.call("export_experiment_history", JSON_PATH)
+	if not json_result["ok"]:
+		_fail("JSON export failed: %s" % "\n".join(json_result["errors"]))
+		return
+	var json_text: String = FileAccess.get_file_as_string(JSON_PATH)
+	var parsed: Variant = JSON.parse_string(json_text)
+	if not (parsed is Dictionary) or String(parsed.get("format", "")) != "worldbreak.experiment-history":
+		_fail("JSON export did not contain the versioned history schema")
+		return
+	if (parsed.get("runs", []) as Array).size() != 3:
+		_fail("JSON export did not include every recorded run")
+		return
+
+	var csv_result: Dictionary = main.call("export_experiment_history", CSV_PATH)
+	if not csv_result["ok"]:
+		_fail("CSV export failed: %s" % "\n".join(csv_result["errors"]))
+		return
+	var csv_lines: PackedStringArray = FileAccess.get_file_as_string(CSV_PATH).split("\n", false)
+	if csv_lines.size() != 4 or not String(csv_lines[0]).begins_with("run_index,scenario_id,world_id"):
+		_fail("CSV export did not contain a header and one row per run")
+		return
+	if not String(csv_lines[0]).contains("impact") or not String(csv_lines[0]).contains("material_profile_ids") or not String(csv_lines[3]).contains("terrain_crater"):
+		_fail("CSV export is missing impact, material, or scenario fields")
+		return
+
+	var bad_export: Dictionary = main.call("export_experiment_history", "user://phase5_runs.txt")
+	if bad_export["ok"]:
+		_fail("Export accepted an unsupported file extension")
+		return
+
+	var history: ExperimentHistory = main.call("get_experiment_history")
+	for index in range(55):
+		history.add_run({"scenario_id": "bounded_%d" % index})
+	if history.get_run_count() != 50:
+		_fail("Experiment history is not bounded to 50 runs")
+		return
+	if int(history.get_last_run()["run_index"]) != 50:
+		_fail("Bounded history did not renumber run indexes")
+		return
+
+	var escaping_history := ExperimentHistory.new()
+	escaping_history.add_run({
+		"scenario_id": "comma,\"quote\"\nline",
+		"material_profile_ids": ["a;b", "c,d"]
+	})
+	var escaping_csv: String = escaping_history.to_csv_text()
+	if not escaping_csv.contains("\"comma,\"\"quote\"\"\nline\"") or not escaping_csv.contains("\"a;b;c,d\""):
+		_fail("CSV export did not escape embedded commas, quotes, or newlines")
+		return
+
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(JSON_PATH))
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(CSV_PATH))
+	print("WORLDBREAK_SIMULATION_TOOLS_OK: scenarios=3; run=passed; repeat=passed; comparison=passed; terrain=passed; reset=passed; export=passed; validation=passed")
+	quit(0)
+
+
+func _fail(message: String) -> void:
+	push_error("WORLDBREAK_SIMULATION_TOOLS_FAILED: " + message)
+	quit(1)

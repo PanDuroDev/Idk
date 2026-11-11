@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ExperimentScenario" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/experiment_scenario.gd" id="1_scenario"]
+
+[resource]
+script = ExtResource("1_scenario")
+schema_version = 1
+scenario_id = &"terrain_crater"
+display_name = "Terrain Crater"
+world_id = &"classic_yard"
+target_kind = &"terrain"
+impact_offset = Vector3(2, 1, 2)
+blast_radius = 3.0
+blast_damage = 3.0
+blast_impulse = 22.0
+blast_upward_bias = 0.3
+gravity = 9.8
+time_scale = 1.0
