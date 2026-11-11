@@ -38,7 +38,6 @@ const UI_MUTED_COLOR: Color = Color(0.6, 0.66, 0.72)
 const UI_PANEL_COLOR: Color = Color(0.055, 0.065, 0.08, 0.93)
 const UI_FIELD_COLOR: Color = Color(0.12, 0.14, 0.17, 1.0)
 const UI_BORDER_COLOR: Color = Color(0.22, 0.26, 0.31, 1.0)
-const ROCKET_SPEED: float = 55.0
 const SHAKE_DECAY_SECONDS: float = 0.26
 
 @export_range(0.5, 12.0, 0.25) var blast_radius: float = 4.5
@@ -51,6 +50,7 @@ var _terrain: Node3D
 var _player: CharacterBody3D
 var _blast_service: RefCounted
 var _pending_blasts: Array[Dictionary] = []
+var _pending_detonations: Array[Dictionary] = []
 var _reset_requested: bool = false
 var _hud_label: Label
 var _ui_canvas: CanvasLayer
@@ -95,8 +95,21 @@ var _effect_dust_mesh: SphereMesh
 var _effect_dust_material: StandardMaterial3D
 var _effect_chip_mesh: BoxMesh
 var _effect_chip_material: StandardMaterial3D
+var _spawn_menu: PanelContainer
+var _spawn_menu_open: bool = false
+var _spawn_status_label: Label
+var _spawned_props: Array[RigidBody3D] = []
+var _held_prop: RigidBody3D
+var _model_cache: Dictionary = {}
 
 const CAMERA_MODES: Array[StringName] = [&"first_person", &"orbit", &"overview"]
+
+const MAX_SPAWNED_PROPS: int = 24
+const PICKUP_DISTANCE: float = 4.5
+const HOLD_DISTANCE: float = 2.2
+const THROW_SPEED: float = 18.0
+const ROCKET_BLAST_RADIUS: float = 4.5
+const PROP_MODEL_DIR: String = "res://assets/kenney/space_kit/%s.glb"
 
 const DEFAULT_BLAST_RADIUS: float = 4.5
 const DEFAULT_BLAST_DAMAGE: float = 4.0
@@ -118,6 +131,7 @@ func _ready() -> void:
 
 	_build_hud()
 	_build_simulation_panel()
+	_build_spawn_menu()
 	_build_debug_overlay()
 	var load_errors: Array[String] = load_world(DEFAULT_WORLD_ID)
 	if not load_errors.is_empty():
@@ -137,6 +151,17 @@ func _unhandled_input(event: InputEvent) -> void:
 		cycle_camera_mode()
 		get_viewport().set_input_as_handled()
 		return
+	if event.is_action_pressed("spawn_menu"):
+		toggle_spawn_menu()
+		get_viewport().set_input_as_handled()
+		return
+	if event.is_action_pressed("pickup"):
+		if _held_prop != null:
+			drop_held_prop()
+		else:
+			try_pickup()
+		get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed("reset_structure"):
 		request_structure_reset()
 		get_viewport().set_input_as_handled()
@@ -152,15 +177,24 @@ func _physics_process(_delta: float) -> void:
 		_reset_requested = false
 		_last_broken_count = 0
 		_last_affected_count = 0
+		_clear_spawned_props()
+		_spawn_starter_rockets()
 
 	while not _pending_blasts.is_empty():
 		var request: Dictionary = _pending_blasts.pop_front()
 		_process_blast(request["origin"], request["direction"])
 
+	# Contact signals are emitted during the physics step. Defer blast queries
+	# and terrain/structure mutations until the next physics tick.
+	while not _pending_detonations.is_empty():
+		var detonation: Dictionary = _pending_detonations.pop_front()
+		_detonate(detonation["position"], detonation["normal"], detonation["radius"])
+
 
 func _process(delta: float) -> void:
 	_update_orbit_camera(delta)
 	_update_camera_shake(delta)
+	_update_held_prop()
 	_hud_refresh_timer += delta
 	if _hud_refresh_timer < 0.25 or not is_instance_valid(_hud_label):
 		return
@@ -187,6 +221,9 @@ func _process(delta: float) -> void:
 
 
 func request_blast(ray_origin: Vector3, ray_direction: Vector3) -> void:
+	if _held_prop != null:
+		throw_held_prop()
+		return
 	if _pending_blasts.size() >= MAX_PENDING_BLASTS or ray_direction.is_zero_approx():
 		return
 	_pending_blasts.append({
@@ -263,16 +300,21 @@ func load_world(world_id: StringName) -> Array[String]:
 		errors.assign(apply_errors)
 		return errors
 
+	# Spawned props belong to the resident world. Remove them only after the
+	# incoming configuration has validated and applied successfully.
+	_clear_spawned_props()
 	_apply_world_environment(world)
 	_build_terrain(world)
 	_active_world_definition = world
 	_reset_player_to_spawn(world.player_spawn)
+	_spawn_starter_rockets()
 	_world_load_count += 1
 	_refresh_simulation_controls()
 	return errors
 
 
 func unload_world() -> void:
+	_clear_spawned_props()
 	_clear_structure()
 	_remove_terrain()
 	_apply_environment_defaults()
@@ -470,7 +512,6 @@ func run_scenario_settled(scenario_id: StringName, settle_frames: int = 120) -> 
 	var scenario: ExperimentScenarioScript = prepared["scenario"]
 	var impact: Vector3 = prepared["impact"]
 	var snapshot: Dictionary = _capture_fragment_positions()
-	await _launch_rocket(impact + Vector3(0.0, 14.0, 18.0), impact, scenario.blast_radius)
 	var started_usec: int = Time.get_ticks_usec()
 	var metrics: Dictionary = _apply_scenario_impact(scenario, impact)
 	var frames: int = clampi(settle_frames, 1, 600)
@@ -864,36 +905,33 @@ func _process_blast(ray_origin: Vector3, ray_direction: Vector3) -> void:
 	var ray_hit: Dictionary = space_state.intersect_ray(ray_query)
 	var impact_position: Vector3 = ray_hit.get("position", ray_end)
 	var impact_normal: Vector3 = ray_hit.get("normal", Vector3.UP)
+	_detonate(impact_position, impact_normal, blast_radius)
 
-	# Fire from the weapon toward the captured aim point, then detonate on arrival.
-	if DisplayServer.get_name() != "headless":
-		await _launch_rocket(ray_origin + ray_direction * 0.8, impact_position, blast_radius)
-		if not is_inside_tree():
-			return
 
-	_carve_ground(impact_position)
-
-	_last_broken_count = int(_structure.call("apply_blast_damage", impact_position, blast_radius, blast_damage)) if is_instance_valid(_structure) else 0
+func _detonate(impact_position: Vector3, impact_normal: Vector3, radius: float) -> void:
+	var space_state: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state
+	_carve_ground(impact_position, radius)
+	_last_broken_count = int(_structure.call("apply_blast_damage", impact_position, radius, blast_damage)) if is_instance_valid(_structure) else 0
 	_last_affected_count = int(_blast_service.call(
 		"apply_radial_impulse",
 		space_state,
 		impact_position,
-		blast_radius,
+		radius,
 		blast_impulse,
 		blast_upward_bias
 	))
 	_total_impacts += 1
 	_spawn_blast_flash(impact_position)
 	_spawn_impact_chips(impact_position, impact_normal, _last_broken_count)
-	_add_camera_shake(clampf(blast_radius / 22.0, 0.03, 0.12))
+	_add_camera_shake(clampf(radius / 22.0, 0.03, 0.12))
 
 
-func _carve_ground(impact_position: Vector3) -> void:
+func _carve_ground(impact_position: Vector3, radius: float) -> void:
 	if not is_instance_valid(_terrain):
 		return
 	var ground_point: Vector3 = _find_terrain_below(impact_position)
 	var carve_point: Vector3 = ground_point if ground_point != Vector3.INF else impact_position
-	var carve_radius: float = blast_radius * (1.15 if ground_point != Vector3.INF else 0.9)
+	var carve_radius: float = radius * (1.15 if ground_point != Vector3.INF else 0.9)
 	_terrain.call("carve_sphere", carve_point, carve_radius, blast_damage)
 
 
@@ -1057,6 +1095,358 @@ func _reset_player_to_spawn(spawn: Vector3) -> void:
 	_player.velocity = Vector3.ZERO
 
 
+func _spawn_item_definitions() -> Array[Dictionary]:
+	return [
+		{"id": &"rocket", "label": "Rocket", "model": "rocket_baseA", "height": 1.7, "mass": 6.0, "explosive": true},
+		{"id": &"barrel", "label": "Barrel", "model": "barrel", "height": 0.9, "mass": 2.0, "explosive": false},
+		{"id": &"barrel_stack", "label": "Barrel stack", "model": "barrels", "height": 1.2, "mass": 5.0, "explosive": false},
+		{"id": &"meteor", "label": "Meteor", "model": "meteor_detailed", "height": 1.1, "mass": 4.0, "explosive": false},
+		{"id": &"rock", "label": "Rock", "model": "rock_largeA", "height": 0.9, "mass": 3.0, "explosive": false},
+		{"id": &"generator", "label": "Generator", "model": "machine_generator", "height": 1.4, "mass": 8.0, "explosive": false},
+		{"id": &"machine", "label": "Machine", "model": "machine_barrel", "height": 1.3, "mass": 8.0, "explosive": false},
+	]
+
+
+func _find_spawn_item(item_id: StringName) -> Dictionary:
+	for info: Dictionary in _spawn_item_definitions():
+		if info["id"] == item_id:
+			return info
+	return {}
+
+
+func get_spawn_items() -> Array[Dictionary]:
+	return _spawn_item_definitions()
+
+
+func get_spawned_prop_count() -> int:
+	var count: int = 0
+	for prop in _spawned_props:
+		if is_instance_valid(prop):
+			count += 1
+	return count
+
+
+func get_held_prop() -> RigidBody3D:
+	return _held_prop if is_instance_valid(_held_prop) else null
+
+
+func is_spawn_menu_open() -> bool:
+	return _spawn_menu_open
+
+
+func spawn_item(item_id: StringName) -> Dictionary:
+	var info: Dictionary = _find_spawn_item(item_id)
+	if info.is_empty():
+		return {"ok": false, "errors": ["Unknown spawn item '%s'." % String(item_id)], "prop": null}
+	if get_spawned_prop_count() >= MAX_SPAWNED_PROPS:
+		return {"ok": false, "errors": ["Spawn limit reached (%d props)." % MAX_SPAWNED_PROPS], "prop": null}
+	var prop: RigidBody3D = _create_sandbox_prop(info)
+	if prop == null:
+		return {"ok": false, "errors": ["Could not build '%s'." % String(item_id)], "prop": null}
+	add_child(prop)
+	prop.global_position = _get_spawn_point()
+	_spawned_props.append(prop)
+	_set_sandbox_status("Spawned %s. E to carry." % String(info["label"]))
+	return {"ok": true, "errors": [], "prop": prop}
+
+
+func try_pickup() -> bool:
+	if _held_prop != null:
+		return false
+	var camera: Camera3D = _get_active_camera()
+	if camera == null:
+		return false
+	var origin: Vector3 = camera.global_position
+	var forward: Vector3 = -camera.global_transform.basis.z
+	var query := PhysicsRayQueryParameters3D.create(origin, origin + forward * PICKUP_DISTANCE, 1)
+	if is_instance_valid(_player):
+		query.exclude = [_player.get_rid()]
+	var hit: Dictionary = get_world_3d().direct_space_state.intersect_ray(query)
+	var candidate: RigidBody3D = null
+	var collider: Variant = hit.get("collider")
+	if collider is RigidBody3D and _spawned_props.has(collider):
+		candidate = collider as RigidBody3D
+	if candidate == null:
+		var best_distance: float = PICKUP_DISTANCE
+		for prop in _spawned_props:
+			if not is_instance_valid(prop) or prop == _held_prop:
+				continue
+			var to_prop: Vector3 = prop.global_position - origin
+			var distance: float = to_prop.length()
+			if distance > best_distance or forward.dot(to_prop.normalized()) < 0.4:
+				continue
+			best_distance = distance
+			candidate = prop
+	if candidate == null:
+		return false
+	_hold_prop(candidate)
+	return true
+
+
+func drop_held_prop() -> bool:
+	if _held_prop == null or not is_instance_valid(_held_prop):
+		_held_prop = null
+		return false
+	var prop: RigidBody3D = _held_prop
+	_release_held(prop)
+	_held_prop = null
+	_set_sandbox_status("Dropped %s." % prop.name)
+	return true
+
+
+func throw_held_prop() -> bool:
+	if _held_prop == null or not is_instance_valid(_held_prop):
+		_held_prop = null
+		return false
+	var prop: RigidBody3D = _held_prop
+	var camera: Camera3D = _get_active_camera()
+	var forward: Vector3 = -camera.global_transform.basis.z if camera != null else Vector3.FORWARD
+	_release_held(prop)
+	prop.linear_velocity = forward * THROW_SPEED + Vector3.UP * 1.5
+	if is_instance_valid(_player):
+		prop.linear_velocity += _player.velocity * 0.35
+	prop.angular_velocity = Vector3(randf_range(-3.0, 3.0), randf_range(-3.0, 3.0), randf_range(-3.0, 3.0))
+	_held_prop = null
+	if prop.has_meta("explosive"):
+		prop.set_meta("armed", true)
+	_set_sandbox_status("Threw %s." % prop.name)
+	return true
+
+
+func toggle_spawn_menu() -> bool:
+	_spawn_menu_open = not _spawn_menu_open
+	if is_instance_valid(_spawn_menu):
+		_spawn_menu.visible = _spawn_menu_open
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if _spawn_menu_open else Input.MOUSE_MODE_CAPTURED
+	return _spawn_menu_open
+
+
+func _hold_prop(prop: RigidBody3D) -> void:
+	_held_prop = prop
+	prop.freeze = true
+	prop.gravity_scale = 0.0
+	prop.collision_layer = 0
+	prop.collision_mask = 0
+	prop.linear_velocity = Vector3.ZERO
+	prop.angular_velocity = Vector3.ZERO
+	_update_held_prop()
+	_set_sandbox_status("Carrying %s. LMB throws, E drops." % prop.name)
+
+
+func _release_held(prop: RigidBody3D) -> void:
+	prop.freeze = false
+	prop.gravity_scale = _simulation_gravity / DEFAULT_GRAVITY
+	prop.collision_layer = 1
+	prop.collision_mask = 1
+
+
+func _update_held_prop() -> void:
+	if _held_prop == null or not is_instance_valid(_held_prop):
+		_held_prop = null
+		return
+	var camera: Camera3D = _get_active_camera()
+	if camera == null:
+		return
+	var transform: Transform3D = camera.global_transform
+	_held_prop.global_position = camera.global_position - transform.basis.z * HOLD_DISTANCE - transform.basis.y * 0.35
+	_held_prop.global_rotation = camera.global_rotation
+
+
+func _create_sandbox_prop(info: Dictionary) -> RigidBody3D:
+	var prop := RigidBody3D.new()
+	prop.name = "Sandbox_%s_%d" % [String(info["id"]), _spawned_props.size()]
+	prop.mass = float(info["mass"])
+	prop.gravity_scale = _simulation_gravity / DEFAULT_GRAVITY
+	prop.collision_layer = 1
+	prop.collision_mask = 1
+	prop.continuous_cd = true
+	prop.add_to_group("blastable")
+	var built: Dictionary = _build_model_prop(String(info["model"]), float(info["height"]))
+	var node: Node3D = built["node"]
+	if node == null:
+		return null
+	prop.add_child(node)
+	var size: Vector3 = built["size"]
+	var shape := BoxShape3D.new()
+	shape.size = size
+	var collision := CollisionShape3D.new()
+	collision.shape = shape
+	collision.position = Vector3(0.0, size.y * 0.5, 0.0)
+	prop.add_child(collision)
+	if bool(info.get("explosive", false)):
+		prop.contact_monitor = true
+		prop.max_contacts_reported = 4
+		prop.set_meta("explosive", true)
+		prop.set_meta("armed", false)
+		prop.body_entered.connect(_on_rocket_body_entered.bind(prop))
+	return prop
+
+
+func _build_model_prop(model_name: String, target_height: float) -> Dictionary:
+	if not _model_cache.has(model_name):
+		_model_cache[model_name] = load(PROP_MODEL_DIR % model_name) as PackedScene
+	var packed: PackedScene = _model_cache[model_name]
+	if packed == null:
+		var box := BoxMesh.new()
+		box.size = Vector3(target_height, target_height, target_height)
+		var fallback := MeshInstance3D.new()
+		fallback.mesh = box
+		return {"node": fallback, "size": box.size}
+	var instance: Node3D = packed.instantiate() as Node3D
+	var bounds: AABB = _combined_mesh_bounds(instance)
+	if bounds.size.y <= 0.0:
+		return {"node": instance, "size": Vector3(target_height, target_height, target_height)}
+	var scale_factor: float = target_height / bounds.size.y
+	instance.scale = Vector3.ONE * scale_factor
+	instance.position = -Vector3(bounds.get_center().x, bounds.position.y, bounds.get_center().z) * scale_factor
+	return {"node": instance, "size": bounds.size * scale_factor}
+
+
+func _combined_mesh_bounds(root: Node) -> AABB:
+	var bounds := AABB()
+	var has_bounds: bool = false
+	for node in root.find_children("*", "MeshInstance3D", true, false):
+		var mesh_instance := node as MeshInstance3D
+		if mesh_instance.mesh == null:
+			continue
+		var box: AABB = mesh_instance.transform * mesh_instance.mesh.get_aabb()
+		bounds = box if not has_bounds else bounds.merge(box)
+		has_bounds = true
+	return bounds
+
+
+func _get_spawn_point() -> Vector3:
+	var point := Vector3(0.0, 0.4, 2.0)
+	var camera: Camera3D = _get_active_camera()
+	if camera != null:
+		point = camera.global_position - camera.global_transform.basis.z * 3.2
+	point.y = 0.4
+	var query := PhysicsRayQueryParameters3D.create(point + Vector3.UP * 12.0, point - Vector3.UP * 20.0, 1)
+	if is_instance_valid(_player):
+		query.exclude = [_player.get_rid()]
+	var hit: Dictionary = get_world_3d().direct_space_state.intersect_ray(query)
+	if not hit.is_empty():
+		var position: Vector3 = hit.get("position", point)
+		point.y = position.y + 0.25
+	return point
+
+
+func _spawn_starter_rockets() -> void:
+	var info: Dictionary = _find_spawn_item(&"rocket")
+	if info.is_empty():
+		return
+	var spawn_origin: Vector3 = _player.global_position if is_instance_valid(_player) else _get_active_spawn()
+	var offsets: Array[Vector3] = [Vector3(-2.6, 0.2, -2.4), Vector3(2.6, 0.2, -2.4)]
+	for offset in offsets:
+		var prop: RigidBody3D = _create_sandbox_prop(info)
+		if prop == null:
+			continue
+		prop.name = "StarterRocket_%d" % _spawned_props.size()
+		add_child(prop)
+		var world_offset: Vector3 = _player.global_transform.basis * offset if is_instance_valid(_player) else offset
+		var point: Vector3 = spawn_origin + world_offset
+		var query := PhysicsRayQueryParameters3D.create(point + Vector3.UP * 8.0, point - Vector3.UP * 20.0, 1)
+		if is_instance_valid(_player):
+			query.exclude = [_player.get_rid()]
+		var hit: Dictionary = get_world_3d().direct_space_state.intersect_ray(query)
+		if not hit.is_empty():
+			var hit_position: Vector3 = hit.get("position", point)
+			point.y = hit_position.y + 0.05
+		prop.global_position = point
+		_spawned_props.append(prop)
+
+
+func _clear_spawned_props() -> void:
+	_held_prop = null
+	_pending_detonations.clear()
+	for prop in _spawned_props:
+		if not is_instance_valid(prop):
+			continue
+		if prop.get_parent() == self:
+			remove_child(prop)
+		prop.queue_free()
+	_spawned_props.clear()
+
+
+func _on_rocket_body_entered(body: Node, prop: RigidBody3D) -> void:
+	if not is_instance_valid(prop) or not prop.has_meta("explosive"):
+		return
+	if not bool(prop.get_meta("armed", false)) or prop.linear_velocity.length() < 1.5:
+		return
+	var impact: Vector3 = prop.global_position
+	_spawned_props.erase(prop)
+	if _held_prop == prop:
+		_held_prop = null
+	prop.queue_free()
+	_pending_detonations.append({
+		"position": impact,
+		"normal": Vector3.UP,
+		"radius": ROCKET_BLAST_RADIUS
+	})
+	_set_sandbox_status("Rocket detonated on %s." % body.name)
+
+
+func _set_sandbox_status(text: String) -> void:
+	if is_instance_valid(_spawn_status_label):
+		_spawn_status_label.text = text
+
+
+func _build_spawn_menu() -> void:
+	_spawn_menu = PanelContainer.new()
+	_spawn_menu.name = "SpawnMenu"
+	_spawn_menu.theme = _create_ui_theme()
+	var layer := CanvasLayer.new()
+	layer.name = "SpawnMenuLayer"
+	layer.add_child(_spawn_menu)
+	add_child(layer)
+	_spawn_menu.anchor_left = 0.0
+	_spawn_menu.anchor_top = 0.0
+	_spawn_menu.offset_left = 18.0
+	_spawn_menu.offset_top = 132.0
+	_spawn_menu.offset_right = 318.0
+	_spawn_menu.offset_bottom = 132.0
+	_spawn_menu.grow_vertical = Control.GROW_DIRECTION_END
+	var margin := MarginContainer.new()
+	for side in ["margin_left", "margin_top", "margin_right", "margin_bottom"]:
+		margin.add_theme_constant_override(side, 12)
+	var layout := VBoxContainer.new()
+	layout.add_theme_constant_override("separation", 8)
+	var title := Label.new()
+	title.text = "SPAWN MENU"
+	title.add_theme_color_override("font_color", UI_ACCENT)
+	title.add_theme_font_size_override("font_size", 15)
+	var hint := Label.new()
+	hint.text = "Tab closes · click to spawn"
+	hint.add_theme_color_override("font_color", UI_MUTED_COLOR)
+	hint.add_theme_font_size_override("font_size", 11)
+	var grid := GridContainer.new()
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 6)
+	grid.add_theme_constant_override("v_separation", 6)
+	for info: Dictionary in _spawn_item_definitions():
+		var button := Button.new()
+		button.text = String(info["label"])
+		button.custom_minimum_size = Vector2(0.0, 30.0)
+		button.pressed.connect(_on_spawn_item_pressed.bind(String(info["id"])))
+		grid.add_child(button)
+	_spawn_status_label = Label.new()
+	_spawn_status_label.text = "E carries the aim target, LMB throws it."
+	_spawn_status_label.add_theme_color_override("font_color", UI_MUTED_COLOR)
+	_spawn_status_label.add_theme_font_size_override("font_size", 11)
+	_spawn_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	layout.add_child(title)
+	layout.add_child(hint)
+	layout.add_child(grid)
+	layout.add_child(_spawn_status_label)
+	margin.add_child(layout)
+	_spawn_menu.add_child(margin)
+	_spawn_menu.visible = false
+
+
+func _on_spawn_item_pressed(item_id: String) -> void:
+	spawn_item(StringName(item_id))
+
+
 func _spawn_physics_props() -> void:
 	var crate_mesh := BoxMesh.new()
 	crate_mesh.size = Vector3(0.8, 0.8, 0.8)
@@ -1112,87 +1502,6 @@ func _spawn_physics_props() -> void:
 		var collision := CollisionShape3D.new()
 		collision.shape = kind["shape"]
 		prop.add_child(collision)
-
-
-func _launch_rocket(origin: Vector3, impact: Vector3, radius: float) -> void:
-	if DisplayServer.get_name() == "headless":
-		return
-	var direction: Vector3 = impact - origin
-	if direction.length_squared() < 0.0001:
-		return
-	var rocket := _build_rocket(radius)
-	add_child(rocket)
-	rocket.global_position = origin
-	rocket.look_at(impact)
-	var duration: float = clampf(origin.distance_to(impact) / ROCKET_SPEED, 0.12, 0.6)
-	var flight: Tween = create_tween()
-	flight.tween_property(rocket, "global_position", impact, duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	await flight.finished
-	if is_instance_valid(rocket):
-		rocket.queue_free()
-
-
-func _build_rocket(radius: float) -> Node3D:
-	var rocket := Node3D.new()
-	rocket.name = "Rocket"
-	rocket.scale = Vector3.ONE * clampf(radius / 4.5, 0.7, 1.6)
-	var pivot := Node3D.new()
-	pivot.rotation_degrees.x = -90.0
-	rocket.add_child(pivot)
-
-	var metal := StandardMaterial3D.new()
-	metal.albedo_color = Color(0.62, 0.66, 0.7)
-	metal.roughness = 0.35
-	metal.metallic = 0.6
-	var accent := StandardMaterial3D.new()
-	accent.albedo_color = Color(0.75, 0.2, 0.12)
-	accent.roughness = 0.55
-
-	var body := MeshInstance3D.new()
-	var body_mesh := CylinderMesh.new()
-	body_mesh.top_radius = 0.16
-	body_mesh.bottom_radius = 0.18
-	body_mesh.height = 1.5
-	body.mesh = body_mesh
-	body.material_override = metal
-	pivot.add_child(body)
-
-	var nose := MeshInstance3D.new()
-	var nose_mesh := CylinderMesh.new()
-	nose_mesh.top_radius = 0.0
-	nose_mesh.bottom_radius = 0.16
-	nose_mesh.height = 0.5
-	nose.mesh = nose_mesh
-	nose.material_override = accent
-	nose.position.y = 1.0
-	pivot.add_child(nose)
-
-	for index in range(3):
-		var fin := MeshInstance3D.new()
-		var fin_mesh := BoxMesh.new()
-		fin_mesh.size = Vector3(0.05, 0.42, 0.3)
-		fin.mesh = fin_mesh
-		fin.material_override = accent
-		fin.rotation.y = TAU * float(index) / 3.0
-		fin.position = Vector3(cos(TAU * float(index) / 3.0) * 0.2, -0.62, sin(TAU * float(index) / 3.0) * 0.2)
-		pivot.add_child(fin)
-
-	var flame := MeshInstance3D.new()
-	var flame_mesh := SphereMesh.new()
-	flame_mesh.radius = 0.16
-	flame_mesh.height = 0.32
-	flame.mesh = flame_mesh
-	var flame_material := StandardMaterial3D.new()
-	flame_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	flame_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	flame_material.albedo_color = Color(1.0, 0.7, 0.25, 0.85)
-	flame_material.emission_enabled = true
-	flame_material.emission = Color(1.0, 0.55, 0.15)
-	flame_material.emission_energy_multiplier = 3.0
-	flame.material_override = flame_material
-	flame.position.y = -0.82
-	pivot.add_child(flame)
-	return rocket
 
 
 func _ensure_effect_resources() -> void:
@@ -1469,7 +1778,7 @@ func _build_hud() -> void:
 	_ui_canvas.add_child(_crosshair)
 
 	var hint := Label.new()
-	hint.text = "LMB  blast      C  camera      P  pause      F3  diagnostics      Esc  cursor"
+	hint.text = "Tab  spawn menu      E  carry/drop      LMB  blast/throw      C  camera      F3  diagnostics"
 	hint.add_theme_font_size_override("font_size", 12)
 	hint.add_theme_color_override("font_color", Color(0.75, 0.8, 0.86, 0.7))
 	hint.anchor_top = 1.0

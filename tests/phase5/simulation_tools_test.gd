@@ -90,11 +90,78 @@ func _run() -> void:
 		_fail("Themed HUD or simulation panel is missing")
 		return
 
-	var rocket: Node3D = main.call("_build_rocket", 4.5) as Node3D
-	if rocket == null or rocket.get_child_count() == 0:
-		_fail("Rocket model did not build")
+	var spawn_items: Array = main.call("get_spawn_items")
+	if spawn_items.size() < 4:
+		_fail("Sandbox spawn catalog is too small")
 		return
-	rocket.free()
+	if int(main.call("get_spawned_prop_count")) < 2:
+		_fail("Starter rockets were not placed on the ground")
+		return
+	var spawn_result: Dictionary = main.call("spawn_item", &"barrel")
+	if not bool(spawn_result["ok"]) or spawn_result["prop"] == null:
+		_fail("Sandbox barrel spawn failed")
+		return
+	if not bool(main.call("is_spawn_menu_open")) and not bool(main.call("toggle_spawn_menu")):
+		_fail("Spawn menu did not open")
+		return
+	if bool(main.call("toggle_spawn_menu")):
+		_fail("Spawn menu did not close")
+		return
+	if not bool(main.call("try_pickup")):
+		_fail("Could not pick up the spawned barrel")
+		return
+	if main.call("get_held_prop") == null:
+		_fail("Held prop was not tracked")
+		return
+	if not bool(main.call("throw_held_prop")) or main.call("get_held_prop") != null:
+		_fail("Throwing the held prop failed")
+		return
+	var rocket_result: Dictionary = main.call("spawn_item", &"rocket")
+	var rocket: RigidBody3D = rocket_result.get("prop") as RigidBody3D
+	if rocket == null:
+		_fail("Sandbox rocket spawn failed")
+		return
+	var props_before: int = int(main.call("get_spawned_prop_count"))
+	main.call("_hold_prop", rocket)
+	if not bool(main.call("throw_held_prop")) or not bool(rocket.get_meta("armed", false)):
+		_fail("Throwing a rocket did not arm it")
+		return
+
+	# Exercise the real physics signal: the rocket must hit this static wall,
+	# emit body_entered, remove itself, and pass through the shared detonation path.
+	var collision_target := StaticBody3D.new()
+	collision_target.name = "SandboxRocketCollisionTarget"
+	collision_target.collision_layer = 1
+	collision_target.collision_mask = 1
+	collision_target.position = Vector3(24.0, 4.0, 24.0)
+	var target_shape := CollisionShape3D.new()
+	var target_box := BoxShape3D.new()
+	target_box.size = Vector3(4.0, 4.0, 1.0)
+	target_shape.shape = target_box
+	collision_target.add_child(target_shape)
+	main.add_child(collision_target)
+
+	rocket.global_position = Vector3(24.0, 4.0, 29.0)
+	rocket.gravity_scale = 0.0
+	rocket.linear_velocity = Vector3(0.0, 0.0, -12.0)
+	rocket.sleeping = false
+	var impacts_before: int = int(main.get("_total_impacts"))
+	for _frame in range(120):
+		await physics_frame
+		if int(main.call("get_spawned_prop_count")) < props_before and int(main.get("_total_impacts")) > impacts_before:
+			break
+	if int(main.call("get_spawned_prop_count")) >= props_before:
+		_fail("Thrown rocket did not detonate through a real physics collision")
+		return
+	if int(main.get("_total_impacts")) != impacts_before + 1:
+		_fail("Rocket collision did not invoke the shared detonation path")
+		return
+	var spawn_status: Label = main.get("_spawn_status_label") as Label
+	if spawn_status == null or not spawn_status.text.contains(collision_target.name):
+		_fail("Rocket did not report the actual collision target")
+		return
+	collision_target.queue_free()
+	await physics_frame
 
 	var load_errors: Array = main.call("load_scenario", &"foundation_strike")
 	if not load_errors.is_empty():
@@ -207,12 +274,44 @@ func _run() -> void:
 	if load_errors.is_empty() or main.call("get_active_scenario") != active_before_invalid:
 		_fail("Invalid scenario load was accepted or changed the active scenario")
 		return
+	# World switches must discard old props, then place exactly two starter
+	# rockets around the new world's configured player spawn.
+	var extra_prop: Dictionary = main.call("spawn_item", &"barrel")
+	if not bool(extra_prop.get("ok", false)):
+		_fail("Could not create a prop before switching worlds")
+		return
 	load_errors = main.call("load_scenario", &"sparse_beam_shear")
 	if not load_errors.is_empty():
 		_fail("Sparse scenario load failed: %s" % "\n".join(load_errors))
 		return
 	if String(main.call("get_active_world_definition").world_id) != "sparse_quarry":
 		_fail("Sparse scenario did not switch to its world")
+		return
+	if int(main.call("get_spawned_prop_count")) != 2:
+		_fail("World switch did not replace old props with two starter rockets")
+		return
+	var sparse_spawn: Vector3 = main.call("_get_active_spawn")
+	var sparse_player: Node3D = main.get("_player") as Node3D
+	if sparse_player == null or sparse_player.global_position.distance_to(sparse_spawn) > 0.01:
+		_fail("World switch did not move the player to the selected world's spawn")
+		return
+	var starter_props: Array = main.get("_spawned_props")
+	for starter_variant in starter_props:
+		var starter: RigidBody3D = starter_variant as RigidBody3D
+		if starter == null or not starter.name.begins_with("StarterRocket_"):
+			_fail("World switch retained a non-starter prop")
+			return
+		if starter.global_position.distance_to(sparse_spawn) > 8.0:
+			_fail("Starter rocket was not placed near the active world's spawn")
+			return
+
+	main.call("unload_world")
+	if int(main.call("get_spawned_prop_count")) != 0 or int(main.call("get_resident_world_count")) != 0:
+		_fail("World unload did not clear props and resident world state")
+		return
+	load_errors = main.call("load_world", &"classic_yard")
+	if not load_errors.is_empty() or int(main.call("get_spawned_prop_count")) != 2:
+		_fail("Reloading a world did not recreate its starter rockets")
 		return
 
 	main.call("reset_simulation")

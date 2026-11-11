@@ -687,3 +687,41 @@ This is an append-only engineering journal. Each substantial session is recorded
 ### After work
 - Godot import clean. Full local Windows regression passed: smoke, configuration persistence, all terrain markers, world loading, and simulation tools. No `SCRIPT ERROR:`, `ERROR:`, `Parse Error:`, or `Failed to load script` matches.
 - Limits: no downloaded art/models/HDRI; effects are still mesh-and-tween with the eight-burst cap; the rocket is visual only and the blast applies on arrival rather than from a simulated projectile; headless tests do not prove visual quality or target-PC frame rate.
+
+## 2026-11-11 - GMod-style sandbox, CC0 assets, carry/throw
+
+### Before work
+- Started from `main` at `9165004` where the player fired a visual-only rocket like a weapon.
+- Owner asked for a Garry's-Mod-style sandbox instead: rockets lying in the world, a spawn menu for weapons/props, carrying a prop while holding another, and throwing modeled on GMod; also asked for free assets that are safe to bundle.
+- Scope: replace the player-fired rocket with spawnable physics props, add carry/throw and contact detonation, bundle CC0 models with credits, keep the existing blast/effects/camera systems, and avoid new dependencies.
+
+### During work
+- Downloaded the CC0 Kenney Space Kit and Poly Haven samples via their public download endpoints, pruned the kit to 12 models (7 spawnable props plus rocket parts), and recorded sources in `assets/CREDITS.md`.
+- Added `pickup` (E) and `spawn_menu` (Tab) InputMap actions.
+- Added a sandbox layer in `main.gd`: fixed seven-item spawn catalog (rocket, barrel, barrel stack, meteor, rock, generator, machine), model loader that recenters/scales GLB meshes from their combined AABB and adds a box collider, 24-prop cap, and two starter rockets on the ground.
+- Added E pickup with a physics ray plus forward-cone fallback, camera-relative carry with collision disabled, E drop, and left-mouse throw using camera aim and player momentum.
+- Rocket props enable contact monitoring and detonate once on first contact after being thrown, through a new shared `_detonate` path used by the blast tool too. The blast tool now applies instantly; removed the old player-fired rocket flight and the scenario fly-in.
+- Rebuilt the HUD hint and added a themed top-left Spawn Menu panel with a prop grid and status line.
+- Extended `tests/phase5/simulation_tools_test.gd` for the spawn catalog, starter rockets, spawn, menu toggle, pickup, throw, and rocket detonation.
+
+### After work
+- Local `WORLDBREAK_SIMULATION_TOOLS_OK` passed with the sandbox checks; import is clean.
+- Limits: seven curated models rather than a full asset browser; carrying freezes the body instead of using a grab constraint; 24 spawned props is a hard cap; headless tests cover logic, not interactivity. No audio and no target-PC telemetry.
+
+## 2026-11-11 - Sandbox integration hardening
+
+### Before work
+- Started from PR #28 head 9cd6109d40547d17be994ec04e62ee9a3f19b181.
+- Scope: fix spawned-prop ownership across world transitions, anchor starter rockets to the active world's player spawn, verify rocket detonation through a physical contact event, and keep physics queries out of the contact callback.
+- Risks: scenario loading reuses the world-loading path; tests must ensure the new cleanup does not remove world structure/terrain or leave the sandbox without its two starter rockets.
+
+### During work
+- World loading now clears old props only after the incoming simulation configuration validates and applies; it then places two starter rockets relative to the newly configured player spawn. World unload clears props and pending detonation work.
+- Prop cleanup detaches bodies immediately before freeing them, avoiding stale colliders during same-frame world replacement.
+- Rocket contact callbacks now enqueue the detonation; the shared blast path runs on the next physics tick, where the existing physics queries and terrain/structure updates are processed safely.
+- Replaced the direct callback-only rocket assertion with a test that throws/arms a rocket, drives it into a real static collision body, and verifies both the collision target and shared detonation result. Added world switch/unload/reload lifecycle assertions.
+- Updated the README, project status, and manual Windows checklist to document the behavior.
+
+### After work
+- GitHub Actions run [#43038602870](https://github.com/PanDuroDev/Idk/actions/runs/43038602870) passed on both Linux and Windows at implementation head 06dbe2b232d88aa8fe12ebaf9abbb0567a97ae7a. Both jobs imported and launched Godot 4.7.2, then passed smoke, configuration persistence, terrain, world-loading, and simulation-tools regressions, including the real rocket collision and world lifecycle assertions.
+- Manual visual checks remain required for model orientation, pickup feel, prop stability, and target-PC performance. These are explicitly not inferred from headless CI.
