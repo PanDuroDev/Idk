@@ -60,13 +60,13 @@ Give WORLDBREAK a cohesive in-game interface inspired by the clarity, layered su
 
 ## Implementation checklist
 
-- [ ] Establish monochrome design tokens and reusable Theme styles.
-- [ ] Refresh HUD and control-hint strip.
-- [ ] Refresh Simulation Control and make it scrollable.
-- [ ] Refresh Spawn Menu and status/capacity feedback.
-- [ ] Refresh Debug Overlay.
-- [ ] Add UI theme regression assertions.
-- [ ] Update README/project status/work log.
+- [x] Establish monochrome design tokens and reusable Theme styles.
+- [x] Refresh HUD and control-hint strip.
+- [x] Refresh Simulation Control and make it scrollable.
+- [x] Refresh Spawn Menu and status/capacity feedback.
+- [x] Refresh Debug Overlay.
+- [x] Add UI theme regression assertions.
+- [x] Update README/project status/work log.
 - [ ] Pass Linux and Windows CI.
 
 ## Scope boundaries
