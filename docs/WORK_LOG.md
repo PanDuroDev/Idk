@@ -805,3 +805,23 @@ This is an append-only engineering journal. Each substantial session is recorded
 ### After work
 - Local import clean; full local regression passed (smoke, configuration persistence, all terrain markers, world loading, and Phase 5 simulation tools).
 - Limits: visual review covered one Windows display only; small/high-DPI screens and Linux text rendering are unverified. Physics and sandbox behavior are unchanged.
+
+## 2026-11-12 - Structural load path and ground support
+
+### Before work
+- Reported bug: a low blast only moved cells inside its radius; blocks high above stayed suspended with no way to fall.
+- Root causes: the support graph flooded through horizontal neighbours from any surviving base cell, so one leftover base block kept the whole shell up; released cells were still treated as occupancy; bottom cells were always grounded regardless of the terrain under them; and sleeping bodies outside the radius were never woken.
+
+### During work
+- Replaced the six-axis flood with a vertical load path: a cell stands on a supported cell below it, or bridges a gap when a supported cell is within two cells on both sides at the same height. Unsupported cells become holes, so collapse cascades in one pass.
+- Removed cells are tracked across refreshes, so released or broken cells never act as supports again.
+- Added `TerrainWorld.get_density_at()`, which evaluates the base density and the edit journal analytically, and `DestructibleStructure.set_ground_sampler()`. Bottom cells are grounded only where that density is positive, so cratering under a base removes its foundation immediately, before the queued mesh and collision rebuilds.
+- Support is re-evaluated after every blast when a ground sampler is active, and scenarios that carve terrain now refresh support too.
+- Reset and scenario setup restore terrain before the structure so a fresh building does not fall into the old crater.
+- Wakes every non-frozen `blastable` body after a detonation, so props resting on removed support fall.
+- Tests: updated the support-graph assertions (one-sided support falls, a beam between two pillars stands) and added Phase 5 checks for a partial base blast and a ground carve under the building.
+
+### After work
+- Headless probe: 70/70 supported at rest; a 4.5 low blast broke 34 base cells and released all 70 fragments (before: 41 stayed supported). Radius 1.5 broke 2 and kept 64 supported; radius 2.5 broke 7 and kept 20. Sparse Quarry still reports 11/11 supported on load, so the beam between its pillars stands.
+- Local import clean; full local regression passed (smoke, configuration persistence, all terrain markers, world loading, Phase 5 simulation tools).
+- Limits: the support rule is still a topology approximation, not a stress or joint solver. Fast debris can still tunnel through the safety floor because fragments do not enable continuous collision detection. Retiring a fragment after 30 seconds does not wake bodies resting on it.

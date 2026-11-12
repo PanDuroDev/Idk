@@ -824,8 +824,19 @@ func _test_support_graph() -> bool:
 	]
 	var one_base_removed: Dictionary = {Vector3i(0, 0, 0): true}
 	var alternate_path: Dictionary = SUPPORT_GRAPH_SCRIPT.find_supported_cells(bridge, one_base_removed)
-	if alternate_path.size() != 3:
-		_fail("The alternate support path should keep the connected bridge supported")
+	if alternate_path.size() != 2 or alternate_path.has(Vector3i(0, 1, 0)):
+		_fail("A cell with support on one side only should fall")
+		return false
+
+	var lintel: Array[Vector3i] = []
+	for x in range(5):
+		lintel.append(Vector3i(x, 3, 0))
+	for y in range(3):
+		lintel.append(Vector3i(0, y, 0))
+		lintel.append(Vector3i(4, y, 0))
+	var lintel_support: Dictionary = SUPPORT_GRAPH_SCRIPT.find_supported_cells(lintel, {})
+	if lintel_support.size() != lintel.size():
+		_fail("A beam between two pillars should stay supported within the bridge span")
 		return false
 
 	return true

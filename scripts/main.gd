@@ -190,10 +190,11 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _physics_process(_delta: float) -> void:
 	if _reset_requested:
-		if is_instance_valid(_structure):
-			_structure.call("reset_structure")
+		# Terrain first: the structure re-checks its ground support while resetting.
 		if is_instance_valid(_terrain):
 			_terrain.call("reset_terrain")
+		if is_instance_valid(_structure):
+			_structure.call("reset_structure")
 		_reset_player_to_spawn(_get_active_spawn())
 		_reset_requested = false
 		_last_broken_count = 0
@@ -319,6 +320,9 @@ func load_world(world_id: StringName) -> Array[String]:
 		errors.assign(validation["errors"])
 		return errors
 
+	if is_instance_valid(_structure):
+		# The old terrain may hold craters; do not judge ground support against it.
+		_structure.call("set_ground_sampler", Callable())
 	var apply_errors: Array[String] = apply_simulation_configuration(validation["configuration"])
 	if not apply_errors.is_empty():
 		errors.assign(apply_errors)
@@ -329,6 +333,9 @@ func load_world(world_id: StringName) -> Array[String]:
 	_clear_spawned_props()
 	_apply_world_environment(world)
 	_build_terrain(world)
+	if is_instance_valid(_structure):
+		var sampler: Callable = Callable(_terrain, "get_density_at") if is_instance_valid(_terrain) else Callable()
+		_structure.call("set_ground_sampler", sampler)
 	_active_world_definition = world
 	_reset_player_to_spawn(world.player_spawn)
 	_spawn_starter_rockets()
@@ -620,10 +627,10 @@ func _prepare_scenario_run(scenario_id: StringName) -> Dictionary:
 		return {"ok": false, "errors": missing, "scenario": null, "impact": Vector3.ZERO}
 
 	# Reset through the existing sync paths so the run starts from the same state.
-	if is_instance_valid(_structure):
-		_structure.call("reset_structure")
 	if is_instance_valid(_terrain):
 		_terrain.call("reset_terrain")
+	if is_instance_valid(_structure):
+		_structure.call("reset_structure")
 	_reset_player_to_spawn(_get_active_spawn())
 	_reset_requested = false
 	_pending_blasts.clear()
@@ -648,6 +655,8 @@ func _apply_scenario_impact(scenario: ExperimentScenarioScript, impact: Vector3)
 	else:
 		_terrain.call("carve_sphere", impact, scenario.blast_radius, scenario.blast_damage)
 		terrain_edits = int(_terrain.call("get_terrain_edit_count"))
+		if is_instance_valid(_structure):
+			_structure.call("refresh_support")
 	var elapsed_usec: int = Time.get_ticks_usec() - started_usec
 
 	_blast_service.call(
@@ -995,10 +1004,19 @@ func _detonate(impact_position: Vector3, impact_normal: Vector3, radius: float) 
 		blast_upward_bias
 	))
 	_total_impacts += 1
+	_wake_blastable_bodies()
 	_spawn_blast_flash(impact_position)
 	_spawn_impact_chips(impact_position, impact_normal, _last_broken_count)
 	_add_camera_shake(clampf(radius / 22.0, 0.03, 0.12))
 	_chain_detonate_rockets(impact_position, radius)
+
+
+func _wake_blastable_bodies() -> void:
+	# A blast can remove what a sleeping body was resting on, outside the radius.
+	for body in get_tree().get_nodes_in_group("blastable"):
+		var rigid_body := body as RigidBody3D
+		if rigid_body != null and not rigid_body.freeze:
+			rigid_body.sleeping = false
 
 
 func _chain_detonate_rockets(impact_position: Vector3, radius: float) -> void:

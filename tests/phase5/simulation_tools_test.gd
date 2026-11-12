@@ -437,6 +437,27 @@ func _run() -> void:
 		_fail("Reloading a world did not recreate its starter rockets")
 		return
 
+	# A low blast must also take down the blocks above it, not only the cells
+	# inside the radius, and carving the ground must remove their foundation.
+	var collapse_structure: Node = main.get_node_or_null("DestructibleStructure")
+	var collapse_terrain: Node = main.get_node_or_null("TerrainWorld")
+	if collapse_structure == null or collapse_terrain == null:
+		_fail("Collapse check could not find the structure and terrain")
+		return
+	main.call("_detonate", Vector3(0.0, 0.6, -11.0), Vector3.UP, 3.0)
+	await physics_frame
+	if int(collapse_structure.call("get_broken_fragment_count")) == 0:
+		_fail("A low blast broke no base blocks")
+		return
+	if int(collapse_structure.call("get_supported_fragment_count")) >= 70:
+		_fail("A low blast left the superstructure fully supported and floating")
+		return
+	collapse_terrain.call("carve_sphere", Vector3(0.0, -0.5, -12.0), 2.0, 8.0)
+	collapse_structure.call("refresh_support")
+	if int(collapse_structure.call("get_supported_fragment_count")) >= int(collapse_structure.call("get_fragment_count")):
+		_fail("Removing the ground under the base kept every block supported")
+		return
+
 	main.call("reset_simulation")
 	await physics_frame
 	await process_frame

@@ -64,6 +64,10 @@ Aim at the center of the front face of a block in the foundation row and trigger
 Check the following:
 
 - Loose fragments rise to 70/70 after full release.
+- Blocks above the broken foundation fall instead of staying suspended, even when they are outside the blast radius.
+- A small blast (radius about 1.5) drops only the blocks around it; a wide gap does not stay bridged.
+- Carve the ground under the building with a low blast, then blast the air near the base: the base blocks above the crater fall.
+- Load **Sparse Quarry** and confirm the two pillars and the beam between them stay standing at rest.
 - Fragments fall onto the ground without passing through it.
 - No fragment has an obviously invalid transform, launches far outside the arena, or jitters continuously after settling.
 - Wait at least 30 seconds to observe long-duration settling.

@@ -21,8 +21,8 @@
 - [x] Add bounded dust/debris effects and opt-in diagnostics ([PR #17](https://github.com/PanDuroDev/Idk/pull/17), merged).
 
 ## Phase 2 - Structural authoring and reusable configurations ([AI issue #6](https://github.com/PanDuroDev/Idk/issues/6), architecture merged; implementation underway)
-- [x] Deterministic six-axis support graph.
-- [x] Detect loss of all paths to ground and release unsupported sections.
+- [x] Deterministic vertical support graph with two-sided bridging.
+- [x] Detect loss of the load path (broken blocks or carved ground) and release unsupported sections.
 - [x] Restore support graph on reset.
 - [x] Add accumulated per-cell damage with distance falloff.
 - [x] Separate blast damage amount from physical impulse strength.

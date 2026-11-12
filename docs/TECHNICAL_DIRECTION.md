@@ -19,12 +19,14 @@ Input callbacks queue intent only. The main scene consumes queued requests in `_
 ## Destruction architecture
 
 ### StructuralSupportGraph
-`StructuralSupportGraph` is a deterministic topology solver, not a force solver. It runs breadth-first search from intact bottom-layer anchors through six face-adjacent intact cells.
+`StructuralSupportGraph` is a deterministic topology solver, not a force solver. A cell is supported when the cell below it is supported, or when it can bridge a gap: a supported cell within two cells on both sides at the same height, with no hole between the bridge and its anchors. Bottom cells start as supported only when the terrain under them is solid, sampled analytically from the terrain density field so the answer is correct before the queued mesh and collision rebuilds run.
 
 This provides a predictable approximation:
-- Removing one base cell need not collapse a section if an alternate path to ground remains.
-- Removing a section's only base path releases the unsupported fragments.
-- The test suite verifies complete collapse when the base row is removed.
+- Removing one base cell does not keep the whole shell hanging by a shared corner or wall.
+- A block over an intact neighbour still falls when nothing holds it from below.
+- A short lintel between two pillars stays up; a wide gap does not.
+- Carving the ground under a base cell releases the column above it.
+- The test suite verifies complete collapse when the base row is removed, local collapse for a partial base blast, and a ground carve under the building.
 
 ### Cumulative damage
 Each cell tracks accumulated damage. Damage added by a blast is:

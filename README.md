@@ -5,10 +5,10 @@ WORLDBREAK is a 3D physics and destruction sandbox in active prototyping. The lo
 ## Current prototype
 - First-person movement with switchable first-person, orbit, and overview cameras (panel row or C). Orbit and overview aim and fire from their own view, lock player movement, and support right-drag rotation/pan plus wheel zoom.
 - A 7 x 5 x 2 modular block structure (70 rigid-body fragments).
-- Six-axis support graph rooted at surviving ground anchors.
+- Vertical support graph: a block stands on the block below, bridges up to two cells only when anchored on both sides, and loses support when the terrain under it is carved away.
 - Per-fragment accumulated damage with distance falloff and material-specific integrity/resistance.
 - Three editable material profiles: Foundation Concrete, Masonry, and Lightweight Panel.
-- Radial impacts that break damaged cells and release sections that lose all support paths.
+- Radial impacts that break damaged cells, cascade collapse through lost load paths, and carve craters in the terrain.
 - A resident chunked terrain patch under the whole arena whose surface blasts carve through bounded mesh and static-collision rebuild queues. The shipped worlds use a configurable 4x4 patch (64x64 units); a floor far below only catches debris.
 - Nine movable physics props (crates, barrels, and cones), bounded loose-debris lifetime/sleeping, reset-safe cleanup, a blast flash/shockwave look with dust and debris chips, and a runtime HUD.
 - A Garry's-Mod-style sandbox layer: Tab spawn menu with CC0 Kenney rockets, barrels, meteors, rocks, and machines; E carry/drop; left-mouse throw with aim and momentum; thrown rockets detonate on contact.
@@ -60,7 +60,7 @@ The current prototype retains all 70 original structure nodes for reset. Release
 - GDScript and Godot Physics 3D.
 - `BlastService` handles reusable radial shape queries and physical impulse falloff.
 - `TerrainWorld` owns a bounded resident patch, delegates blasts to the terrain edit journal, and drains mesh/collision rebuild queues.
-- `StructuralSupportGraph` computes cells connected to bottom-layer anchors.
+- `StructuralSupportGraph` computes vertical load paths from grounded bottom cells, plus two-sided bridging up to two cells wide.
 - `DestructionMaterialProfile` Resources define integrity, blast resistance, density multiplier, and tint.
 - Cells accumulate damage until their material-specific integrity threshold is reached.
 - Blast damage and physical impulse strength are independent settings.
@@ -73,7 +73,7 @@ The current prototype retains all 70 original structure nodes for reset. Release
 The workflow runs on both Linux and Windows for pull requests to any branch and pushes to `main`, `ai/phase-3/**`, `ai/phase-4/**`, and `ai/phase-5/**`.
 
 GitHub Actions imports and launches the project headlessly, then tests:
-- Support graph connectivity and alternate support paths.
+- Support graph vertical load paths, two-sided bridging, and ground loss.
 - Base-row failure and collapse, followed by 120 physics frames of live rigid-body simulation.
 - Five consecutive collapse/reset cycles, with 120 physics frames and ground/finite-state checks per cycle.
 - Finite fragment transforms/velocities and ground-containment checks after the collapse.

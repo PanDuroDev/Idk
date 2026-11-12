@@ -26,7 +26,7 @@ WORLDBREAK is a 3D physics and destruction sandbox. The long-term goal is to let
 - 70 modular rigid-body fragments and six physics props.
 - Reusable blast service and physics-tick request processing.
 - Shared mesh, material, and collision resources.
-- Six-axis support graph; fragments with no path to a surviving ground anchor are released.
+- Vertical support graph; a cell needs a supported cell below it, or supported cells on both sides within two cells. Fragments that lose their load path fall, including when the terrain under a base cell is carved away.
 - Per-cell accumulated damage with distance falloff.
 - Three data-driven `DestructionMaterialProfile` resources:
   - Foundation Concrete: integrity 1.6, blast resistance 1.2, density multiplier 1.3.
@@ -179,6 +179,17 @@ Each issue contains its own AI prompt, PR breakdown, acceptance criteria, and co
 - The Phase 5 regression asserts compact panel widths, the shared scrollbar style, bottom-left growth of the bounded Simulation panel, canvas stretching with `expand`, and a maximized start.
 - Local Windows validation imported cleanly, passed the full regression, and an interactive screenshot review at 1920x1009 confirmed the compact layout.
 - Limits: the UI was reviewed at 1920x1009 only; very small or high-DPI displays and text rendering on Linux still need manual review.
+
+## Structural load path and ground support
+
+- The support graph now follows a vertical load path. A cell stands on a supported cell below it, or bridges a gap only when a supported cell is within two cells on both sides at the same height; gaps and holes break the bridge.
+- Broken, released, and unsupported cells are remembered as holes, so one surviving base block can no longer hold up the whole shell.
+- Bottom cells are grounded only where `TerrainWorld.get_density_at()` reports solid terrain. The density check is analytic (base field plus the edit journal), so it reacts immediately to a carve even before the queued mesh and collision rebuilds catch up.
+- Support is re-evaluated after every blast while a terrain is resident, and terrain scenarios refresh support after carving. Reset and scenario setup restore the terrain before the structure.
+- Every detonation wakes all non-frozen `blastable` bodies, so props asleep on removed support fall.
+- Phase 5 now checks that a partial base blast leaves the superstructure unsupported and that carving the ground under the base releases it. The smoke support-graph test checks the one-sided fall and the two-pillar lintel.
+- Local headless probe: a 4.5 low blast broke 34 base cells and released all 70 fragments; before the change 41 stayed supported. Sparse Quarry reports 11/11 supported on load.
+- Limits: the rule is a topology approximation, not a stress or joint solver. Debris still lacks continuous collision detection against the safety floor, and retiring a 30-second-old fragment does not wake bodies resting on it.
 
 ## Required update protocol
 

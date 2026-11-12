@@ -15,8 +15,10 @@ var _material_by_cell: Dictionary = {}
 var _material_overrides_by_cell: Dictionary = {}
 var _damage_by_cell: Dictionary = {}
 var _broken_cells: Dictionary = {}
+var _removed_cells: Dictionary = {}
 var _supported_cells: Dictionary = {}
 var _unsupported_cells: Dictionary = {}
+var _ground_sampler: Callable = Callable()
 var _loose_age_by_fragment: Dictionary = {}
 var _retired_fragment_ids: Dictionary = {}
 var _initial_collision_layers: Array[int] = []
@@ -93,6 +95,17 @@ func get_material_override_count() -> int:
 	return _material_overrides_by_cell.size()
 
 
+func set_ground_sampler(sampler: Callable) -> void:
+	## The sampler returns terrain density (> 0 is solid) for a world position.
+	## Without one, every bottom cell counts as grounded.
+	_ground_sampler = sampler
+	_refresh_support_state()
+
+
+func refresh_support() -> void:
+	_refresh_support_state()
+
+
 func _release_existing_fragments() -> void:
 	for fragment: RigidBody3D in _fragments:
 		if is_instance_valid(fragment):
@@ -105,6 +118,7 @@ func _release_existing_fragments() -> void:
 	_material_by_cell.clear()
 	_damage_by_cell.clear()
 	_broken_cells.clear()
+	_removed_cells.clear()
 	_supported_cells.clear()
 	_unsupported_cells.clear()
 	_loose_age_by_fragment.clear()
@@ -206,7 +220,9 @@ func apply_blast_damage(origin: Vector3, radius: float, damage_amount: float = 1
 		_broken_cells[cell] = true
 		newly_broken += 1
 
-	if newly_broken > 0:
+	if newly_broken > 0 or _ground_sampler.is_valid():
+		# Re-check even without new broken cells: a terrain carve can remove the
+		# ground under a still-intact base.
 		_refresh_support_state()
 
 	return newly_broken
@@ -246,19 +262,42 @@ func get_cell_density_multiplier(cell: Vector3i) -> float:
 
 
 func _refresh_support_state() -> void:
-	_supported_cells = SUPPORT_GRAPH_SCRIPT.find_supported_cells(_cells, _broken_cells)
+	for cell: Vector3i in _broken_cells:
+		_removed_cells[cell] = true
+	var grounded: Dictionary = _find_grounded_bottom_cells()
+	_supported_cells = SUPPORT_GRAPH_SCRIPT.find_supported_cells(
+		_cells, _removed_cells, grounded, _ground_sampler.is_valid()
+	)
 	_unsupported_cells.clear()
 
 	for cell: Vector3i in _cells:
 		var fragment: RigidBody3D = _fragments_by_cell[cell] as RigidBody3D
-		if _broken_cells.has(cell):
+		if _removed_cells.has(cell):
 			_release_fragment(fragment)
 			continue
 		if _supported_cells.has(cell):
 			continue
 
 		_unsupported_cells[cell] = true
+		_removed_cells[cell] = true
 		_release_fragment(fragment)
+
+
+func _find_grounded_bottom_cells() -> Dictionary:
+	var grounded: Dictionary = {}
+	if not _ground_sampler.is_valid() or building_definition == null:
+		return grounded
+	var probe_depth: float = building_definition.cell_size.y * 0.5 + 0.08
+	for cell: Vector3i in _cells:
+		if cell.y != 0 or _removed_cells.has(cell):
+			continue
+		var fragment: RigidBody3D = _fragments_by_cell.get(cell) as RigidBody3D
+		if not is_instance_valid(fragment):
+			continue
+		var probe: Vector3 = fragment.global_position - Vector3(0.0, probe_depth, 0.0)
+		if float(_ground_sampler.call(probe)) > 0.0:
+			grounded[cell] = true
+	return grounded
 
 
 func _release_fragment(fragment: RigidBody3D) -> void:
@@ -385,6 +424,7 @@ func get_unsupported_fragment_count() -> int:
 func reset_structure() -> void:
 	_damage_by_cell.clear()
 	_broken_cells.clear()
+	_removed_cells.clear()
 	_unsupported_cells.clear()
 	_loose_age_by_fragment.clear()
 	_retired_fragment_ids.clear()

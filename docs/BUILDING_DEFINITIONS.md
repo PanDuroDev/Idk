@@ -16,7 +16,7 @@ origin_offset + coordinate * cell_spacing
 
 `cell_size` controls the shared box mesh and collision shape. `cell_spacing` controls center placement. They are separate so a definition can intentionally leave gaps or overlap cells. A custom transform replaces the regular transform for that cell.
 
-Only occupied cells need to be listed, so layouts may be sparse. The six-axis support graph still receives the occupied `Vector3i` coordinates and remains independent of Resources and scene nodes.
+Only occupied cells need to be listed, so layouts may be sparse. The vertical support graph still receives the occupied `Vector3i` coordinates and remains independent of Resources and scene nodes; it needs no extra authoring data beyond the cell coordinates.
 
 ## Included samples
 

@@ -183,6 +183,13 @@ func get_chunk_cell_size() -> float:
 	return _cell_size
 
 
+func get_density_at(world_position: Vector3) -> float:
+	## Analytic density from the journal, valid before the queued mesh and
+	## collision rebuilds catch up. Positive means solid.
+	var local_position := to_local(world_position)
+	return _journal.evaluate_density(_base_density(local_position), local_position)
+
+
 func _base_density(local_position: Vector3) -> float:
 	return 1.0 - local_position.y
 
