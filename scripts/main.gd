@@ -37,7 +37,7 @@ const UI_TEXT_COLOR: Color = Color(0.94, 0.95, 0.97, 1.0)
 const UI_MUTED_COLOR: Color = Color(0.64, 0.66, 0.7, 1.0)
 const UI_PANEL_COLOR: Color = Color(0.025, 0.027, 0.032, 0.94)
 const UI_FIELD_COLOR: Color = Color(0.085, 0.09, 0.1, 0.98)
-const UI_BORDER_COLOR: Color = Color(0.56, 0.58, 0.62, 0.86)
+const UI_BORDER_COLOR: Color = Color(0.56, 0.58, 0.62, 0.18)
 const UI_PANEL_SOFT_COLOR: Color = Color(0.055, 0.06, 0.068, 0.96)
 const UI_DISABLED_COLOR: Color = Color(0.42, 0.43, 0.46, 1.0)
 const SHAKE_DECAY_SECONDS: float = 0.26
@@ -225,7 +225,7 @@ func _process(delta: float) -> void:
 	var fragment_unsupported: int = int(_structure.call("get_unsupported_fragment_count")) if is_instance_valid(_structure) else 0
 	var terrain_edits: int = int(_terrain.call("get_terrain_edit_count")) if is_instance_valid(_terrain) else 0
 	var world_name: String = _active_world_definition.display_name if _active_world_definition != null else "none"
-	_hud_label.text = "World  %s\nFPS  %d      Loose  %d/%d\nBroken  %d (+%d)      Unsupported  %d\nTargets  %d      Terrain edits  %d" % [
+	_hud_label.text = "%s  ·  %d FPS\nLoose %d/%d  ·  Broken %d (+%d)  ·  Unsupported %d\nTargets %d  ·  Terrain edits %d" % [
 		world_name,
 		Engine.get_frames_per_second(),
 		fragment_released,
@@ -1488,45 +1488,46 @@ func _build_spawn_menu() -> void:
 	_spawn_menu = PanelContainer.new()
 	_spawn_menu.name = "SpawnMenu"
 	_spawn_menu.theme = _ui_theme
-	_spawn_menu.custom_minimum_size = Vector2(320.0, 0.0)
+	_spawn_menu.custom_minimum_size = Vector2(264.0, 0.0)
 	var layer := CanvasLayer.new()
 	layer.name = "SpawnMenuLayer"
 	layer.add_child(_spawn_menu)
 	add_child(layer)
 	_spawn_menu.anchor_left = 0.0
 	_spawn_menu.anchor_top = 0.0
-	_spawn_menu.offset_left = 18.0
-	_spawn_menu.offset_top = 142.0
-	_spawn_menu.offset_right = 338.0
-	_spawn_menu.offset_bottom = 142.0
+	_spawn_menu.offset_left = 12.0
+	_spawn_menu.offset_top = 122.0
+	_spawn_menu.offset_right = 276.0
+	_spawn_menu.offset_bottom = 122.0
 	_spawn_menu.grow_vertical = Control.GROW_DIRECTION_END
 
 	var layout := VBoxContainer.new()
-	layout.add_theme_constant_override("separation", 10)
+	layout.add_theme_constant_override("separation", 6)
+	var header := HBoxContainer.new()
+	header.add_theme_constant_override("separation", 6)
 	var title := Label.new()
 	title.text = "OBJECT LIBRARY"
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.add_theme_color_override("font_color", UI_ACCENT)
-	title.add_theme_font_size_override("font_size", 16)
-	var hint := Label.new()
-	hint.text = "TAB  CLOSE  ·  SELECT AN OBJECT TO SPAWN"
-	hint.add_theme_color_override("font_color", UI_MUTED_COLOR)
-	hint.add_theme_font_size_override("font_size", 10)
-	var divider := HSeparator.new()
+	title.add_theme_font_size_override("font_size", 14)
+	var spawn_items: Array = _spawn_item_definitions()
 	var capacity := Label.new()
 	capacity.name = "SpawnCapacity"
-	capacity.text = "PHYSICS PROPS     7 TYPES  ·  LIMIT 24"
+	capacity.text = "%d TYPES  ·  %d MAX" % [spawn_items.size(), MAX_SPAWNED_PROPS]
 	capacity.add_theme_color_override("font_color", UI_MUTED_COLOR)
-	capacity.add_theme_font_size_override("font_size", 10)
+	capacity.add_theme_font_size_override("font_size", 9)
+	header.add_child(title)
+	header.add_child(capacity)
 
 	var grid := GridContainer.new()
 	grid.name = "SpawnItemGrid"
 	grid.columns = 2
-	grid.add_theme_constant_override("h_separation", 8)
-	grid.add_theme_constant_override("v_separation", 8)
-	for info: Dictionary in _spawn_item_definitions():
+	grid.add_theme_constant_override("h_separation", 6)
+	grid.add_theme_constant_override("v_separation", 6)
+	for info: Dictionary in spawn_items:
 		var button := Button.new()
 		button.text = String(info["label"])
-		button.custom_minimum_size = Vector2(0.0, 38.0)
+		button.custom_minimum_size = Vector2(0.0, 30.0)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.pressed.connect(_on_spawn_item_pressed.bind(String(info["id"])))
 		grid.add_child(button)
@@ -1535,20 +1536,17 @@ func _build_spawn_menu() -> void:
 	status_panel.name = "SpawnStatusPanel"
 	status_panel.add_theme_stylebox_override(
 		"panel",
-		_make_ui_style(UI_PANEL_SOFT_COLOR, UI_BORDER_COLOR, 8, 8.0, 1)
+		_make_ui_style(UI_PANEL_SOFT_COLOR, UI_BORDER_COLOR, 8, 6.0, 1)
 	)
 	_spawn_status_label = Label.new()
 	_spawn_status_label.name = "SpawnStatus"
-	_spawn_status_label.text = "E  CARRY / DROP     ·     LMB  THROW"
+	_spawn_status_label.text = "E  CARRY  ·  LMB  THROW"
 	_spawn_status_label.add_theme_color_override("font_color", UI_MUTED_COLOR)
-	_spawn_status_label.add_theme_font_size_override("font_size", 11)
+	_spawn_status_label.add_theme_font_size_override("font_size", 10)
 	_spawn_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	status_panel.add_child(_spawn_status_label)
 
-	layout.add_child(title)
-	layout.add_child(hint)
-	layout.add_child(divider)
-	layout.add_child(capacity)
+	layout.add_child(header)
 	layout.add_child(grid)
 	layout.add_child(status_panel)
 	_spawn_menu.add_child(layout)
@@ -1762,13 +1760,13 @@ func _build_debug_overlay() -> void:
 	_debug_overlay_panel = PanelContainer.new()
 	_debug_overlay_panel.name = "DebugOverlay"
 	_debug_overlay_panel.theme = _ui_theme
-	_debug_overlay_panel.position = Vector2(18.0, 455.0)
-	_debug_overlay_panel.custom_minimum_size = Vector2(410.0, 0.0)
+	_debug_overlay_panel.position = Vector2(12.0, 420.0)
+	_debug_overlay_panel.custom_minimum_size = Vector2(340.0, 0.0)
 	_debug_overlay_panel.visible = false
 	_ui_canvas.add_child(_debug_overlay_panel)
 
 	_debug_overlay_label = Label.new()
-	_debug_overlay_label.add_theme_font_size_override("font_size", 12)
+	_debug_overlay_label.add_theme_font_size_override("font_size", 10)
 	_debug_overlay_label.add_theme_color_override("font_color", UI_TEXT_COLOR)
 	_debug_overlay_panel.add_child(_debug_overlay_label)
 	_refresh_debug_overlay()
@@ -1826,9 +1824,9 @@ func _make_ui_style(
 
 
 func _apply_primary_button_style(button: Button) -> void:
-	var normal := _make_ui_style(Color(0.94, 0.95, 0.97), Color.WHITE, 8, 8.0, 1)
-	var hover := _make_ui_style(Color.WHITE, Color.WHITE, 8, 8.0, 1)
-	var pressed := _make_ui_style(Color(0.7, 0.72, 0.75), Color.WHITE, 8, 8.0, 1)
+	var normal := _make_ui_style(Color(0.94, 0.95, 0.97), Color.WHITE, 8, 6.0, 1)
+	var hover := _make_ui_style(Color.WHITE, Color.WHITE, 8, 6.0, 1)
+	var pressed := _make_ui_style(Color(0.7, 0.72, 0.75), Color.WHITE, 8, 6.0, 1)
 	button.add_theme_stylebox_override("normal", normal)
 	button.add_theme_stylebox_override("hover", hover)
 	button.add_theme_stylebox_override("pressed", pressed)
@@ -1840,16 +1838,16 @@ func _apply_primary_button_style(button: Button) -> void:
 
 func _create_ui_theme() -> Theme:
 	var theme := Theme.new()
-	theme.default_font_size = 13
+	theme.default_font_size = 12
 
-	var panel_style := _make_ui_style(UI_PANEL_COLOR, UI_BORDER_COLOR, 14, 16.0, 1)
+	var panel_style := _make_ui_style(UI_PANEL_COLOR, UI_BORDER_COLOR, 12, 10.0, 1)
 	theme.set_stylebox("panel", "PanelContainer", panel_style)
 
-	var button_normal := _make_ui_style(UI_FIELD_COLOR, UI_BORDER_COLOR, 8, 8.0, 1)
-	var button_hover := _make_ui_style(Color(0.16, 0.17, 0.19, 1.0), Color(0.94, 0.95, 0.97, 1.0), 8, 8.0, 1)
-	var button_pressed := _make_ui_style(Color(0.88, 0.89, 0.91, 1.0), Color.WHITE, 8, 8.0, 1)
-	var button_focus := _make_ui_style(Color(0.12, 0.13, 0.15, 1.0), Color.WHITE, 8, 8.0, 2)
-	var button_disabled := _make_ui_style(Color(0.055, 0.06, 0.068, 1.0), Color(0.23, 0.24, 0.26, 1.0), 8, 8.0, 1)
+	var button_normal := _make_ui_style(UI_FIELD_COLOR, UI_BORDER_COLOR, 8, 6.0, 1)
+	var button_hover := _make_ui_style(Color(0.16, 0.17, 0.19, 1.0), Color(0.94, 0.95, 0.97, 1.0), 8, 6.0, 1)
+	var button_pressed := _make_ui_style(Color(0.88, 0.89, 0.91, 1.0), Color.WHITE, 8, 6.0, 1)
+	var button_focus := _make_ui_style(Color(0.12, 0.13, 0.15, 1.0), Color.WHITE, 8, 6.0, 2)
+	var button_disabled := _make_ui_style(Color(0.055, 0.06, 0.068, 1.0), Color(0.23, 0.24, 0.26, 1.0), 8, 6.0, 1)
 
 	for control_type in ["Button", "OptionButton"]:
 		theme.set_stylebox("normal", control_type, button_normal)
@@ -1861,44 +1859,34 @@ func _create_ui_theme() -> Theme:
 		theme.set_color("font_hover_color", control_type, Color.WHITE)
 		theme.set_color("font_pressed_color", control_type, Color(0.04, 0.045, 0.05, 1.0))
 		theme.set_color("font_disabled_color", control_type, UI_DISABLED_COLOR)
-		theme.set_constant("h_separation", control_type, 8)
+		theme.set_constant("h_separation", control_type, 6)
 
-	var separator_style := StyleBoxLine.new()
-	separator_style.color = Color(0.58, 0.6, 0.64, 0.58)
-	separator_style.thickness = 1
-	separator_style.grow_begin = 2.0
-	separator_style.grow_end = 2.0
-	theme.set_stylebox("separator", "HSeparator", separator_style)
 	theme.set_color("font_color", "Label", UI_TEXT_COLOR)
 	theme.set_color("font_color", "CheckBox", UI_TEXT_COLOR)
 	theme.set_color("font_disabled_color", "Label", UI_DISABLED_COLOR)
 	theme.set_stylebox("panel", "PopupMenu", _make_ui_style(UI_PANEL_COLOR, UI_BORDER_COLOR, 8, 6.0, 1))
 	theme.set_stylebox("hover", "PopupMenu", button_hover)
 	theme.set_color("font_color", "PopupMenu", UI_TEXT_COLOR)
+
+	var scroll_track := StyleBoxFlat.new()
+	scroll_track.bg_color = Color(1.0, 1.0, 1.0, 0.04)
+	scroll_track.set_corner_radius_all(3)
+	scroll_track.content_margin_left = 3.0
+	scroll_track.content_margin_right = 3.0
+	var scroll_grabber := StyleBoxFlat.new()
+	scroll_grabber.bg_color = Color(0.66, 0.68, 0.72, 0.4)
+	scroll_grabber.set_corner_radius_all(3)
+	var scroll_grabber_hover := scroll_grabber.duplicate() as StyleBoxFlat
+	scroll_grabber_hover.bg_color = Color(0.86, 0.88, 0.91, 0.65)
+	var scroll_grabber_pressed := scroll_grabber.duplicate() as StyleBoxFlat
+	scroll_grabber_pressed.bg_color = Color(0.96, 0.96, 0.97, 0.85)
+	for bar_type in ["VScrollBar", "HScrollBar"]:
+		theme.set_stylebox("scroll", bar_type, scroll_track)
+		theme.set_stylebox("scroll_focus", bar_type, scroll_track)
+		theme.set_stylebox("grabber", bar_type, scroll_grabber)
+		theme.set_stylebox("grabber_highlight", bar_type, scroll_grabber_hover)
+		theme.set_stylebox("grabber_pressed", bar_type, scroll_grabber_pressed)
 	return theme
-
-func _add_key_hint(parent: HBoxContainer, key: String, action: String) -> void:
-	var item := HBoxContainer.new()
-	item.add_theme_constant_override("separation", 6)
-
-	var keycap := PanelContainer.new()
-	keycap.add_theme_stylebox_override(
-		"panel",
-		_make_ui_style(Color(0.91, 0.92, 0.94, 1.0), Color.WHITE, 5, 4.0, 1)
-	)
-	var key_label := Label.new()
-	key_label.text = key
-	key_label.add_theme_color_override("font_color", Color(0.035, 0.04, 0.045, 1.0))
-	key_label.add_theme_font_size_override("font_size", 10)
-	keycap.add_child(key_label)
-
-	var action_label := Label.new()
-	action_label.text = action
-	action_label.add_theme_color_override("font_color", UI_TEXT_COLOR)
-	action_label.add_theme_font_size_override("font_size", 10)
-	item.add_child(keycap)
-	item.add_child(action_label)
-	parent.add_child(item)
 
 
 func _build_hud() -> void:
@@ -1909,29 +1897,22 @@ func _build_hud() -> void:
 	var hud_panel := PanelContainer.new()
 	hud_panel.name = "HudPanel"
 	hud_panel.theme = _ui_theme
-	hud_panel.position = Vector2(18.0, 16.0)
-	hud_panel.custom_minimum_size = Vector2(258.0, 0.0)
+	hud_panel.position = Vector2(12.0, 10.0)
+	hud_panel.custom_minimum_size = Vector2(224.0, 0.0)
 	_ui_canvas.add_child(hud_panel)
 
 	var hud_layout := VBoxContainer.new()
-	hud_layout.add_theme_constant_override("separation", 7)
+	hud_layout.add_theme_constant_override("separation", 5)
 	hud_panel.add_child(hud_layout)
 
 	var title := Label.new()
 	title.text = "WORLDBREAK"
-	title.add_theme_font_size_override("font_size", 18)
+	title.add_theme_font_size_override("font_size", 14)
 	title.add_theme_color_override("font_color", UI_ACCENT)
 	hud_layout.add_child(title)
 
-	var subtitle := Label.new()
-	subtitle.text = "PHYSICS  /  DESTRUCTION SANDBOX"
-	subtitle.add_theme_font_size_override("font_size", 9)
-	subtitle.add_theme_color_override("font_color", UI_MUTED_COLOR)
-	hud_layout.add_child(subtitle)
-	hud_layout.add_child(HSeparator.new())
-
 	_hud_label = Label.new()
-	_hud_label.add_theme_font_size_override("font_size", 11)
+	_hud_label.add_theme_font_size_override("font_size", 10)
 	_hud_label.add_theme_color_override("font_color", UI_TEXT_COLOR)
 	_hud_label.text = "INITIALIZING SIMULATION"
 	hud_layout.add_child(_hud_label)
@@ -1940,7 +1921,7 @@ func _build_hud() -> void:
 	_crosshair.text = "+"
 	_crosshair.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_crosshair.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_crosshair.add_theme_font_size_override("font_size", 22)
+	_crosshair.add_theme_font_size_override("font_size", 20)
 	_crosshair.add_theme_color_override("font_color", Color(0.98, 0.98, 1.0, 0.82))
 	_crosshair.anchor_left = 0.5
 	_crosshair.anchor_top = 0.5
@@ -1959,21 +1940,18 @@ func _build_hud() -> void:
 	hints_panel.anchor_top = 1.0
 	hints_panel.anchor_right = 0.5
 	hints_panel.anchor_bottom = 1.0
-	hints_panel.offset_left = -390.0
-	hints_panel.offset_top = -60.0
-	hints_panel.offset_right = 390.0
-	hints_panel.offset_bottom = -14.0
+	hints_panel.offset_left = -300.0
+	hints_panel.offset_top = -50.0
+	hints_panel.offset_right = 300.0
+	hints_panel.offset_bottom = -10.0
 	_ui_canvas.add_child(hints_panel)
 
-	var hints_layout := HBoxContainer.new()
-	hints_layout.alignment = BoxContainer.ALIGNMENT_CENTER
-	hints_layout.add_theme_constant_override("separation", 12)
-	hints_panel.add_child(hints_layout)
-	_add_key_hint(hints_layout, "TAB", "SPAWN")
-	_add_key_hint(hints_layout, "E", "CARRY / DROP")
-	_add_key_hint(hints_layout, "LMB", "BLAST / THROW")
-	_add_key_hint(hints_layout, "C", "CAMERA")
-	_add_key_hint(hints_layout, "F3", "DIAGNOSTICS")
+	var hints_label := Label.new()
+	hints_label.text = "TAB  Spawn     E  Carry     LMB  Blast     C  Camera"
+	hints_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hints_label.add_theme_font_size_override("font_size", 9)
+	hints_label.add_theme_color_override("font_color", UI_MUTED_COLOR)
+	hints_panel.add_child(hints_label)
 
 func adjust_impact_setting(setting: StringName, amount: float) -> void:
 	match setting:
@@ -2002,14 +1980,14 @@ func _build_simulation_panel() -> void:
 	panel.anchor_left = 1.0
 	panel.anchor_top = 0.0
 	panel.anchor_right = 1.0
-	panel.anchor_bottom = 1.0
-	panel.offset_left = -392.0
-	panel.offset_right = -18.0
-	panel.offset_top = 18.0
-	panel.offset_bottom = -18.0
+	panel.anchor_bottom = 0.0
+	panel.offset_left = -312.0
+	panel.offset_right = -12.0
+	panel.offset_top = 12.0
+	panel.offset_bottom = 572.0
 	panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	panel.grow_vertical = Control.GROW_DIRECTION_END
-	panel.custom_minimum_size = Vector2(374.0, 0.0)
+	panel.custom_minimum_size = Vector2(300.0, 0.0)
 	_ui_canvas.add_child(panel)
 
 	var scroll := ScrollContainer.new()
@@ -2023,21 +2001,14 @@ func _build_simulation_panel() -> void:
 	var layout := VBoxContainer.new()
 	layout.name = "ControlLayout"
 	layout.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	layout.add_theme_constant_override("separation", 9)
+	layout.add_theme_constant_override("separation", 6)
 	scroll.add_child(layout)
 
 	var heading := Label.new()
-	heading.text = "WORLDBREAK"
-	heading.add_theme_font_size_override("font_size", 18)
+	heading.text = "SIMULATION"
+	heading.add_theme_font_size_override("font_size", 14)
 	heading.add_theme_color_override("font_color", UI_ACCENT)
 	layout.add_child(heading)
-
-	var subheading := Label.new()
-	subheading.text = "SIMULATION CONTROL"
-	subheading.add_theme_font_size_override("font_size", 9)
-	subheading.add_theme_color_override("font_color", UI_MUTED_COLOR)
-	layout.add_child(subheading)
-	layout.add_child(HSeparator.new())
 
 	_add_section(layout, "ENVIRONMENT")
 	_world_option = _add_option_row(layout, "World", WORLD_CATALOG.get_world_ids(), _on_world_selected)
@@ -2056,14 +2027,14 @@ func _build_simulation_panel() -> void:
 
 	_add_section(layout, "SESSION")
 	var action_row := HBoxContainer.new()
-	action_row.add_theme_constant_override("separation", 6)
+	action_row.add_theme_constant_override("separation", 5)
 	layout.add_child(action_row)
 
 	var run_button := Button.new()
 	run_button.name = "RunScenarioButton"
 	run_button.text = "RUN SCENARIO"
 	run_button.tooltip_text = "Reset the world, apply the selected scenario, and record the outcome after 120 physics frames"
-	run_button.custom_minimum_size.y = 36.0
+	run_button.custom_minimum_size.y = 30.0
 	run_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_apply_primary_button_style(run_button)
 	run_button.pressed.connect(_run_selected_scenario)
@@ -2073,31 +2044,31 @@ func _build_simulation_panel() -> void:
 	_pause_button.name = "PauseButton"
 	_pause_button.text = "PAUSE"
 	_pause_button.tooltip_text = "Pause or resume physics without changing the experiment time scale (P)"
-	_pause_button.custom_minimum_size = Vector2(76.0, 36.0)
+	_pause_button.custom_minimum_size = Vector2(62.0, 30.0)
 	_pause_button.pressed.connect(toggle_simulation_paused)
 	action_row.add_child(_pause_button)
 
 	var reset_button := Button.new()
 	reset_button.name = "ResetWorldButton"
 	reset_button.text = "RESET"
-	reset_button.custom_minimum_size = Vector2(68.0, 36.0)
+	reset_button.custom_minimum_size = Vector2(56.0, 30.0)
 	reset_button.pressed.connect(reset_simulation)
 	action_row.add_child(reset_button)
 
 	var export_row := HBoxContainer.new()
-	export_row.add_theme_constant_override("separation", 6)
+	export_row.add_theme_constant_override("separation", 5)
 	layout.add_child(export_row)
 
 	var json_button := Button.new()
 	json_button.text = "EXPORT JSON"
-	json_button.custom_minimum_size.y = 34.0
+	json_button.custom_minimum_size.y = 30.0
 	json_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	json_button.pressed.connect(_export_history.bind("user://experiment_runs.json"))
 	export_row.add_child(json_button)
 
 	var csv_button := Button.new()
 	csv_button.text = "EXPORT CSV"
-	csv_button.custom_minimum_size.y = 34.0
+	csv_button.custom_minimum_size.y = 30.0
 	csv_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	csv_button.pressed.connect(_export_history.bind("user://experiment_runs.csv"))
 	export_row.add_child(csv_button)
@@ -2106,13 +2077,13 @@ func _build_simulation_panel() -> void:
 	status_panel.name = "SimulationStatusPanel"
 	status_panel.add_theme_stylebox_override(
 		"panel",
-		_make_ui_style(UI_PANEL_SOFT_COLOR, UI_BORDER_COLOR, 8, 9.0, 1)
+		_make_ui_style(UI_PANEL_SOFT_COLOR, UI_BORDER_COLOR, 8, 6.0, 1)
 	)
 	_simulation_status_label = Label.new()
 	_simulation_status_label.name = "SimulationStatus"
-	_simulation_status_label.custom_minimum_size = Vector2(0.0, 52.0)
+	_simulation_status_label.custom_minimum_size = Vector2(0.0, 38.0)
 	_simulation_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_simulation_status_label.add_theme_font_size_override("font_size", 11)
+	_simulation_status_label.add_theme_font_size_override("font_size", 10)
 	_simulation_status_label.add_theme_color_override("font_color", UI_TEXT_COLOR)
 	_simulation_status_label.text = "SELECT A WORLD AND SCENARIO."
 	status_panel.add_child(_simulation_status_label)
@@ -2122,17 +2093,11 @@ func _build_simulation_panel() -> void:
 	_refresh_simulation_controls()
 
 func _add_section(parent: VBoxContainer, title: String) -> void:
-	var header := HBoxContainer.new()
-	header.add_theme_constant_override("separation", 10)
 	var label := Label.new()
 	label.text = title
-	label.add_theme_font_size_override("font_size", 10)
-	label.add_theme_color_override("font_color", UI_ACCENT)
-	header.add_child(label)
-	var separator := HSeparator.new()
-	separator.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header.add_child(separator)
-	parent.add_child(header)
+	label.add_theme_font_size_override("font_size", 9)
+	label.add_theme_color_override("font_color", UI_MUTED_COLOR)
+	parent.add_child(label)
 
 func _add_option_row(
 	parent: VBoxContainer,
@@ -2141,18 +2106,18 @@ func _add_option_row(
 	callback: Callable
 ) -> OptionButton:
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
+	row.add_theme_constant_override("separation", 6)
 	parent.add_child(row)
 
 	var name_label := Label.new()
 	name_label.text = title
-	name_label.custom_minimum_size.x = 112.0
-	name_label.add_theme_font_size_override("font_size", 11)
+	name_label.custom_minimum_size.x = 88.0
+	name_label.add_theme_font_size_override("font_size", 10)
 	name_label.add_theme_color_override("font_color", UI_MUTED_COLOR)
 	row.add_child(name_label)
 
 	var option := OptionButton.new()
-	option.custom_minimum_size.y = 34.0
+	option.custom_minimum_size.y = 30.0
 	option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	for index in range(ids.size()):
 		option.add_item(String(ids[index]))
@@ -2168,31 +2133,31 @@ func _add_setting_control_row(
 	step: float
 ) -> Label:
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
+	row.add_theme_constant_override("separation", 6)
 	parent.add_child(row)
 
 	var name_label := Label.new()
 	name_label.text = title
-	name_label.custom_minimum_size.x = 112.0
-	name_label.add_theme_font_size_override("font_size", 11)
+	name_label.custom_minimum_size.x = 88.0
+	name_label.add_theme_font_size_override("font_size", 10)
 	name_label.add_theme_color_override("font_color", UI_MUTED_COLOR)
 	row.add_child(name_label)
 
 	var decrease_button := Button.new()
 	decrease_button.text = "−"
-	decrease_button.custom_minimum_size = Vector2(34.0, 32.0)
+	decrease_button.custom_minimum_size = Vector2(28.0, 26.0)
 	decrease_button.pressed.connect(adjust_simulation_setting.bind(setting, -step))
 	row.add_child(decrease_button)
 
 	var value_label := Label.new()
-	value_label.custom_minimum_size.x = 58.0
+	value_label.custom_minimum_size.x = 48.0
 	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	value_label.add_theme_color_override("font_color", UI_TEXT_COLOR)
 	row.add_child(value_label)
 
 	var increase_button := Button.new()
 	increase_button.text = "+"
-	increase_button.custom_minimum_size = Vector2(34.0, 32.0)
+	increase_button.custom_minimum_size = Vector2(28.0, 26.0)
 	increase_button.pressed.connect(adjust_simulation_setting.bind(setting, step))
 	row.add_child(increase_button)
 	return value_label
@@ -2279,24 +2244,24 @@ func _select_option(option: OptionButton, option_id: StringName) -> void:
 
 func _add_impact_control_row(parent: VBoxContainer, title: String, setting: StringName, step: float) -> void:
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
+	row.add_theme_constant_override("separation", 6)
 	parent.add_child(row)
 
 	var name_label := Label.new()
 	name_label.text = title
-	name_label.custom_minimum_size.x = 112.0
-	name_label.add_theme_font_size_override("font_size", 11)
+	name_label.custom_minimum_size.x = 88.0
+	name_label.add_theme_font_size_override("font_size", 10)
 	name_label.add_theme_color_override("font_color", UI_MUTED_COLOR)
 	row.add_child(name_label)
 
 	var decrease_button := Button.new()
 	decrease_button.text = "−"
-	decrease_button.custom_minimum_size = Vector2(34.0, 32.0)
+	decrease_button.custom_minimum_size = Vector2(28.0, 26.0)
 	decrease_button.pressed.connect(adjust_impact_setting.bind(setting, -step))
 	row.add_child(decrease_button)
 
 	var value_label := Label.new()
-	value_label.custom_minimum_size.x = 58.0
+	value_label.custom_minimum_size.x = 48.0
 	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	value_label.add_theme_color_override("font_color", UI_TEXT_COLOR)
 	row.add_child(value_label)
@@ -2304,7 +2269,7 @@ func _add_impact_control_row(parent: VBoxContainer, title: String, setting: Stri
 
 	var increase_button := Button.new()
 	increase_button.text = "+"
-	increase_button.custom_minimum_size = Vector2(34.0, 32.0)
+	increase_button.custom_minimum_size = Vector2(28.0, 26.0)
 	increase_button.pressed.connect(adjust_impact_setting.bind(setting, step))
 	row.add_child(increase_button)
 
