@@ -784,3 +784,24 @@ This is an append-only engineering journal. Each substantial session is recorded
 ### After work
 - Local import clean; full local regression passed (smoke, configuration persistence, all terrain markers, world loading, Phase 5 simulation tools).
 - Limits: no collision-aware camera boom, no smooth mode blending, and rotating/panning use right-drag only; the existing Escape capture toggle is unchanged.
+
+## 2026-11-12 - Compact responsive interface
+
+### Before work
+- Started from `main` at `5840d5e` after PR #32 merged the per-mode camera pass.
+- The owner reported that the interface used too much space, controls were too large, and details were excessive, and asked for a simpler, cohesive design including the scroll area. The window was fixed at 1280x720.
+- Scope: theme, HUD, hints, spawn menu, Simulation panel, display settings, regression assertions, and docs. Out of scope: gameplay, physics, input bindings, and addon installation.
+
+### During work
+- Set the project to start maximized and render the UI on a 1920x1080 canvas with `canvas_items` stretching and `expand` aspect.
+- Unified the theme: 14 px headings, 9 px muted section labels, one border alpha, 8 px control/inset radius, 12 px panel radius, 6 px gaps, and 30 px control heights.
+- Simplified the HUD to a title plus three status lines; replaced the four keycap widgets with one muted hint line.
+- Simplified the Spawn Menu header to title plus a live type/limit label, and removed its hint line and divider.
+- Removed the Simulation panel's duplicate title, subheading, and separators; bounded its height instead of stretching it to the window bottom.
+- Added a custom slim scrollbar style with rounded grabber states.
+- Extended the Phase 5 regression with compact-width, bounded-height, scrollbar-style, stretch-mode, aspect, and maximized-start assertions.
+- Reviewed an actual 1920x1009 screenshot of the default HUD and the open Spawn Menu; adjusted the panel height until the status line fit without a scrollbar.
+
+### After work
+- Local import clean; full local regression passed (smoke, configuration persistence, all terrain markers, world loading, and Phase 5 simulation tools).
+- Limits: visual review covered one Windows display only; small/high-DPI screens and Linux text rendering are unverified. Physics and sandbox behavior are unchanged.

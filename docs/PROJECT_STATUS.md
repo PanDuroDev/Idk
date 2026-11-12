@@ -169,6 +169,17 @@ Each issue contains its own AI prompt, PR breakdown, acceptance criteria, and co
 - The Phase 5 regression asserts player input locking, orbit/overview aim origins, the orbit aim direction, and that a queued blast is camera-sourced.
 - Limits: no cinematic camera blending, collision-aware camera boom, or third-person follow camera; right-drag rotation has no pointer lock indicator beyond the existing Escape toggle.
 
+## Compact responsive interface
+
+- The window starts maximized. The UI renders on a 1920x1080 canvas with `canvas_items` stretching and an `expand` aspect, so it scales with the window and fills wider displays instead of staying locked to 1280x720.
+- The visual system was simplified: 14 px panel headings, 9 px muted section labels, one shared border alpha, consistent 8 px control/inset radius, 12 px outer panel radius, 6 px gaps, and one 30 px control height.
+- HUD keeps a title and three status lines; the four keycap widgets were replaced by a single muted hint line. The Spawn Menu dropped its hint line and divider and pairs its title with a live type/limit label.
+- The Simulation panel dropped its duplicate title, subheading, and separators, and now has a bounded height (about 560 logical px) instead of stretching to the bottom edge.
+- Scroll bars now share a slim custom style: a 6 px transparent track with a rounded grabber and distinct hover/pressed states.
+- The Phase 5 regression asserts compact panel widths, the shared scrollbar style, bottom-left growth of the bounded Simulation panel, canvas stretching with `expand`, and a maximized start.
+- Local Windows validation imported cleanly, passed the full regression, and an interactive screenshot review at 1920x1009 confirmed the compact layout.
+- Limits: the UI was reviewed at 1920x1009 only; very small or high-DPI displays and text rendering on Linux still need manual review.
+
 ## Required update protocol
 
 Every substantial session updates this file and `WORK_LOG.md` at three points:

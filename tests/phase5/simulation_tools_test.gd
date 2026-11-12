@@ -161,6 +161,24 @@ func _run() -> void:
 	if key_hints == null or key_hints.theme != ui_theme:
 		_fail("HUD control hints are missing their shared bordered panel")
 		return
+	if simulation_panel.custom_minimum_size.x > 320.0 or hud_panel.custom_minimum_size.x > 240.0:
+		_fail("HUD panels are not compact")
+		return
+	if simulation_panel.anchor_bottom != 0.0:
+		_fail("Simulation panel is not bounded below its content")
+		return
+	if not ui_theme.has_stylebox("grabber", "VScrollBar"):
+		_fail("Scrollable controls are missing the shared slim scrollbar style")
+		return
+	if String(ProjectSettings.get_setting("display/window/stretch/mode")) != "canvas_items":
+		_fail("UI does not scale with the window")
+		return
+	if String(ProjectSettings.get_setting("display/window/stretch/aspect")) != "expand":
+		_fail("UI does not expand to wider displays")
+		return
+	if int(ProjectSettings.get_setting("display/window/size/mode")) != 2:
+		_fail("Game window does not start maximized")
+		return
 	var primary_button: Button = simulation_panel.find_child("RunScenarioButton", true, false) as Button
 	if primary_button == null:
 		_fail("Primary scenario action is missing")

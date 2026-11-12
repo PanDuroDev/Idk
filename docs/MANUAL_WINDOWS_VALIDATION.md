@@ -123,6 +123,8 @@ Do not treat a single FPS reading as a benchmark. Record the resolution, graphic
 - Fire at the structure and confirm the floor under it is carved as well, not only the structure itself.
 - Confirm the blast tool detonates instantly at the aim point instead of launching a rocket from the camera.
 - Confirm the HUD and control panel use the dark theme, the crosshair remains visible as the aim reticle in every camera mode, and the panel stays anchored top-right after resizing the window.
+- Confirm the game opens maximized and fills the display; resize the window and switch aspect ratios, then confirm the HUD stays top-left, the Simulation panel stays top-right, and the hint line stays centered at the bottom without overlap.
+- Confirm the Simulation panel is compact (about 300 px wide on a 1920-wide window), ends below its status line instead of running to the bottom edge, and shows a thin rounded scrollbar only if the content needs scrolling.
 - Run a settled scenario and confirm damage, crater, chips, and shake are applied immediately with no flying rocket.
 - Use the panel Camera row and the **C** key to switch between first person, orbit, and overview. Confirm orbit rotates on right-drag and zooms with the wheel, overview pans on right-drag and zooms with the wheel, WASD does not move the player outside first person, and switching back to first person restores movement/aiming.
 - In orbit and overview, fire the blast tool and throw a carried rocket. Confirm the impact or throw starts from the camera view rather than the player's position.
